@@ -152,11 +152,12 @@ export default function CardPopover({
       await handleAddAttachment(fileData);
       setIsUploading(false);
       setUploadPercent(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Lỗi đính kèm tệp:", err);
       setIsUploading(false);
       setUploadPercent(null);
-      alert("Lỗi tải tệp lên Google Drive: " + (err.message || err));
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Lỗi tải tệp lên Google Drive: " + message);
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
