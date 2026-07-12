@@ -64,9 +64,22 @@ export async function POST(request: Request) {
       metadata.parents = [folderId];
     }
 
-    const uploadForm = new FormData();
-    uploadForm.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-    uploadForm.append("file", file);
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const boundary = "boundary_string_pastel";
+    const headerPart = 
+      `\r\n--${boundary}\r\n` +
+      `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+      `${JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\n` +
+      `Content-Type: ${file.type || "application/octet-stream"}\r\n\r\n`;
+
+    const footerPart = `\r\n--${boundary}--`;
+
+    const bodyBuffer = Buffer.concat([
+      Buffer.from(headerPart, "utf8"),
+      fileBuffer,
+      Buffer.from(footerPart, "utf8")
+    ]);
 
     const uploadResponse = await fetch(
       "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,mimeType",
@@ -74,8 +87,9 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "Content-Type": `multipart/related; boundary=${boundary}`,
         },
-        body: uploadForm,
+        body: bodyBuffer,
       }
     );
 
