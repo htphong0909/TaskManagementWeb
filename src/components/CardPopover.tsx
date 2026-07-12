@@ -77,6 +77,27 @@ export default function CardPopover({
     }
   }, [uploadingFile, deletingIds, onBusyChange]);
 
+  // Cập nhật Mô tả
+  const handleSaveDescription = useCallback(async () => {
+    try {
+      const { error } = await supabase
+        .from("cards")
+        .update({ content: description.trim() })
+        .eq("id", card.id);
+
+      if (error) throw error;
+      setIsEditingDesc(false);
+      onCardUpdated();
+    } catch (err) {
+      console.error("Lỗi cập nhật mô tả thẻ:", err);
+    }
+  }, [card.id, description, onCardUpdated]);
+
+  // Đồng bộ lại nội dung mô tả khi prop card thay đổi từ bên ngoài
+  useEffect(() => {
+    setDescription(card.content || "");
+  }, [card.id, card.content]);
+
   // Tự động lưu mô tả khi click ra ngoài vùng soạn thảo
   useEffect(() => {
     if (!isEditingDesc) return;
@@ -92,22 +113,6 @@ export default function CardPopover({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isEditingDesc, handleSaveDescription]);
-
-  // Cập nhật Mô tả
-  const handleSaveDescription = async () => {
-    try {
-      const { error } = await supabase
-        .from("cards")
-        .update({ content: description.trim() })
-        .eq("id", card.id);
-
-      if (error) throw error;
-      setIsEditingDesc(false);
-      onCardUpdated();
-    } catch (err) {
-      console.error("Lỗi cập nhật mô tả thẻ:", err);
-    }
-  };
 
   // Thêm file đính kèm
   const handleAddAttachment = async (file: { name: string; url: string; fileId: string; mimeType: string }) => {
