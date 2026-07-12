@@ -1,3 +1,30 @@
+# Quản lý Cột danh sách (Lists/Columns Management) Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Triển khai các tính năng tạo cột mới (ở phía cuối), đổi tên cột trực tiếp bằng inline input, và xóa cột (hiển thị nút xóa khi hover) kèm modal xác nhận.
+
+**Architecture:**
+- **BoardDetailPage (`src/app/board/[id]/page.tsx`):**
+  - Quản lý các trạng thái thêm cột mới (`isAddingList`, `newListTitle`).
+  - Quản lý các trạng thái đổi tên cột (`editingListId`, `editListTitle`).
+  - Quản lý trạng thái xóa cột (`listToDelete`) và hiển thị Modal xác nhận qua React Portal.
+  - Các hàm gọi Supabase API: `handleAddList`, `handleRenameList`, `handleDeleteList`.
+
+**Tech Stack:** React 19, Next.js 16, Tailwind CSS v4, Supabase JS, Vitest.
+
+---
+
+### Task 1: Cập nhật trang `/board/[id]/page.tsx` với logic quản lý Cột
+
+**Files:**
+- Modify: `src/app/board/[id]/page.tsx`
+
+- [ ] **Step 1: Cập nhật mã nguồn của `src/app/board/[id]/page.tsx`**
+
+Cập nhật `src/app/board/[id]/page.tsx` để tích hợp đầy đủ UI/UX thêm, sửa inline, xóa cột công việc:
+
+```typescript
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -78,9 +105,9 @@ export default function BoardDetailPage() {
   }, [boardId]);
 
   useEffect(() => {
+    setMounted(true);
     if (boardId) {
       const timer = setTimeout(() => {
-        setMounted(true);
         fetchBoardData();
       }, 0);
       return () => {
@@ -345,3 +372,28 @@ export default function BoardDetailPage() {
     </div>
   );
 }
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/app/board/[id]/page.tsx
+git commit -m "feat: implement board lists/columns add, inline rename, and delete actions with confirm portal"
+```
+
+---
+
+### Task 2: Kiểm tra và Xác minh cuối cùng
+
+**Files:**
+- N/A
+
+- [ ] **Step 1: Chạy linter**
+
+Run: `npm run lint`
+Expected: PASS
+
+- [ ] **Step 2: Chạy build sản phẩm**
+
+Run: `npm run build`
+Expected: PASS
