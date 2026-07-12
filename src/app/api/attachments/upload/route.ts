@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     // Developer Mock Mode Fallback if config is missing
-    if (!saEmail || !saPrivateKey || !folderId) {
+    if (!saEmail || !saPrivateKey) {
       console.warn("Missing Google Service Account configuration. Running in API Mock Mode.");
       const formData = await request.formData();
       const file = formData.get("file") as File;
@@ -77,11 +77,13 @@ export async function POST(request: Request) {
     const accessToken = await getAccessToken(saEmail, saPrivateKey);
 
     // Google Drive multipart upload
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       name: file.name,
       mimeType: file.type || "application/octet-stream",
-      parents: [folderId],
     };
+    if (folderId) {
+      metadata.parents = [folderId];
+    }
 
     const uploadForm = new FormData();
     uploadForm.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
