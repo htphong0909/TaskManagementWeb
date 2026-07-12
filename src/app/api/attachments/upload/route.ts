@@ -1,40 +1,22 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 
-function generateJWT(email: string, privateKey: string): string {
-  const header = { alg: "RS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: email,
-    scope: "https://www.googleapis.com/auth/drive",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const base64Header = Buffer.from(JSON.stringify(header)).toString("base64url");
-  const base64Claim = Buffer.from(JSON.stringify(claim)).toString("base64url");
-  const signatureInput = `${base64Header}.${base64Claim}`;
-  const sign = crypto.createSign("RSA-SHA256");
-  sign.update(signatureInput);
-  const signature = sign.sign(privateKey, "base64url");
-
-  return `${signatureInput}.${signature}`;
-}
-
-async function getAccessToken(email: string, privateKey: string): Promise<string> {
-  const jwt = generateJWT(email, privateKey);
+async function getAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }).toString(),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Failed to get OAuth token: ${errText}`);
+    throw new Error(`Failed to refresh access token: ${errText}`);
   }
 
   const data = await response.json();
@@ -43,13 +25,14 @@ async function getAccessToken(email: string, privateKey: string): Promise<string
 
 export async function POST(request: Request) {
   try {
-    const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    let saPrivateKey = process.env.GOOGLE_PRIVATE_KEY;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     // Developer Mock Mode Fallback if config is missing
-    if (!saEmail || !saPrivateKey) {
-      console.warn("Missing Google Service Account configuration. Running in API Mock Mode.");
+    if (!clientId || !clientSecret || !refreshToken) {
+      console.warn("Missing Google Refresh Token configuration. Running in API Mock Mode.");
       const formData = await request.formData();
       const file = formData.get("file") as File;
       if (!file) {
@@ -64,17 +47,13 @@ export async function POST(request: Request) {
       });
     }
 
-    if (saPrivateKey.includes("\\n")) {
-      saPrivateKey = saPrivateKey.replace(/\\n/g, "\n");
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File;
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const accessToken = await getAccessToken(saEmail, saPrivateKey);
+    const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
 
     // Google Drive multipart upload
     const metadata: Record<string, unknown> = {
