@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -30,6 +31,7 @@ export default function BoardSwitcher({
   
   // Xóa board state
   const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
+  const [mounted, setMounted] = useState(false);
   
   const router = useRouter();
 
@@ -43,9 +45,13 @@ export default function BoardSwitcher({
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      setMounted(true);
       fetchBoards();
     }, 0);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setMounted(false);
+    };
   }, [fetchBoards]);
 
   const handleAddBoard = async (e: React.FormEvent) => {
@@ -187,7 +193,7 @@ export default function BoardSwitcher({
       </div>
 
       {/* Quick Add Modal */}
-      {showAddModal && (
+      {showAddModal && mounted && createPortal(
         <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white/90 backdrop-blur-lg border border-white/50 p-6 rounded-2xl shadow-xl w-full max-w-sm">
             <h3 className="text-sm font-bold text-slate-800 mb-4">Tạo bảng công việc mới</h3>
@@ -218,16 +224,17 @@ export default function BoardSwitcher({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {boardToDelete && (
+      {boardToDelete && mounted && createPortal(
         <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white/90 backdrop-blur-lg border border-white/50 p-6 rounded-2xl shadow-xl w-full max-w-sm">
             <h3 className="text-sm font-bold text-slate-800 mb-2">Xóa bảng công việc?</h3>
             <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-              Bạn có chắc chắn muốn xóa bảng <strong className="text-slate-700">"{boardToDelete.title}"</strong>? Tất cả các cột danh sách và thẻ công việc bên trong sẽ bị xóa vĩnh viễn và không thể khôi phục.
+              Bạn có chắc chắn muốn xóa bảng <strong className="text-slate-700">&quot;{boardToDelete.title}&quot;</strong>? Tất cả các cột danh sách và thẻ công việc bên trong sẽ bị xóa vĩnh viễn và không thể khôi phục.
             </p>
             <div className="flex justify-end gap-2 text-xs">
               <button
@@ -245,7 +252,8 @@ export default function BoardSwitcher({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
