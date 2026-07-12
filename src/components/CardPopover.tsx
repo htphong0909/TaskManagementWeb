@@ -21,6 +21,7 @@ interface Attachment {
   name: string;
   url: string;
   mime_type: string | null;
+  file_id: string | null;
 }
 
 export default function CardPopover({
@@ -48,7 +49,7 @@ export default function CardPopover({
   const fetchAttachments = useCallback(async () => {
     const { data } = await supabase
       .from("attachments")
-      .select("id, name, url, mime_type")
+      .select("id, name, url, mime_type, file_id")
       .eq("card_id", card.id);
     setAttachments(data || []);
   }, [card.id]);
