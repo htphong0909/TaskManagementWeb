@@ -231,6 +231,16 @@ export default function BoardPage() {
     }
   };
 
+  // Đăng xuất tài khoản
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err) {
+      console.error("Lỗi đăng xuất:", err);
+    }
+  };
+
   // Hover Popover events
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
     if (isPopoverBusy) return;
@@ -384,26 +394,28 @@ export default function BoardPage() {
 
   if (loadingWorkspace) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] flex flex-col items-center justify-center p-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500"></div>
-        <p className="text-slate-400 text-xs font-semibold mt-4">Đang tải không gian làm việc...</p>
+        <p className="text-slate-500 text-xs font-semibold mt-4">Đang tải không gian làm việc...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950/40 p-6 flex flex-col gap-6 text-slate-100">
+    <div className="min-h-screen bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] p-6 flex flex-col gap-6 text-slate-800 relative overflow-hidden">
+      {/* Background glowing pastel circles */}
+      <div className="absolute top-[10%] left-[10%] h-[350px] w-[350px] rounded-full bg-violet-300/20 blur-[80px] pointer-events-none"></div>
+      <div className="absolute bottom-[10%] right-[10%] h-[350px] w-[350px] rounded-full bg-pink-300/20 blur-[80px] pointer-events-none"></div>
+
       {/* Header Board */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/")}
-            className="px-3.5 py-1.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition duration-150 cursor-pointer"
-          >
-            ← Bảng điều khiển
-          </button>
-          <h2 className="text-lg font-black tracking-tight text-white select-none">{boardTitle || "Bảng công việc"}</h2>
-        </div>
+      <div className="flex items-center justify-between border-b border-slate-200/60 pb-4 relative z-10">
+        <h2 className="text-xl font-bold tracking-tight text-slate-800 select-none">{boardTitle || "Bảng công việc"}</h2>
+        <button
+          onClick={handleSignOut}
+          className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white/70 hover:bg-white text-xs font-bold text-slate-600 hover:text-slate-800 transition duration-150 cursor-pointer shadow-sm shadow-slate-100"
+        >
+          Đăng xuất
+        </button>
       </div>
 
       {/* Board Columns Area */}
