@@ -1,54 +1,3 @@
-# Quản lý Thẻ công việc (Cards Management) Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** Triển khai các tính năng hiển thị thẻ, thêm thẻ mới (kèm chọn deadline), sửa tiêu đề thẻ trực tiếp (inline) và xóa thẻ.
-
-**Architecture:**
-- **Database:** Tạo file migration SQL bổ sung cột `due_date` cho bảng `cards`.
-- **BoardDetailPage (`src/app/board/[id]/page.tsx`):**
-  - Quản lý các trạng thái thêm thẻ mới theo từng cột (`addingCardListId`, `newCardTitle`, `newCardDueDate`).
-  - Quản lý các trạng thái sửa tên thẻ (`editingCardId`, `editCardTitle`).
-  - Quản lý trạng thái xóa thẻ (`cardToDelete`) và hiển thị Modal xác nhận qua React Portal.
-  - Các hàm gọi Supabase API: `handleAddCard`, `handleRenameCard`, `handleDeleteCard`.
-
-**Tech Stack:** React 19, Next.js 16, Tailwind CSS v4, Supabase JS, Vitest.
-
----
-
-### Task 1: Tạo file migration SQL bổ sung cột `due_date` cho bảng `cards`
-
-**Files:**
-- Create: `supabase/migrations/20260712161500_add_due_date_to_cards.sql`
-
-- [ ] **Step 1: Tạo file SQL migration**
-
-Tạo file `supabase/migrations/20260712161500_add_due_date_to_cards.sql` với câu lệnh:
-
-```sql
--- Thêm cột due_date cho bảng cards
-ALTER TABLE public.cards ADD COLUMN IF NOT EXISTS due_date TIMESTAMP WITH TIME ZONE;
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add supabase/migrations/20260712161500_add_due_date_to_cards.sql
-git commit -m "db: add due_date column to cards table migration"
-```
-
----
-
-### Task 2: Cập nhật trang `/board/[id]/page.tsx` với logic quản lý Thẻ
-
-**Files:**
-- Modify: `src/app/board/[id]/page.tsx`
-
-- [ ] **Step 1: Cập nhật mã nguồn của `src/app/board/[id]/page.tsx`**
-
-Cập nhật `src/app/board/[id]/page.tsx` để tích hợp đầy đủ UI/UX thêm, sửa inline, xóa thẻ công việc và hiển thị ngày tạo, deadline:
-
-```typescript
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -144,9 +93,9 @@ export default function BoardDetailPage() {
   }, [boardId]);
 
   useEffect(() => {
-    setMounted(true);
     if (boardId) {
       const timer = setTimeout(() => {
+        setMounted(true);
         fetchBoardData();
       }, 0);
       return () => {
@@ -183,6 +132,12 @@ export default function BoardDetailPage() {
     } catch (err) {
       console.error("Lỗi thêm danh sách cột:", err);
     }
+  };
+
+  // Bắt đầu đổi tên cột
+  const handleStartRenameList = (list: List) => {
+    setEditingListId(list.id);
+    setEditListTitle(list.title);
   };
 
   // Sửa tên cột
@@ -302,7 +257,6 @@ export default function BoardDetailPage() {
   };
 
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
-    // Chỉ hiển thị Popover khi KHÔNG ở chế độ edit tên thẻ
     if (editingCardId === card.id) return;
     const rect = event.currentTarget.getBoundingClientRect();
     setHoveredCard(card);
@@ -314,7 +268,6 @@ export default function BoardDetailPage() {
     setHoveredRect(null);
   };
 
-  // Định dạng ngày tạo
   const formatCreatedAt = (dateStr: string) => {
     const d = new Date(dateStr);
     const day = String(d.getDate()).padStart(2, "0");
@@ -323,7 +276,6 @@ export default function BoardDetailPage() {
     return `${day}/${month}/${year}`;
   };
 
-  // Định dạng Deadline và tính màu sắc khẩn cấp
   const getDeadlineStyleAndText = (dueDateStr: string | null) => {
     if (!dueDateStr) return null;
 
@@ -338,10 +290,9 @@ export default function BoardDetailPage() {
 
     const text = `${hours}:${minutes} - ${day}/${month}/${year}`;
 
-    // Tính khẩn cấp
     const diffMs = d.getTime() - now.getTime();
     const isOverdue = diffMs < 0;
-    const isApproaching = diffMs >= 0 && diffMs <= 24 * 60 * 60 * 1000; // Trong 24h
+    const isApproaching = diffMs >= 0 && diffMs <= 24 * 60 * 60 * 1000;
 
     let className = "text-[11px] font-bold px-2 py-1 rounded-lg border w-max flex items-center gap-1.5 ";
     if (isOverdue) {
@@ -448,17 +399,17 @@ export default function BoardDetailPage() {
                           />
                         ) : (
                           <>
-                            {/* Góc trái trên: Ngày tạo */}
+                            {/* Ngày tạo */}
                             <span className="text-[10px] text-slate-400 font-medium text-left">
                               {formatCreatedAt(card.created_at)}
                             </span>
 
-                            {/* Chính giữa: Tiêu đề */}
+                            {/* Tiêu đề */}
                             <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4">
                               {card.title}
                             </span>
 
-                            {/* Góc trái dưới: Deadline */}
+                            {/* Deadline */}
                             {dlInfo && (
                               <div className={dlInfo.className}>
                                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -468,7 +419,7 @@ export default function BoardDetailPage() {
                               </div>
                             )}
 
-                            {/* Nút xóa thẻ xuất hiện khi hover */}
+                            {/* Nút xóa thẻ khi hover */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
