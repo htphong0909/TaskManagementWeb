@@ -1,11 +1,113 @@
+# Tái thiết kế màn hình Đăng nhập (Auth Page) Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Thay đổi giao diện màn hình Đăng nhập / Đăng ký sang chuẩn Premium Glass-Pastel màu sáng, đồng thời dọn dẹp loại bỏ phần Kanban Board cũ để chuẩn bị thiết kế chi tiết sau.
+
+**Architecture:** Tái cơ cấu `src/app/page.tsx` thành màn hình chỉ tập trung vào đăng nhập. Khi chưa đăng nhập hiển thị form đăng nhập căn giữa dạng Card mờ trong suốt (Glassmorphism) trên nền gradient pastel. Khi đăng nhập thành công, hiển thị một Welcome Card tối giản kèm nút Đăng xuất.
+
+**Tech Stack:** React 19, Next.js 16 (App Router), Tailwind CSS v4, Supabase JS, Vitest, Testing Library.
+
+## Global Constraints
+- **Màu nền (Background):** `bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa]`
+- **Cột/Thẻ mờ kính (Glassmorphism):** `bg-white/70 backdrop-blur-xl border border-white/50 shadow-xl`
+- **Bo góc (Border Radius):** Cột/Thẻ bo góc `rounded-2xl` (16px), Cards/Buttons bo góc `rounded-xl` (12px).
+- **Tương tác vi mô:** Inputs khi active được bao quanh bằng bóng phát sáng màu tím pastel: `focus:border-violet-400 focus:ring-4 focus:ring-violet-200/40`.
+
+---
+
+### Task 1: Tách biệt và Cập nhật Test Cases cho Auth Page
+
+**Files:**
+- Modify: `src/__tests__/page.test.tsx`
+
+**Interfaces:**
+- Consumes: Supabase authentication state
+- Produces: Test cases checking login header rendering and welcome page rendering
+
+- [ ] **Step 1: Cập nhật file test với các test case mới**
+
+Cập nhật `src/__tests__/page.test.tsx` để bổ sung thêm trường hợp kiểm tra giao diện chào mừng khi người dùng đã đăng nhập:
+
+```typescript
+import { expect, test, vi } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
+import React from 'react';
+import Home from '../app/page';
+import { supabase } from '../lib/supabase';
+
+// Mock Supabase to avoid network calls and authentication issues during testing
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
+
+test('renders the task management homepage login form after initialization', async () => {
+  vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: null } } as any);
+  await act(async () => {
+    render(<Home />);
+  });
+  const loginHeader = screen.getByText(/Đăng nhập Webapp/i);
+  expect(loginHeader).toBeDefined();
+});
+
+test('renders the welcome dashboard when user is logged in', async () => {
+  // Mock active session
+  const mockUser = { id: 'user-123', email: 'test@example.com' };
+  vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: mockUser } } as any });
+  
+  await act(async () => {
+    render(<Home />);
+  });
+  
+  const welcomeText = screen.getByText(/test@example.com/i);
+  expect(welcomeText).toBeDefined();
+});
+```
+
+- [ ] **Step 2: Chạy kiểm thử để đảm bảo các test case thất bại hoặc báo lỗi biên dịch (do chưa có code mới)**
+
+Run: `npm run test`
+Expected: FAIL (ở test case đăng nhập thành công do giao diện Welcome chưa được triển khai)
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/__tests__/page.test.tsx
+git commit -m "test: add tests for authentication redesign views"
+```
+
+---
+
+### Task 2: Triển khai giao diện đăng nhập Glass-Pastel và Welcome Card trong page.tsx
+
+**Files:**
+- Modify: `src/app/page.tsx`
+
+**Interfaces:**
+- Consumes: Supabase Client, Auth state
+- Produces: Polished glassmorphism auth views and clean logged in landing state
+
+- [ ] **Step 1: Viết lại page.tsx loại bỏ các code liên quan đến Kanban board và thay bằng UI/UX mới**
+
+Thay thế hoàn toàn nội dung file `src/app/page.tsx` với code sau:
+
+```typescript
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
+  // Auth state
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
@@ -14,14 +116,16 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
   const [submittingAuth, setSubmittingAuth] = useState(false);
-  const router = useRouter();
 
+  // Listen to auth state
   useEffect(() => {
+    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
     });
 
+    // Listen to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
@@ -29,42 +133,6 @@ export default function Home() {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // Điều hướng khi đã đăng nhập
-  useEffect(() => {
-    if (user && !authLoading) {
-      const handleRedirect = async () => {
-        try {
-          // Lấy danh sách boards
-          const { data: boards, error } = await supabase
-            .from("boards")
-            .select("id")
-            .order("created_at", { ascending: true });
-
-          if (error) throw error;
-
-          if (boards && boards.length > 0) {
-            router.push(`/board/${boards[0].id}`);
-          } else {
-            // Chưa có board nào -> Tạo board mặc định đầu tiên
-            const { data: newBoard, error: createError } = await supabase
-              .from("boards")
-              .insert([{ title: "Bảng đầu tiên", user_id: user.id }])
-              .select("id")
-              .single();
-
-            if (createError) throw createError;
-            if (newBoard) {
-              router.push(`/board/${newBoard.id}`);
-            }
-          }
-        } catch (err) {
-          console.error("Lỗi điều hướng hoặc tạo Board mặc định:", err);
-        }
-      };
-      handleRedirect();
-    }
-  }, [user, authLoading, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +169,10 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   if (authLoading) {
     return (
       <div className="bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden text-slate-800">
@@ -112,13 +184,29 @@ export default function Home() {
     );
   }
 
-  // Nếu user đã đăng nhập, hiển thị màn hình chờ điều hướng
   if (user) {
     return (
       <div className="bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden text-slate-800">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"></div>
-          <p className="text-sm font-medium text-slate-500">Đang chuyển tới không gian làm việc...</p>
+        {/* Background Decorative Gradients */}
+        <div className="absolute top-[20%] left-[20%] h-[350px] w-[350px] rounded-full bg-violet-300/30 blur-[80px] pointer-events-none"></div>
+        <div className="absolute bottom-[20%] right-[20%] h-[350px] w-[350px] rounded-full bg-pink-300/30 blur-[80px] pointer-events-none"></div>
+
+        <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-2xl p-8 relative z-10 text-center">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-2">
+            Chào mừng trở lại,
+          </h2>
+          <p className="text-base font-semibold text-violet-600 mb-2 truncate">
+            {user.email}
+          </p>
+          <p className="text-sm text-slate-500 mb-8">
+            Hệ thống quản lý công việc của bạn đang được thiết lập. Hãy quay lại sau!
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="rounded-xl border border-slate-200 hover:bg-slate-50 px-6 py-2.5 text-xs font-semibold text-slate-600 transition cursor-pointer"
+          >
+            Đăng xuất
+          </button>
         </div>
       </div>
     );
@@ -126,6 +214,7 @@ export default function Home() {
 
   return (
     <div className="bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden text-slate-800">
+      {/* Background Decorative Gradients */}
       <div className="absolute top-[20%] left-[20%] h-[350px] w-[350px] rounded-full bg-violet-300/30 blur-[80px] pointer-events-none"></div>
       <div className="absolute bottom-[20%] right-[20%] h-[350px] w-[350px] rounded-full bg-pink-300/30 blur-[80px] pointer-events-none"></div>
 
