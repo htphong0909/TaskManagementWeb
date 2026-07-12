@@ -402,24 +402,18 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] p-6 flex flex-col gap-6 text-slate-800 relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-tr from-[#bae6fd] via-[#c7d2fe] to-[#e0e7ff] p-6 flex flex-col gap-6 text-slate-800 relative overflow-hidden">
       {/* Background glowing pastel circles */}
       <div className="absolute top-[10%] left-[10%] h-[350px] w-[350px] rounded-full bg-violet-300/20 blur-[80px] pointer-events-none"></div>
       <div className="absolute bottom-[10%] right-[10%] h-[350px] w-[350px] rounded-full bg-pink-300/20 blur-[80px] pointer-events-none"></div>
 
       {/* Header Board */}
-      <div className="flex items-center justify-between border-b border-slate-200/60 pb-4 relative z-10">
+      <div className="flex items-center justify-between border-b border-slate-300/50 pb-4 relative z-10">
         <h2 className="text-xl font-bold tracking-tight text-slate-800 select-none">{boardTitle || "Bảng công việc"}</h2>
-        <button
-          onClick={handleSignOut}
-          className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white/70 hover:bg-white text-xs font-bold text-slate-600 hover:text-slate-800 transition duration-150 cursor-pointer shadow-sm shadow-slate-100"
-        >
-          Đăng xuất
-        </button>
       </div>
 
       {/* Board Columns Area */}
-      <div className="flex-1 flex gap-5 overflow-x-auto pb-4 items-start select-none">
+      <div className="flex-1 flex gap-5 overflow-x-auto pb-4 items-start select-none pt-1">
         {lists.map((list) => {
           const listCards = cards.filter((c) => c.list_id === list.id).sort((a, b) => a.position - b.position);
 
