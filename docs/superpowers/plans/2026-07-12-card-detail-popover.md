@@ -1,6 +1,196 @@
+# Bảng thông tin chi tiết của Thẻ & Google Picker API Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Nâng cấp Popover chi tiết của thẻ thành bảng tương tác: hỗ trợ biên dịch/sửa Markdown inline, đính kèm tệp Google Drive thật (hoặc Mock Drive fallback khi thiếu keys) và áp dụng cơ chế cầu nối hover.
+
+---
+
+### Task 1: Tạo bảng `attachments` trong cơ sở dữ liệu Supabase
+
+**Files:**
+- Create: `supabase/migrations/20260712163800_create_attachments_table.sql`
+
+- [ ] **Step 1: Tạo file SQL migration**
+
+Tạo file `supabase/migrations/20260712163800_create_attachments_table.sql` với câu lệnh:
+
+```sql
+-- Tạo bảng attachments lưu tệp đính kèm của thẻ
+CREATE TABLE IF NOT EXISTS public.attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id UUID NOT NULL REFERENCES public.cards(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  file_id TEXT,
+  mime_type TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Bật Row Level Security (RLS)
+ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách an toàn cho attachments
+CREATE POLICY "Cho phép tất cả thao tác trên attachments" ON public.attachments
+  FOR ALL TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+```
+
+- [ ] **Step 2: Áp dụng migration**
+
+Chạy lệnh để cập nhật DB:
+```bash
+npx supabase db push
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add supabase/migrations/20260712163800_create_attachments_table.sql
+git commit -m "db: create attachments table migration with rls bypass policies"
+```
+
+---
+
+### Task 2: Xây dựng trình nạp và quản lý Google Picker API (SDK Client Loader)
+
+**Files:**
+- Create: `src/hooks/useGooglePicker.ts`
+
+- [ ] **Step 1: Tạo React Hook `useGooglePicker.ts`**
+
+Tạo mới hook `src/hooks/useGooglePicker.ts` quản lý nạp thư viện Google và kích hoạt Picker. Nếu thiếu key cấu hình, hỗ trợ mở giao diện chọn file Drive giả lập (Mock Picker Mode).
+
+```typescript
+import { useState, useEffect, useCallback } from "react";
+
+interface FilePickedData {
+  name: string;
+  url: string;
+  fileId: string;
+  mimeType: string;
+}
+
+export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
+  const [gapiLoaded, setGapiLoaded] = useState(false);
+  const [gisLoaded, setGisLoaded] = useState(false);
+  const [tokenClient, setTokenClient] = useState<any>(null);
+
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const appId = process.env.NEXT_PUBLIC_GOOGLE_APP_ID;
+
+  const isConfigured = !!(clientId && apiKey && appId);
+
+  useEffect(() => {
+    if (!isConfigured) return;
+
+    // Load api.js
+    const gapiScript = document.createElement("script");
+    gapiScript.src = "https://apis.google.com/js/api.js";
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = () => {
+      const g = window as any;
+      if (g.gapi) {
+        g.gapi.load("picker", () => setGapiLoaded(true));
+      }
+    };
+    document.body.appendChild(gapiScript);
+
+    // Load gsi/client
+    const gisScript = document.createElement("script");
+    gisScript.src = "https://accounts.google.com/gsi/client";
+    gisScript.async = true;
+    gisScript.defer = true;
+    gisScript.onload = () => {
+      const g = window as any;
+      if (g.google && g.google.accounts && g.google.accounts.oauth2) {
+        const client = g.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: "https://www.googleapis.com/auth/drive.readonly",
+          callback: (response: any) => {
+            if (response.error !== undefined) {
+              console.error("Auth error:", response);
+              return;
+            }
+            openPicker(response.access_token);
+          },
+        });
+        setTokenClient(client);
+        setGisLoaded(true);
+      }
+    };
+    document.body.appendChild(gisScript);
+
+    return () => {
+      if (document.body.contains(gapiScript)) document.body.removeChild(gapiScript);
+      if (document.body.contains(gisScript)) document.body.removeChild(gisScript);
+    };
+  }, [clientId, apiKey, appId, isConfigured]);
+
+  const openPicker = useCallback((accessToken: string) => {
+    const g = window as any;
+    if (!g.google || !g.google.picker) return;
+
+    const view = new g.google.picker.DocsView(g.google.picker.ViewId.DOCS);
+    view.setMimeTypes("image/*,application/pdf,application/vnd.google-apps.document,application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+    const picker = new g.google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setDeveloperKey(apiKey)
+      .setAppId(appId)
+      .setCallback((data: any) => {
+        if (data.action === g.google.picker.Action.PICKED) {
+          const doc = data.docs[0];
+          const fileId = doc[g.google.picker.Document.ID];
+          const name = doc[g.google.picker.Document.NAME];
+          const url = doc[g.google.picker.Document.URL];
+          const mimeType = doc[g.google.picker.Document.MIME_TYPE];
+          onFilePicked({ name, url, fileId, mimeType });
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  }, [apiKey, appId, onFilePicked]);
+
+  const handlePick = useCallback(() => {
+    if (!isConfigured) return false;
+    if (tokenClient) {
+      tokenClient.requestAccessToken({ prompt: "consent" });
+      return true;
+    }
+    return false;
+  }, [tokenClient, isConfigured]);
+
+  return { isConfigured, handlePick };
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/hooks/useGooglePicker.ts
+git commit -m "feat: implement useGooglePicker script loader hook with auth token acquisition"
+```
+
+---
+
+### Task 3: Cập nhật component CardPopover hỗ trợ Markdown và File đính kèm
+
+**Files:**
+- Modify: `src/components/CardPopover.tsx`
+
+- [ ] **Step 1: Nâng cấp mã nguồn `src/components/CardPopover.tsx`**
+
+Sửa đổi `src/components/CardPopover.tsx` để cung cấp giao diện hiển thị Markdown, hộp thoại soạn thảo inline, danh sách file đính kèm, tích hợp Google Picker Hook và Mock Drive Fallback Modal:
+
+```typescript
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useGooglePicker } from "@/hooks/useGooglePicker";
 
@@ -44,20 +234,17 @@ export default function CardPopover({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Nạp danh sách file đính kèm
-  const fetchAttachments = useCallback(async () => {
+  const fetchAttachments = async () => {
     const { data } = await supabase
       .from("attachments")
       .select("id, name, url, mime_type")
       .eq("card_id", card.id);
     setAttachments(data || []);
-  }, [card.id]);
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchAttachments();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [card.id, fetchAttachments]);
+    fetchAttachments();
+  }, [card.id]);
 
   // Cập nhật Mô tả
   const handleSaveDescription = async () => {
@@ -152,7 +339,7 @@ export default function CardPopover({
     // Heading 1
     html = html.replace(/^# (.*?)$/gm, "<h1 class='text-base font-bold text-slate-900 mt-3 mb-2'>$1</h1>");
     // Code block
-    html = html.replace(/```([\s\S]*?)```/g, "<pre class='bg-slate-900 text-slate-100 p-2 rounded-lg my-2 font-mono text-[10px] overflow-x-auto'>$1</pre>");
+    html = html.replace(/```(.*?)```/gs, "<pre class='bg-slate-900 text-slate-100 p-2 rounded-lg my-2 font-mono text-[10px] overflow-x-auto'>$1</pre>");
     // Lists
     html = html.replace(/^\s*-\s+(.*?)$/gm, "<li class='list-disc ml-4 my-0.5'>$1</li>");
 
@@ -236,7 +423,7 @@ export default function CardPopover({
               </a>
               <button
                 onClick={() => handleDeleteAttachment(att.id)}
-                className="text-slate-400 hover:text-rose-500 h-5 w-5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0"
+                className="text-slate-400 hover:text-rose-500 h-5 w-5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer"
                 title="Xóa tệp đính kèm"
               >
                 🗑
@@ -336,3 +523,106 @@ export default function CardPopover({
     </div>
   );
 }
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/components/CardPopover.tsx
+git commit -m "feat: upgrade CardPopover to interactive popover with Markdown editor and Google Picker integration"
+```
+
+---
+
+### Task 4: Cập nhật trang chính `/board/[id]/page.tsx` để tích hợp Hover Bridge và popover mới
+
+**Files:**
+- Modify: `src/app/board/[id]/page.tsx`
+
+- [ ] **Step 1: Tích hợp Hover Bridge và callbacks trong `page.tsx`**
+
+Cập nhật `page.tsx` để thêm `useRef` lưu trữ timeout đóng Popover, các hàm kích hoạt đóng trễ và truyền các tham số tương tác mới cho `CardPopover`:
+
+```typescript
+// Thêm import useRef
+import React, { useState, useEffect, useCallback, useRef } from "react";
+...
+
+// Định nghĩa trong Component
+const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
+  if (editingCardId === card.id) return;
+  // Hủy bộ đếm thời gian nếu chuột vào thẻ khác hoặc quay lại thẻ
+  if (closeTimeoutRef.current) {
+    clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = null;
+  }
+  const rect = event.currentTarget.getBoundingClientRect();
+  setHoveredCard(card);
+  setHoveredRect(rect);
+};
+
+const handleCardMouseLeave = () => {
+  // Trì hoãn việc đóng Popover 200ms
+  closeTimeoutRef.current = setTimeout(() => {
+    setHoveredCard(null);
+    setHoveredRect(null);
+  }, 200);
+};
+
+const handlePopoverMouseEnter = () => {
+  // Hủy lệnh đóng khi chuột di chuyển vào vùng Popover
+  if (closeTimeoutRef.current) {
+    clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = null;
+  }
+};
+
+const handlePopoverMouseLeave = () => {
+  // Trì hoãn việc đóng Popover khi chuột rời khỏi Popover
+  closeTimeoutRef.current = setTimeout(() => {
+    setHoveredCard(null);
+    setHoveredRect(null);
+  }, 200);
+};
+
+// Dưới JSX trả về CardPopover:
+{hoveredCard && hoveredRect && (
+  <CardPopover
+    card={hoveredCard}
+    rect={hoveredRect}
+    onClose={() => {
+      setHoveredCard(null);
+      setHoveredRect(null);
+    }}
+    onCardUpdated={fetchBoardData}
+    onMouseEnter={handlePopoverMouseEnter}
+    onMouseLeave={handlePopoverMouseLeave}
+  />
+)}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/app/board/[id]/page.tsx
+git commit -m "feat: connect hover bridge timeouts in board page for stable card popover interactions"
+```
+
+---
+
+### Task 5: Kiểm tra và Xác minh cuối cùng
+
+**Files:**
+- N/A
+
+- [ ] **Step 1: Chạy linter**
+
+Run: `npm run lint`
+Expected: PASS
+
+- [ ] **Step 2: Chạy build sản phẩm**
+
+Run: `npm run build`
+Expected: PASS

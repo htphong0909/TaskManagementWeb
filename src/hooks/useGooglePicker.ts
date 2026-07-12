@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from "react";
 
 interface FilePickedData {
@@ -8,8 +9,6 @@ interface FilePickedData {
 }
 
 export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
-  const [gapiLoaded, setGapiLoaded] = useState(false);
-  const [gisLoaded, setGisLoaded] = useState(false);
   const [tokenClient, setTokenClient] = useState<any>(null);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -17,53 +16,6 @@ export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
   const appId = process.env.NEXT_PUBLIC_GOOGLE_APP_ID;
 
   const isConfigured = !!(clientId && apiKey && appId);
-
-  useEffect(() => {
-    if (!isConfigured) return;
-
-    // Load api.js
-    const gapiScript = document.createElement("script");
-    gapiScript.src = "https://apis.google.com/js/api.js";
-    gapiScript.async = true;
-    gapiScript.defer = true;
-    gapiScript.onload = () => {
-      const g = window as any;
-      if (g.gapi) {
-        g.gapi.load("picker", () => setGapiLoaded(true));
-      }
-    };
-    document.body.appendChild(gapiScript);
-
-    // Load gsi/client
-    const gisScript = document.createElement("script");
-    gisScript.src = "https://accounts.google.com/gsi/client";
-    gisScript.async = true;
-    gisScript.defer = true;
-    gisScript.onload = () => {
-      const g = window as any;
-      if (g.google && g.google.accounts && g.google.accounts.oauth2) {
-        const client = g.google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: "https://www.googleapis.com/auth/drive.readonly",
-          callback: (response: any) => {
-            if (response.error !== undefined) {
-              console.error("Auth error:", response);
-              return;
-            }
-            openPicker(response.access_token);
-          },
-        });
-        setTokenClient(client);
-        setGisLoaded(true);
-      }
-    };
-    document.body.appendChild(gisScript);
-
-    return () => {
-      if (document.body.contains(gapiScript)) document.body.removeChild(gapiScript);
-      if (document.body.contains(gisScript)) document.body.removeChild(gisScript);
-    };
-  }, [clientId, apiKey, appId, isConfigured]);
 
   const openPicker = useCallback((accessToken: string) => {
     const g = window as any;
@@ -90,6 +42,52 @@ export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
       .build();
     picker.setVisible(true);
   }, [apiKey, appId, onFilePicked]);
+
+  useEffect(() => {
+    if (!isConfigured) return;
+
+    // Load api.js
+    const gapiScript = document.createElement("script");
+    gapiScript.src = "https://apis.google.com/js/api.js";
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = () => {
+      const g = window as any;
+      if (g.gapi) {
+        g.gapi.load("picker", () => {});
+      }
+    };
+    document.body.appendChild(gapiScript);
+
+    // Load gsi/client
+    const gisScript = document.createElement("script");
+    gisScript.src = "https://accounts.google.com/gsi/client";
+    gisScript.async = true;
+    gisScript.defer = true;
+    gisScript.onload = () => {
+      const g = window as any;
+      if (g.google && g.google.accounts && g.google.accounts.oauth2) {
+        const client = g.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: "https://www.googleapis.com/auth/drive.readonly",
+          callback: (response: any) => {
+            if (response.error !== undefined) {
+              console.error("Auth error:", response);
+              return;
+            }
+            openPicker(response.access_token);
+          },
+        });
+        setTokenClient(client);
+      }
+    };
+    document.body.appendChild(gisScript);
+
+    return () => {
+      if (document.body.contains(gapiScript)) document.body.removeChild(gapiScript);
+      if (document.body.contains(gisScript)) document.body.removeChild(gisScript);
+    };
+  }, [clientId, isConfigured, openPicker]);
 
   const handlePick = useCallback(() => {
     if (!isConfigured) return false;
