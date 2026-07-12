@@ -111,9 +111,13 @@ export default function BoardCard({
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
           : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80"
         }
-        ${isDragOver ? "border-t-4 border-t-violet-500 pt-1 shadow-sm" : ""}
+        ${isDragOver ? "border-violet-400 bg-violet-50/20" : ""}
       `}
     >
+      {/* Đường chỉ thị vị trí thả không làm lệch Layout (Jitter-free indicator) */}
+      {isDragOver && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-violet-500 rounded-t-xl pointer-events-none z-20" />
+      )}
       {isEditingCard ? (
         <input
           type="text"
