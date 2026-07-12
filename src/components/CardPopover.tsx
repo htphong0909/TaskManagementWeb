@@ -101,6 +101,17 @@ export default function CardPopover({
   // Xóa file đính kèm
   const handleDeleteAttachment = async (id: string) => {
     try {
+      const attachmentToDelete = attachments.find(att => att.id === id);
+      if (attachmentToDelete && attachmentToDelete.file_id) {
+        // Gọi API backend xóa file trên Google Drive trước
+        const res = await fetch(`/api/attachments/delete?fileId=${attachmentToDelete.file_id}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) {
+          console.warn("Failed to delete file from Google Drive");
+        }
+      }
+
       const { error } = await supabase
         .from("attachments")
         .delete()
