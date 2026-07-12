@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useGooglePicker } from "@/hooks/useGooglePicker";
 
 interface CardPopoverProps {
   card: {
@@ -41,9 +40,6 @@ export default function CardPopover({
   // Upload states
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState<number | null>(null);
-
-  // Mock Picker states
-  const [showMockPicker, setShowMockPicker] = useState(false);
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,19 +113,8 @@ export default function CardPopover({
     }
   };
 
-  // Google Picker Integration Hook
-  const { isConfigured, handlePick, handleUpload } = useGooglePicker(handleAddAttachment);
-
-  // Chọn từ Drive
-  const handleChooseFromDriveClick = () => {
-    const launched = handlePick();
-    if (!launched) {
-      setShowMockPicker(true);
-    }
-  };
-
-  // Trình kích hoạt upload file cục bộ lên Google Drive
-  const handleUploadToDriveClick = () => {
+  // Trình kích hoạt upload file cục bộ lên Google Drive của Host
+  const handleAttachClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -141,55 +126,39 @@ export default function CardPopover({
     if (!file) return;
 
     setIsUploading(true);
-    setUploadPercent(10); // Bắt đầu tiến trình
+    setUploadPercent(10);
 
-    if (isConfigured) {
-      setUploadPercent(40);
-      const launched = handleUpload(
-        file,
-        async (fileData) => {
-          setUploadPercent(90);
-          await handleAddAttachment(fileData);
-          setIsUploading(false);
-          setUploadPercent(null);
-          // reset input file
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        },
-        (err) => {
-          console.error("Lỗi upload file lên Google Drive:", err);
-          setIsUploading(false);
-          setUploadPercent(null);
-          alert("Lỗi tải tệp lên Google Drive. Vui lòng kiểm tra quyền xác thực.");
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        }
-      );
-      if (!launched) {
-        setIsUploading(false);
-        setUploadPercent(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      setUploadPercent(50);
+      const res = await fetch("/api/attachments/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Lỗi tải tệp lên máy chủ");
       }
-    } else {
-      // Chế độ mô phỏng Mock Upload khi dev chạy localhost không cấu hình Key
-      let percent = 10;
-      const interval = setInterval(() => {
-        percent += 30;
-        if (percent >= 100) {
-          setUploadPercent(100);
-          clearInterval(interval);
-          const mockFile = {
-            name: file.name,
-            fileId: "mock-" + Date.now(),
-            mimeType: file.type || "application/octet-stream",
-            url: "https://drive.google.com/file/d/mock-" + Date.now(),
-          };
-          handleAddAttachment(mockFile).then(() => {
-            setIsUploading(false);
-            setUploadPercent(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
-          });
-        } else {
-          setUploadPercent(percent);
-        }
-      }, 300);
+
+      setUploadPercent(85);
+      const fileData = await res.json();
+      if (fileData.error) {
+        throw new Error(fileData.error);
+      }
+
+      setUploadPercent(95);
+      await handleAddAttachment(fileData);
+      setIsUploading(false);
+      setUploadPercent(null);
+    } catch (err: any) {
+      console.error("Lỗi đính kèm tệp:", err);
+      setIsUploading(false);
+      setUploadPercent(null);
+      alert("Lỗi tải tệp lên Google Drive: " + (err.message || err));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -249,14 +218,6 @@ export default function CardPopover({
 
   const topPosition = rect.top;
 
-  // Mock Drive files mẫu
-  const mockFiles = [
-    { name: "Báo cáo doanh thu Q2.pdf", fileId: "mock1", mimeType: "application/pdf", url: "https://drive.google.com/file/d/mock1" },
-    { name: "Logo công ty pastel.png", fileId: "mock2", mimeType: "image/png", url: "https://drive.google.com/file/d/mock2" },
-    { name: "Kế hoạch ra mắt sản phẩm.docx", fileId: "mock3", mimeType: "application/vnd.google-apps.document", url: "https://drive.google.com/file/d/mock3" },
-    { name: "Thiết kế UI Dashboard.fig", fileId: "mock4", mimeType: "application/octet-stream", url: "https://drive.google.com/file/d/mock4" },
-  ];
-
   return (
     <div
       ref={popoverRef}
@@ -292,23 +253,12 @@ export default function CardPopover({
       <div className="mb-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">File Đính Kèm</span>
-          <div className="flex items-center gap-2 text-[10px] font-semibold">
-            <button
-              onClick={handleChooseFromDriveClick}
-              className="text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
-              title="Chọn file có sẵn từ Google Drive"
-            >
-              📂 Chọn từ Drive
-            </button>
-            <span className="text-slate-300">|</span>
-            <button
-              onClick={handleUploadToDriveClick}
-              className="text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
-              title="Tải tệp từ máy lên Google Drive"
-            >
-              📤 Tải lên Drive
-            </button>
-          </div>
+          <button
+            onClick={handleAttachClick}
+            className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
+          >
+            📎 Đính kèm tệp tin
+          </button>
         </div>
 
         {/* Loading progress khi đang upload */}
@@ -317,7 +267,7 @@ export default function CardPopover({
             <div className="flex items-center justify-between font-semibold">
               <span className="flex items-center gap-1">
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-violet-600 border-t-transparent"></span>
-                Đang tải tệp lên Google Drive...
+                Đang tải tệp lên Google Drive của Host...
               </span>
               <span>{uploadPercent}%</span>
             </div>
@@ -400,47 +350,6 @@ export default function CardPopover({
           />
         )}
       </div>
-
-      {/* Mock Drive Selection Overlay (Khi thiếu Client Keys) */}
-      {showMockPicker && (
-        <div className="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white p-5 rounded-2xl shadow-2xl border border-slate-100 w-full max-w-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
-              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <span>🤖</span> Google Drive Mock Picker (Dev Mode)
-              </h4>
-              <button
-                onClick={() => setShowMockPicker(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
-            
-            {!isConfigured && (
-              <div className="bg-amber-50 border border-amber-100 p-2.5 rounded-xl text-[10px] text-amber-700 leading-normal mb-3">
-                <strong>Chú ý:</strong> Ứng dụng đang thiếu cấu hình khóa Google (API Key/Client ID) trong <code>.env.local</code>. Bạn có thể thiết lập các biến này để kết nối với Drive thật. Dưới đây là các file mô phỏng để lập trình viên test:
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {mockFiles.map((file) => (
-                <button
-                  key={file.fileId}
-                  onClick={() => {
-                    handleAddAttachment(file);
-                    setShowMockPicker(false);
-                  }}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:border-violet-200 hover:bg-violet-50/20 text-left text-xs text-slate-700 font-medium transition cursor-pointer"
-                >
-                  <span className="text-base">{getFileIcon(file.mimeType)}</span>
-                  <span className="truncate flex-1">{file.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
