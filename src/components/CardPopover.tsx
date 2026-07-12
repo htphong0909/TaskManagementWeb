@@ -39,8 +39,14 @@ export default function CardPopover({
   const [description, setDescription] = useState(card.content || "");
 
   // Upload states
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+  const [uploadingFile, setUploadingFile] = useState<{
+    name: string;
+    progress: number;
+    stage: "uploading" | "saving";
+  } | null>(null);
+
+  // Deletion states
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +107,7 @@ export default function CardPopover({
 
   // Xóa file đính kèm
   const handleDeleteAttachment = async (id: string) => {
+    setDeletingIds(prev => [...prev, id]);
     try {
       const attachmentToDelete = attachments.find(att => att.id === id);
       if (attachmentToDelete && attachmentToDelete.file_id) {
@@ -122,6 +129,8 @@ export default function CardPopover({
       await fetchAttachments();
     } catch (err) {
       console.error("Lỗi xóa tệp đính kèm:", err);
+    } finally {
+      setDeletingIds(prev => prev.filter(item => item !== id));
     }
   };
 
@@ -137,40 +146,62 @@ export default function CardPopover({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    setUploadPercent(10);
+    setUploadingFile({
+      name: file.name,
+      progress: 0,
+      stage: "uploading"
+    });
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      setUploadPercent(50);
-      const res = await fetch("/api/attachments/upload", {
-        method: "POST",
-        body: formData,
+      const fileData = await new Promise<{
+        name: string;
+        url: string;
+        fileId: string;
+        mimeType: string;
+        error?: string;
+      }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error("Lỗi phân tích phản hồi máy chủ"));
+            }
+          } else {
+            reject(new Error(xhr.statusText || "Lỗi tải tệp lên máy chủ"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Lỗi mạng kết nối"));
+        
+        xhr.open("POST", "/api/attachments/upload");
+        xhr.send(formData);
       });
 
-      if (!res.ok) {
-        throw new Error("Lỗi tải tệp lên máy chủ");
-      }
-
-      setUploadPercent(85);
-      const fileData = await res.json();
       if (fileData.error) {
         throw new Error(fileData.error);
       }
 
-      setUploadPercent(95);
+      setUploadingFile(prev => prev ? { ...prev, progress: 100, stage: "saving" } : null);
       await handleAddAttachment(fileData);
-      setIsUploading(false);
-      setUploadPercent(null);
     } catch (err: unknown) {
       console.error("Lỗi đính kèm tệp:", err);
-      setIsUploading(false);
-      setUploadPercent(null);
       const message = err instanceof Error ? err.message : String(err);
       alert("Lỗi tải tệp lên Google Drive: " + message);
     } finally {
+      setUploadingFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -274,26 +305,24 @@ export default function CardPopover({
           </button>
         </div>
 
-        {/* Loading progress khi đang upload */}
-        {isUploading && (
-          <div className="bg-violet-50 border border-violet-100/50 p-2.5 rounded-xl text-xs flex flex-col gap-1.5 animate-pulse text-violet-700">
-            <div className="flex items-center justify-between font-semibold">
-              <span className="flex items-center gap-1">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-violet-600 border-t-transparent"></span>
-                Đang tải tệp lên Google Drive của Host...
-              </span>
-              <span>{uploadPercent}%</span>
-            </div>
-            <div className="w-full bg-violet-200/50 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-violet-600 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadPercent || 0}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
         <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+          {uploadingFile && (
+            <div className="flex items-center justify-between bg-violet-50/50 border border-violet-100 border-dashed p-2 rounded-xl text-xs">
+              <div className="flex items-center gap-2 text-violet-600 font-medium truncate flex-1">
+                <svg className="animate-spin h-3.5 w-3.5 text-violet-600 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="truncate">{uploadingFile.name}</span>
+              </div>
+              <span className="text-violet-500 font-semibold ml-2 whitespace-nowrap">
+                {uploadingFile.stage === "uploading" 
+                  ? `Đang tải: ${uploadingFile.progress}%` 
+                  : "Đang lưu lên Drive..."}
+              </span>
+            </div>
+          )}
+
           {attachments.map((att) => (
             <div key={att.id} className="flex items-center justify-between bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-xs transition duration-150">
               <a
@@ -307,14 +336,22 @@ export default function CardPopover({
               </a>
               <button
                 onClick={() => handleDeleteAttachment(att.id)}
+                disabled={deletingIds.includes(att.id)}
                 className="text-slate-400 hover:text-rose-500 h-5 w-5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0"
                 title="Xóa tệp đính kèm"
               >
-                🗑
+                {deletingIds.includes(att.id) ? (
+                  <svg className="animate-spin h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  "🗑"
+                )}
               </button>
             </div>
           ))}
-          {attachments.length === 0 && !isUploading && (
+          {attachments.length === 0 && !uploadingFile && (
             <p className="text-[11px] text-slate-400 italic">Chưa có tệp nào được đính kèm.</p>
           )}
         </div>
