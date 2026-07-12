@@ -259,6 +259,7 @@ export default function CardPopover({
 
   if (!rect) return null;
 
+  const isBusy = uploadingFile !== null || deletingIds.length > 0;
   const popupWidth = 360;
   const margin = 12;
   const screenWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
@@ -296,7 +297,8 @@ export default function CardPopover({
         <h4 className="text-sm font-bold text-slate-800 truncate pr-4">{card.title}</h4>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-slate-600 h-5 w-5 flex items-center justify-center rounded-full hover:bg-slate-100 transition cursor-pointer"
+          disabled={isBusy}
+          className="text-slate-400 hover:text-slate-600 h-5 w-5 flex items-center justify-center rounded-full hover:bg-slate-100 transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ✕
         </button>
@@ -308,7 +310,8 @@ export default function CardPopover({
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">File Đính Kèm</span>
           <button
             onClick={handleAttachClick}
-            className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
+            disabled={isBusy}
+            className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             📎 Đính kèm tệp tin
           </button>
