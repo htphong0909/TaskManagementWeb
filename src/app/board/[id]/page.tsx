@@ -274,6 +274,11 @@ export default function BoardPage() {
     setActiveDragListId(listId);
   };
 
+  const handleListEnd = () => {
+    setActiveDragListId(null);
+    setDragOverListId(null);
+  };
+
   const handleListDragOver = (e: React.DragEvent, listId: string) => {
     e.preventDefault();
     if (activeDragCardId !== null) {
@@ -310,12 +315,15 @@ export default function BoardPage() {
     setLists(newLists.sort((a, b) => a.position - b.position));
 
     try {
-      await Promise.all([
-        supabase.from("lists").update({ position: sourceList.position }).eq("id", sourceList.id),
-        supabase.from("lists").update({ position: targetList.position }).eq("id", targetList.id),
-      ]);
+      const updates = [
+        { id: sourceList.id, position: sourceList.position },
+        { id: targetList.id, position: targetList.position }
+      ];
+      const { error } = await supabase.from("lists").upsert(updates);
+      if (error) throw error;
     } catch (err) {
       console.error("Lỗi đồng bộ thứ tự cột:", err);
+      await fetchBoardData();
     }
   };
 
@@ -354,6 +362,7 @@ export default function BoardPage() {
     const listCards = cards.filter((c) => c.list_id === targetListId);
     const nextPosition = listCards.length > 0 ? Math.max(...listCards.map((c) => c.position)) + 1 : 1;
 
+    // 1. Cập nhật state lạc quan ngay lập tức
     const updatedCards = cards.map((c) => {
       if (c.id === cardId) {
         return { ...c, list_id: targetListId, position: nextPosition };
@@ -362,15 +371,17 @@ export default function BoardPage() {
     });
     setCards(updatedCards);
 
+    // 2. Lưu DB trong background
     try {
       const { error } = await supabase
         .from("cards")
         .update({ list_id: targetListId, position: nextPosition })
         .eq("id", cardId);
       if (error) throw error;
-      await fetchBoardData();
     } catch (err) {
       console.error("Lỗi thả card vào cột:", err);
+      // Rollback nếu có lỗi
+      await fetchBoardData();
     }
   };
 
@@ -388,24 +399,44 @@ export default function BoardPage() {
 
     const targetListId = targetCard.list_id;
 
-    // Sắp xếp lại danh sách cards của cột mục tiêu
-    const listCards = cards.filter((c) => c.list_id === targetListId && c.id !== cardId).sort((a, b) => a.position - b.position);
+    // 1. Sắp xếp danh sách cards mới tại cột mục tiêu
+    const listCards = cards
+      .filter((c) => c.list_id === targetListId && c.id !== cardId)
+      .sort((a, b) => a.position - b.position);
+    
     const targetIdx = listCards.findIndex((c) => c.id === targetCardId);
-
-    // Chèn sourceCard vào vị trí của targetCard
     listCards.splice(targetIdx, 0, { ...sourceCard, list_id: targetListId });
 
-    // Cập nhật lại thuộc tính position tuần tự
-    const promises = listCards.map((c, index) => {
-      const newPos = index + 1;
-      return supabase.from("cards").update({ list_id: targetListId, position: newPos }).eq("id", c.id);
+    // 2. Cập nhật state lạc quan ngay lập tức
+    const updatedLocalCards = cards.map((c) => {
+      const updatedCardIdx = listCards.findIndex((lc) => lc.id === c.id);
+      if (updatedCardIdx !== -1) {
+        return { ...c, list_id: targetListId, position: updatedCardIdx + 1 };
+      }
+      if (c.id === cardId) {
+        return { ...c, list_id: targetListId, position: targetIdx + 1 };
+      }
+      return c;
     });
+    setCards(updatedLocalCards);
 
+    // 3. Gửi single query upsert trong background
     try {
-      await Promise.all(promises);
-      await fetchBoardData();
+      const updates = listCards.map((c, index) => ({
+        id: c.id,
+        list_id: targetListId,
+        position: index + 1,
+        title: c.title,
+        content: c.content,
+        due_date: c.due_date
+      }));
+
+      const { error } = await supabase.from("cards").upsert(updates);
+      if (error) throw error;
     } catch (err) {
       console.error("Lỗi sắp xếp lại các card:", err);
+      // Rollback nếu có lỗi
+      await fetchBoardData();
     }
   };
 
@@ -461,6 +492,7 @@ export default function BoardPage() {
               handleCardMouseEnter={handleCardMouseEnter}
               handleCardMouseLeave={handleCardMouseLeave}
               onDragStartList={handleListDragStart}
+              onDragEndList={handleListEnd}
               onDragOverList={handleListDragOver}
               onDropList={handleListDrop}
               onDragStartCard={handleCardDragStart}
