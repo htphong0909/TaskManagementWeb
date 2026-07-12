@@ -315,12 +315,10 @@ export default function BoardPage() {
     setLists(newLists.sort((a, b) => a.position - b.position));
 
     try {
-      const updates = [
-        { id: sourceList.id, position: sourceList.position },
-        { id: targetList.id, position: targetList.position }
-      ];
-      const { error } = await supabase.from("lists").upsert(updates);
-      if (error) throw error;
+      await Promise.all([
+        supabase.from("lists").update({ position: sourceList.position }).eq("id", sourceList.id),
+        supabase.from("lists").update({ position: targetList.position }).eq("id", targetList.id),
+      ]);
     } catch (err) {
       console.error("Lỗi đồng bộ thứ tự cột:", err);
       await fetchBoardData();
@@ -420,19 +418,14 @@ export default function BoardPage() {
     });
     setCards(updatedLocalCards);
 
-    // 3. Gửi single query upsert trong background
+    // 3. Gửi các query update song song trong background
     try {
-      const updates = listCards.map((c, index) => ({
-        id: c.id,
-        list_id: targetListId,
-        position: index + 1,
-        title: c.title,
-        content: c.content,
-        due_date: c.due_date
-      }));
+      const promises = listCards.map((c, index) => {
+        const newPos = index + 1;
+        return supabase.from("cards").update({ list_id: targetListId, position: newPos }).eq("id", c.id);
+      });
 
-      const { error } = await supabase.from("cards").upsert(updates);
-      if (error) throw error;
+      await Promise.all(promises);
     } catch (err) {
       console.error("Lỗi sắp xếp lại các card:", err);
       // Rollback nếu có lỗi
