@@ -1,3 +1,6 @@
+-- 0. Xóa bảng tasks cũ không còn sử dụng
+DROP TABLE IF EXISTS public.tasks CASCADE;
+
 -- 1. Tạo bảng boards
 CREATE TABLE IF NOT EXISTS public.boards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
