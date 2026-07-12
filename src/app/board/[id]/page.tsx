@@ -52,8 +52,10 @@ export default function BoardPage() {
   const [isPopoverBusy, setIsPopoverBusy] = useState(false);
 
   // Kéo thả states
-  const [, setDraggedCardId] = useState<string | null>(null);
-  const [, setDraggedListId] = useState<string | null>(null);
+  const [activeDragCardId, setActiveDragCardId] = useState<string | null>(null);
+  const [activeDragListId, setActiveDragListId] = useState<string | null>(null);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null);
 
   const params = useParams();
   const boardId = params?.id as string;
@@ -269,15 +271,24 @@ export default function BoardPage() {
   // Drag & Drop Lists
   const handleListDragStart = (e: React.DragEvent, listId: string) => {
     e.dataTransfer.setData("text/list-id", listId);
-    setDraggedListId(listId);
+    setActiveDragListId(listId);
   };
 
-  const handleListDragOver = (e: React.DragEvent) => {
+  const handleListDragOver = (e: React.DragEvent, listId: string) => {
     e.preventDefault();
+    if (activeDragCardId !== null) {
+      setDragOverListId(listId);
+    }
+  };
+
+  const handleListDragLeave = () => {
+    setDragOverListId(null);
   };
 
   const handleListDrop = async (e: React.DragEvent, targetListId: string) => {
     e.preventDefault();
+    setDragOverListId(null);
+    setActiveDragListId(null);
     const sourceListId = e.dataTransfer.getData("text/list-id");
     if (!sourceListId || sourceListId === targetListId) return;
 
@@ -312,15 +323,30 @@ export default function BoardPage() {
   const handleCardDragStart = (e: React.DragEvent, cardId: string, listId: string) => {
     e.dataTransfer.setData("text/card-id", cardId);
     e.dataTransfer.setData("text/source-list-id", listId);
-    setDraggedCardId(cardId);
+    setActiveDragCardId(cardId);
   };
 
   const handleCardEnd = () => {
-    setDraggedCardId(null);
+    setActiveDragCardId(null);
+    setDragOverCardId(null);
+    setDragOverListId(null);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, cardId: string) => {
+    e.preventDefault();
+    if (activeDragCardId && activeDragCardId !== cardId) {
+      setDragOverCardId(cardId);
+    }
+  };
+
+  const handleCardDragLeave = () => {
+    setDragOverCardId(null);
   };
 
   const handleCardDropOnList = async (e: React.DragEvent, targetListId: string) => {
     e.preventDefault();
+    setDragOverListId(null);
+    setActiveDragCardId(null);
     const cardId = e.dataTransfer.getData("text/card-id");
     if (!cardId) return;
 
@@ -351,6 +377,8 @@ export default function BoardPage() {
   const handleCardDropOnCard = async (e: React.DragEvent, targetCardId: string) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragOverCardId(null);
+    setActiveDragCardId(null);
     const cardId = e.dataTransfer.getData("text/card-id");
     if (!cardId || cardId === targetCardId) return;
 
@@ -439,6 +467,14 @@ export default function BoardPage() {
               onDragEndCard={handleCardEnd}
               onCardDropOnList={handleCardDropOnList}
               onCardDropOnCard={handleCardDropOnCard}
+              // Enhanced drag states & handlers
+              activeDragCardId={activeDragCardId}
+              activeDragListId={activeDragListId}
+              dragOverListId={dragOverListId}
+              dragOverCardId={dragOverCardId}
+              onDragLeaveList={handleListDragLeave}
+              onDragOverCard={handleCardDragOver}
+              onDragLeaveCard={handleCardDragLeave}
             />
           );
         })}
