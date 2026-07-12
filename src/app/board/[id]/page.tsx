@@ -231,16 +231,6 @@ export default function BoardPage() {
     }
   };
 
-  // Đăng xuất tài khoản
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      router.push("/");
-    } catch (err) {
-      console.error("Lỗi đăng xuất:", err);
-    }
-  };
-
   // Hover Popover events
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
     if (isPopoverBusy) return;
