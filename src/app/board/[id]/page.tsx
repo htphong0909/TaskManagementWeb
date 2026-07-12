@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
 import CardPopover from "@/components/CardPopover";
@@ -55,6 +55,7 @@ export default function BoardDetailPage() {
   // Popover state cho Card
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getLocalDateTimeString = () => {
     const now = new Date();
@@ -268,14 +269,34 @@ export default function BoardDetailPage() {
 
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
     if (editingCardId === card.id) return;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     setHoveredCard(card);
     setHoveredRect(rect);
   };
 
   const handleCardMouseLeave = () => {
-    setHoveredCard(null);
-    setHoveredRect(null);
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredCard(null);
+      setHoveredRect(null);
+    }, 200);
+  };
+
+  const handlePopoverMouseEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handlePopoverMouseLeave = () => {
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredCard(null);
+      setHoveredRect(null);
+    }, 200);
   };
 
   const formatCreatedAt = (dateStr: string) => {
@@ -561,10 +582,15 @@ export default function BoardDetailPage() {
       {/* Floating Card Popover */}
       {hoveredCard && hoveredRect && (
         <CardPopover
-          title={hoveredCard.title}
-          content={hoveredCard.content}
+          card={hoveredCard}
           rect={hoveredRect}
-          onClose={() => setHoveredCard(null)}
+          onClose={() => {
+            setHoveredCard(null);
+            setHoveredRect(null);
+          }}
+          onCardUpdated={fetchBoardData}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
         />
       )}
 
