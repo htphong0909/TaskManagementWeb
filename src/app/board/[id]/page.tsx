@@ -56,6 +56,16 @@ export default function BoardDetailPage() {
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
 
+  const getLocalDateTimeString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const params = useParams();
   const boardId = params?.id as string;
 
@@ -332,7 +342,7 @@ export default function BoardDetailPage() {
             return (
               <div
                 key={list.id}
-                className="min-w-[250px] w-[20vw] flex-shrink-0 bg-white/50 backdrop-blur-lg border border-white/30 shadow-sm rounded-2xl p-4 flex flex-col max-h-full overflow-y-auto"
+                className="min-w-[250px] w-[20vw] flex-shrink-0 bg-white/50 backdrop-blur-lg border border-white/30 shadow-sm rounded-2xl p-4 flex flex-col max-h-full overflow-hidden"
               >
                 {/* Tiêu đề danh sách cột */}
                 <div className="group/title flex items-center justify-between mb-3 px-1 relative">
@@ -382,7 +392,7 @@ export default function BoardDetailPage() {
                         onMouseEnter={(e) => handleCardMouseEnter(card, e)}
                         onMouseLeave={handleCardMouseLeave}
                         onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
-                        className="group/card bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] rounded-xl p-4 flex flex-col gap-2 relative transition duration-150 hover:scale-[1.01] hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 cursor-pointer"
+                        className="group/card bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] rounded-xl p-4 flex flex-col gap-2 relative transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 cursor-pointer"
                       >
                         {isEditingCard ? (
                           <input
@@ -488,7 +498,10 @@ export default function BoardDetailPage() {
                   </form>
                 ) : (
                   <button
-                    onClick={() => setAddingCardListId(list.id)}
+                    onClick={() => {
+                      setAddingCardListId(list.id);
+                      setNewCardDueDate(getLocalDateTimeString());
+                    }}
                     className="w-full bg-white/30 hover:bg-white/50 border border-transparent text-slate-500 hover:text-slate-600 rounded-xl py-2 cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 transition duration-150"
                   >
                     <span>+</span> Thêm thẻ mới
