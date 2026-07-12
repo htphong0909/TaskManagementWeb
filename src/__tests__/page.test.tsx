@@ -6,16 +6,38 @@ import Home from '../app/page';
 import { supabase } from '../lib/supabase';
 
 // Mock Supabase to avoid network calls and authentication issues during testing
-vi.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
+vi.mock('../lib/supabase', () => {
+  const mockFrom = {
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    insert: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+
+  return {
+    supabase: {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+        onAuthStateChange: vi.fn().mockReturnValue({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+      },
+      from: vi.fn().mockReturnValue(mockFrom),
     },
-  },
+  };
+});
+
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useParams: () => ({
+    id: 'test-board-id',
+  }),
 }));
 
 test('renders the task management homepage login form after initialization', async () => {
@@ -27,7 +49,7 @@ test('renders the task management homepage login form after initialization', asy
   expect(loginHeader).toBeDefined();
 });
 
-test('renders the welcome dashboard when user is logged in', async () => {
+test('renders the redirecting message when user is logged in', async () => {
   // Mock active session
   const mockUser = { id: 'user-123', email: 'test@example.com' };
   vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: mockUser } } as any });
@@ -36,6 +58,6 @@ test('renders the welcome dashboard when user is logged in', async () => {
     render(<Home />);
   });
   
-  const welcomeText = screen.getByText(/test@example.com/i);
-  expect(welcomeText).toBeDefined();
+  const redirectText = screen.getByText(/Đang chuyển tới không gian làm việc/i);
+  expect(redirectText).toBeDefined();
 });
