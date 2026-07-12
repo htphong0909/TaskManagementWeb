@@ -56,6 +56,7 @@ export default function BoardDetailPage() {
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPopoverBusy, setIsPopoverBusy] = useState(false);
 
   const getLocalDateTimeString = () => {
     const now = new Date();
@@ -268,6 +269,7 @@ export default function BoardDetailPage() {
   };
 
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPopoverBusy) return;
     if (editingCardId === card.id) return;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -279,6 +281,7 @@ export default function BoardDetailPage() {
   };
 
   const handleCardMouseLeave = () => {
+    if (isPopoverBusy) return;
     closeTimeoutRef.current = setTimeout(() => {
       setHoveredCard(null);
       setHoveredRect(null);
@@ -293,6 +296,7 @@ export default function BoardDetailPage() {
   };
 
   const handlePopoverMouseLeave = () => {
+    if (isPopoverBusy) return;
     closeTimeoutRef.current = setTimeout(() => {
       setHoveredCard(null);
       setHoveredRect(null);
@@ -591,6 +595,7 @@ export default function BoardDetailPage() {
           onCardUpdated={fetchBoardData}
           onMouseEnter={handlePopoverMouseEnter}
           onMouseLeave={handlePopoverMouseLeave}
+          onBusyChange={setIsPopoverBusy}
         />
       )}
 
