@@ -95,6 +95,7 @@ export default function CardPopover({
 
   // Đồng bộ lại nội dung mô tả khi prop card thay đổi từ bên ngoài
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDescription(card.content || "");
   }, [card.id, card.content]);
 

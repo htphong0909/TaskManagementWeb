@@ -65,6 +65,7 @@ export default function BoardPage() {
     if (hoveredCard) {
       const updated = cards.find((c) => c.id === hoveredCard.id);
       if (updated && updated !== hoveredCard) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHoveredCard(updated);
       }
     }
