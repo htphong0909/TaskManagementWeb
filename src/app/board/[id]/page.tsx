@@ -60,6 +60,16 @@ export default function BoardPage() {
   const params = useParams();
   const boardId = params?.id as string;
 
+  // Đồng bộ hoveredCard với dữ liệu cards mới nhất khi cards thay đổi
+  useEffect(() => {
+    if (hoveredCard) {
+      const updated = cards.find((c) => c.id === hoveredCard.id);
+      if (updated && updated !== hoveredCard) {
+        setHoveredCard(updated);
+      }
+    }
+  }, [cards, hoveredCard]);
+
   const fetchBoardData = useCallback(async () => {
     try {
       // 1. Tải thông tin Board
