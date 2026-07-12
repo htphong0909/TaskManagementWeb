@@ -32,7 +32,11 @@ export async function POST(request: Request) {
 
     // Developer Mock Mode Fallback if config is missing
     if (!clientId || !clientSecret || !refreshToken) {
-      console.warn("Missing Google Refresh Token configuration. Running in API Mock Mode.");
+      console.warn("Missing Google Refresh Token configuration. Running in API Mock Mode.", {
+        clientIdMissing: !clientId,
+        clientSecretMissing: !clientSecret,
+        refreshTokenMissing: !refreshToken
+      });
       const formData = await request.formData();
       const file = formData.get("file") as File;
       if (!file) {
