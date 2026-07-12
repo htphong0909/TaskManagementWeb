@@ -14,6 +14,7 @@ interface CardPopoverProps {
   onCardUpdated: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onBusyChange?: (isBusy: boolean) => void;
 }
 
 interface Attachment {
@@ -31,6 +32,7 @@ export default function CardPopover({
   onCardUpdated,
   onMouseEnter,
   onMouseLeave,
+  onBusyChange,
 }: CardPopoverProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   
@@ -66,6 +68,13 @@ export default function CardPopover({
     }, 0);
     return () => clearTimeout(timer);
   }, [card.id, fetchAttachments]);
+
+  // Thông báo trạng thái bận cho component cha
+  useEffect(() => {
+    if (onBusyChange) {
+      onBusyChange(uploadingFile !== null || deletingIds.length > 0);
+    }
+  }, [uploadingFile, deletingIds, onBusyChange]);
 
   // Cập nhật Mô tả
   const handleSaveDescription = async () => {
