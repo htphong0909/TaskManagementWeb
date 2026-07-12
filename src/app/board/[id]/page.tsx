@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import CardPopover from "@/components/CardPopover";
@@ -56,7 +56,6 @@ export default function BoardPage() {
   const [, setDraggedListId] = useState<string | null>(null);
 
   const params = useParams();
-  const router = useRouter();
   const boardId = params?.id as string;
 
   const fetchBoardData = useCallback(async () => {
