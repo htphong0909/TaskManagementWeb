@@ -43,6 +43,62 @@ export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
     picker.setVisible(true);
   }, [apiKey, appId, onFilePicked]);
 
+  // Upload file cục bộ lên Google Drive
+  const uploadFileToDrive = useCallback(async (file: File, accessToken: string): Promise<FilePickedData> => {
+    const metadata = {
+      name: file.name,
+      mimeType: file.type,
+    };
+
+    const form = new FormData();
+    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+    form.append("file", file);
+
+    const response = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,mimeType",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: form,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Lỗi tải tệp lên Google Drive");
+    }
+
+    const data = await response.json();
+
+    // Thiết lập quyền đọc cho mọi người có liên kết
+    try {
+      await fetch(
+        `https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            role: "reader",
+            type: "anyone",
+          }),
+        }
+      );
+    } catch (e) {
+      console.warn("Lỗi phân quyền xem file, vẫn tiếp tục:", e);
+    }
+
+    return {
+      name: data.name,
+      url: data.webViewLink,
+      fileId: data.id,
+      mimeType: data.mimeType,
+    };
+  }, []);
+
   useEffect(() => {
     if (!isConfigured) return;
 
@@ -69,7 +125,7 @@ export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
       if (g.google && g.google.accounts && g.google.accounts.oauth2) {
         const client = g.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          scope: "https://www.googleapis.com/auth/drive.readonly",
+          scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
           callback: (response: any) => {
             if (response.error !== undefined) {
               console.error("Auth error:", response);
@@ -98,5 +154,32 @@ export function useGooglePicker(onFilePicked: (file: FilePickedData) => void) {
     return false;
   }, [tokenClient, isConfigured]);
 
-  return { isConfigured, handlePick };
+  // Thực hiện yêu cầu token và tải lên
+  const handleUpload = useCallback((file: File, callback: (data: FilePickedData) => void, onError: (err: any) => void) => {
+    if (!isConfigured) return false;
+    const g = window as any;
+    if (g.google && g.google.accounts && g.google.accounts.oauth2) {
+      const uploadClient = g.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: "https://www.googleapis.com/auth/drive.file",
+        callback: async (response: any) => {
+          if (response.error !== undefined) {
+            onError(response);
+            return;
+          }
+          try {
+            const data = await uploadFileToDrive(file, response.access_token);
+            callback(data);
+          } catch (err) {
+            onError(err);
+          }
+        },
+      });
+      uploadClient.requestAccessToken({ prompt: "consent" });
+      return true;
+    }
+    return false;
+  }, [clientId, isConfigured, uploadFileToDrive]);
+
+  return { isConfigured, handlePick, handleUpload };
 }
