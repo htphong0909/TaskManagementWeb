@@ -38,10 +38,15 @@ export default function CardPopover({
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [description, setDescription] = useState(card.content || "");
 
+  // Upload states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+
   // Mock Picker states
   const [showMockPicker, setShowMockPicker] = useState(false);
 
   const popoverRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Nạp danh sách file đính kèm
   const fetchAttachments = useCallback(async () => {
@@ -113,13 +118,78 @@ export default function CardPopover({
   };
 
   // Google Picker Integration Hook
-  const { isConfigured, handlePick } = useGooglePicker(handleAddAttachment);
+  const { isConfigured, handlePick, handleUpload } = useGooglePicker(handleAddAttachment);
 
-  const handleAttachClick = () => {
+  // Chọn từ Drive
+  const handleChooseFromDriveClick = () => {
     const launched = handlePick();
     if (!launched) {
-      // Nếu thiếu key cấu hình, mở Mock Picker
       setShowMockPicker(true);
+    }
+  };
+
+  // Trình kích hoạt upload file cục bộ lên Google Drive
+  const handleUploadToDriveClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Xử lý upload khi chọn file
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadPercent(10); // Bắt đầu tiến trình
+
+    if (isConfigured) {
+      setUploadPercent(40);
+      const launched = handleUpload(
+        file,
+        async (fileData) => {
+          setUploadPercent(90);
+          await handleAddAttachment(fileData);
+          setIsUploading(false);
+          setUploadPercent(null);
+          // reset input file
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        },
+        (err) => {
+          console.error("Lỗi upload file lên Google Drive:", err);
+          setIsUploading(false);
+          setUploadPercent(null);
+          alert("Lỗi tải tệp lên Google Drive. Vui lòng kiểm tra quyền xác thực.");
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      );
+      if (!launched) {
+        setIsUploading(false);
+        setUploadPercent(null);
+      }
+    } else {
+      // Chế độ mô phỏng Mock Upload khi dev chạy localhost không cấu hình Key
+      let percent = 10;
+      const interval = setInterval(() => {
+        percent += 30;
+        if (percent >= 100) {
+          setUploadPercent(100);
+          clearInterval(interval);
+          const mockFile = {
+            name: file.name,
+            fileId: "mock-" + Date.now(),
+            mimeType: file.type || "application/octet-stream",
+            url: "https://drive.google.com/file/d/mock-" + Date.now(),
+          };
+          handleAddAttachment(mockFile).then(() => {
+            setIsUploading(false);
+            setUploadPercent(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          });
+        } else {
+          setUploadPercent(percent);
+        }
+      }, 300);
     }
   };
 
@@ -199,6 +269,14 @@ export default function CardPopover({
         width: `${popupWidth}px`,
       }}
     >
+      {/* Input File Ẩn */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Header Popover */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
         <h4 className="text-sm font-bold text-slate-800 truncate pr-4">{card.title}</h4>
@@ -214,13 +292,43 @@ export default function CardPopover({
       <div className="mb-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">File Đính Kèm</span>
-          <button
-            onClick={handleAttachClick}
-            className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
-          >
-            📎 Thêm đính kèm
-          </button>
+          <div className="flex items-center gap-2 text-[10px] font-semibold">
+            <button
+              onClick={handleChooseFromDriveClick}
+              className="text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
+              title="Chọn file có sẵn từ Google Drive"
+            >
+              📂 Chọn từ Drive
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              onClick={handleUploadToDriveClick}
+              className="text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1"
+              title="Tải tệp từ máy lên Google Drive"
+            >
+              📤 Tải lên Drive
+            </button>
+          </div>
         </div>
+
+        {/* Loading progress khi đang upload */}
+        {isUploading && (
+          <div className="bg-violet-50 border border-violet-100/50 p-2.5 rounded-xl text-xs flex flex-col gap-1.5 animate-pulse text-violet-700">
+            <div className="flex items-center justify-between font-semibold">
+              <span className="flex items-center gap-1">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-violet-600 border-t-transparent"></span>
+                Đang tải tệp lên Google Drive...
+              </span>
+              <span>{uploadPercent}%</span>
+            </div>
+            <div className="w-full bg-violet-200/50 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-violet-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadPercent || 0}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
           {attachments.map((att) => (
@@ -243,7 +351,7 @@ export default function CardPopover({
               </button>
             </div>
           ))}
-          {attachments.length === 0 && (
+          {attachments.length === 0 && !isUploading && (
             <p className="text-[11px] text-slate-400 italic">Chưa có tệp nào được đính kèm.</p>
           )}
         </div>
