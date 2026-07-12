@@ -52,6 +52,7 @@ export default function CardPopover({
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const descEditorRef = useRef<HTMLDivElement>(null);
 
   // Nạp danh sách file đính kèm
   const fetchAttachments = useCallback(async () => {
@@ -75,6 +76,22 @@ export default function CardPopover({
       onBusyChange(uploadingFile !== null || deletingIds.length > 0);
     }
   }, [uploadingFile, deletingIds, onBusyChange]);
+
+  // Tự động lưu mô tả khi click ra ngoài vùng soạn thảo
+  useEffect(() => {
+    if (!isEditingDesc) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (descEditorRef.current && !descEditorRef.current.contains(event.target as Node)) {
+        handleSaveDescription();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEditingDesc, handleSaveDescription]);
 
   // Cập nhật Mô tả
   const handleSaveDescription = async () => {
@@ -374,7 +391,7 @@ export default function CardPopover({
         <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Mô Tả Công Việc</span>
         
         {isEditingDesc ? (
-          <div className="space-y-2">
+          <div ref={descEditorRef} className="space-y-2">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
