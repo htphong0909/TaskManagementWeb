@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -19,17 +19,20 @@ export default function BoardSwitcher({ activeBoardId, userEmail, onSignOut }: B
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    fetchBoards();
-  }, []);
-
-  const fetchBoards = async () => {
+  const fetchBoards = useCallback(async () => {
     const { data } = await supabase
       .from("boards")
       .select("id, title")
       .order("created_at", { ascending: true });
     setBoards(data || []);
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchBoards();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchBoards]);
 
   const handleAddBoard = async (e: React.FormEvent) => {
     e.preventDefault();

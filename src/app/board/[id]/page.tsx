@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { useRouter, useParams } from "next/navigation";
@@ -56,14 +56,7 @@ export default function BoardDetailPage() {
     }
   }, [user, authLoading, router]);
 
-  // Tải dữ liệu lists và cards khi có boardId
-  useEffect(() => {
-    if (boardId && user) {
-      fetchBoardData();
-    }
-  }, [boardId, user]);
-
-  const fetchBoardData = async () => {
+  const fetchBoardData = useCallback(async () => {
     setLoadingWorkspace(true);
     try {
       // 1. Tải danh sách Lists
@@ -93,7 +86,17 @@ export default function BoardDetailPage() {
     } finally {
       setLoadingWorkspace(false);
     }
-  };
+  }, [boardId]);
+
+  // Tải dữ liệu lists và cards khi có boardId
+  useEffect(() => {
+    if (boardId && user) {
+      const timer = setTimeout(() => {
+        fetchBoardData();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [boardId, user, fetchBoardData]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
