@@ -45,12 +45,20 @@ interface BoardColumnProps {
   handleCardMouseLeave: () => void;
   // Drag & Drop handlers
   onDragStartList: (e: React.DragEvent, listId: string) => void;
-  onDragOverList: (e: React.DragEvent) => void;
+  onDragOverList: (e: React.DragEvent, listId: string) => void;
   onDropList: (e: React.DragEvent, targetListId: string) => void;
   onDragStartCard: (e: React.DragEvent, cardId: string, listId: string) => void;
   onDragEndCard: (e: React.DragEvent) => void;
   onCardDropOnList: (e: React.DragEvent, targetListId: string) => void;
   onCardDropOnCard: (e: React.DragEvent, targetCardId: string) => void;
+  // Enhanced drag states & handlers
+  activeDragCardId: string | null;
+  activeDragListId: string | null;
+  dragOverListId: string | null;
+  dragOverCardId: string | null;
+  onDragLeaveList: (e: React.DragEvent) => void;
+  onDragOverCard: (e: React.DragEvent, cardId: string) => void;
+  onDragLeaveCard: (e: React.DragEvent) => void;
 }
 
 export default function BoardColumn({
@@ -84,9 +92,19 @@ export default function BoardColumn({
   onDragEndCard,
   onCardDropOnList,
   onCardDropOnCard,
+  activeDragCardId,
+  activeDragListId,
+  dragOverListId,
+  dragOverCardId,
+  onDragLeaveList,
+  onDragOverCard,
+  onDragLeaveCard,
 }: BoardColumnProps) {
   const isEditingList = list.id === editingListId;
   const isAddingCard = list.id === addingCardListId;
+
+  const isDraggingList = list.id === activeDragListId;
+  const isDragOverList = list.id === dragOverListId && activeDragCardId !== null;
 
   return (
     <div
@@ -94,8 +112,9 @@ export default function BoardColumn({
       onDragStart={(e) => onDragStartList(e, list.id)}
       onDragOver={(e) => {
         e.preventDefault();
-        onDragOverList(e);
+        onDragOverList(e, list.id);
       }}
+      onDragLeave={onDragLeaveList}
       onDrop={(e) => {
         // Nếu đối tượng được kéo là card, cho phép drop vào danh sách này
         if (e.dataTransfer.types.includes("text/card-id")) {
@@ -104,7 +123,13 @@ export default function BoardColumn({
           onDropList(e, list.id);
         }
       }}
-      className="bg-white/80 backdrop-blur-md border border-slate-300 rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 shadow-sm"
+      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 transition-all duration-200
+        ${isDraggingList 
+          ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
+          : "bg-white/80 border-slate-300 shadow-sm"
+        }
+        ${isDragOverList ? "ring-2 ring-violet-400 ring-offset-2 shadow-md bg-white/90" : ""}
+      `}
     >
       {/* Header cột */}
       <div className="flex items-center justify-between mb-3 group">
@@ -166,6 +191,10 @@ export default function BoardColumn({
             onDragStartCard={onDragStartCard}
             onDragEndCard={onDragEndCard}
             onCardDropOnCard={onCardDropOnCard}
+            activeDragCardId={activeDragCardId}
+            dragOverCardId={dragOverCardId}
+            onDragOverCard={onDragOverCard}
+            onDragLeaveCard={onDragLeaveCard}
           />
         ))}
       </div>
