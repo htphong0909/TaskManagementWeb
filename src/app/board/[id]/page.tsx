@@ -24,7 +24,8 @@ export default function BoardDetailPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [lists, setLists] = useState<List[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [loadingWorkspace, setLoadingWorkspace] = useState(true);
+  const [loadingWorkspace, setLoadingWorkspace] = useState(true); // Chỉ dùng cho lần load đầu tiên
+  const [isFetching, setIsFetching] = useState(false); // Dùng cho việc tải ngầm khi chuyển board
 
   // Popover state
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
@@ -57,7 +58,7 @@ export default function BoardDetailPage() {
   }, [user, authLoading, router]);
 
   const fetchBoardData = useCallback(async () => {
-    setLoadingWorkspace(true);
+    setIsFetching(true);
     try {
       // 1. Tải danh sách Lists
       const { data: listData } = await supabase
@@ -84,6 +85,7 @@ export default function BoardDetailPage() {
     } catch (err) {
       console.error("Lỗi tải dữ liệu Board:", err);
     } finally {
+      setIsFetching(false);
       setLoadingWorkspace(false);
     }
   }, [boardId]);
@@ -128,6 +130,11 @@ export default function BoardDetailPage() {
       <div className="absolute top-[20%] left-[20%] h-[350px] w-[350px] rounded-full bg-violet-300/20 blur-[80px] pointer-events-none"></div>
       <div className="absolute bottom-[20%] right-[20%] h-[350px] w-[350px] rounded-full bg-pink-300/20 blur-[80px] pointer-events-none"></div>
 
+      {/* Top progress bar when switching boards */}
+      {isFetching && (
+        <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500 animate-pulse z-50"></div>
+      )}
+
       {/* 1. Main Workspace (Kanban Area) */}
       <div className="h-[92%] w-full overflow-x-auto p-6 flex items-start gap-6 z-10">
         {loadingWorkspace ? (
@@ -135,7 +142,7 @@ export default function BoardDetailPage() {
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent"></div>
           </div>
         ) : (
-          <>
+          <div className={`h-full flex items-start gap-6 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}>
             {lists.map((list) => {
               const listCards = cards.filter((c) => c.list_id === list.id);
               return (
@@ -166,7 +173,7 @@ export default function BoardDetailPage() {
                 <span>Hãy thêm danh sách cột để bắt đầu!</span>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
@@ -186,6 +193,13 @@ export default function BoardDetailPage() {
           activeBoardId={boardId}
           userEmail={user.email}
           onSignOut={handleSignOut}
+          onBoardDeleted={() => router.push("/")}
+          onBoardRenamed={() => {
+            const timer = setTimeout(() => {
+              fetchBoardData();
+            }, 0);
+            return () => clearTimeout(timer);
+          }}
         />
       </div>
     </div>
