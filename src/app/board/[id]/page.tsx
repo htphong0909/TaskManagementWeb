@@ -27,7 +27,6 @@ export default function BoardPage() {
   const [lists, setLists] = useState<List[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [boardTitle, setBoardTitle] = useState("");
-  const [isFetching, setIsFetching] = useState(false);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -61,7 +60,6 @@ export default function BoardPage() {
   const boardId = params?.id as string;
 
   const fetchBoardData = useCallback(async () => {
-    setIsFetching(true);
     try {
       // 1. Tải thông tin Board
       const { data: boardData } = await supabase
@@ -96,7 +94,6 @@ export default function BoardPage() {
     } catch (err) {
       console.error("Lỗi tải dữ liệu Board:", err);
     } finally {
-      setIsFetching(false);
       setLoadingWorkspace(false);
     }
   }, [boardId]);
@@ -326,7 +323,6 @@ export default function BoardPage() {
   const handleCardDropOnList = async (e: React.DragEvent, targetListId: string) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/card-id");
-    const sourceListId = e.dataTransfer.getData("text/source-list-id");
     if (!cardId) return;
 
     // Nếu thả vào cột khác hoặc thay đổi cấu trúc
