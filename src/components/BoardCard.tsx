@@ -23,6 +23,10 @@ interface BoardCardProps {
   onDragStartCard: (e: React.DragEvent, cardId: string, listId: string) => void;
   onDragEndCard: (e: React.DragEvent) => void;
   onCardDropOnCard: (e: React.DragEvent, targetCardId: string) => void;
+  activeDragCardId: string | null;
+  dragOverCardId: string | null;
+  onDragOverCard: (e: React.DragEvent, cardId: string) => void;
+  onDragLeaveCard: (e: React.DragEvent) => void;
 }
 
 export default function BoardCard({
@@ -38,6 +42,10 @@ export default function BoardCard({
   onDragStartCard,
   onDragEndCard,
   onCardDropOnCard,
+  activeDragCardId,
+  dragOverCardId,
+  onDragOverCard,
+  onDragLeaveCard,
 }: BoardCardProps) {
   const formatCreatedAt = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -81,17 +89,30 @@ export default function BoardCard({
 
   const dlInfo = getDeadlineStyleAndText(card.due_date);
 
+  const isDragging = card.id === activeDragCardId;
+  const isDragOver = card.id === dragOverCardId && activeDragCardId !== card.id;
+
   return (
     <div
       draggable
       onDragStart={(e) => onDragStartCard(e, card.id, card.list_id)}
       onDragEnd={onDragEndCard}
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        onDragOverCard(e, card.id);
+      }}
+      onDragLeave={onDragLeaveCard}
       onDrop={(e) => onCardDropOnCard(e, card.id)}
       onMouseEnter={(e) => handleCardMouseEnter(card, e)}
       onMouseLeave={handleCardMouseLeave}
       onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
-      className="group/card bg-white border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] rounded-xl p-4 flex flex-col gap-2 relative transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 cursor-grab active:cursor-grabbing"
+      className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative transition-all duration-150 cursor-grab active:cursor-grabbing
+        ${isDragging 
+          ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
+          : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80"
+        }
+        ${isDragOver ? "border-t-4 border-t-violet-500 pt-1 shadow-sm" : ""}
+      `}
     >
       {isEditingCard ? (
         <input
