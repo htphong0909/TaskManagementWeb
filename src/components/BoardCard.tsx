@@ -15,7 +15,6 @@ interface BoardCardProps {
   isEditingCard: boolean;
   editCardTitle: string;
   setEditCardTitle: (title: string) => void;
-  editingCardId: string | null;
   setEditingCardId: (id: string | null) => void;
   handleRenameCardSubmit: (id: string) => void;
   setCardToDelete: (card: Card) => void;
@@ -31,7 +30,6 @@ export default function BoardCard({
   isEditingCard,
   editCardTitle,
   setEditCardTitle,
-  editingCardId,
   setEditingCardId,
   handleRenameCardSubmit,
   setCardToDelete,
@@ -93,7 +91,7 @@ export default function BoardCard({
       onMouseEnter={(e) => handleCardMouseEnter(card, e)}
       onMouseLeave={handleCardMouseLeave}
       onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
-      className="group/card bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] rounded-xl p-4 flex flex-col gap-2 relative transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 cursor-grab active:cursor-grabbing"
+      className="group/card bg-white border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] rounded-xl p-4 flex flex-col gap-2 relative transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 cursor-grab active:cursor-grabbing"
     >
       {isEditingCard ? (
         <input

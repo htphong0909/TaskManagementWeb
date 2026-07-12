@@ -104,7 +104,7 @@ export default function BoardColumn({
           onDropList(e, list.id);
         }
       }}
-      className="bg-slate-50/50 backdrop-blur-md border border-slate-200/50 rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 shadow-sm"
+      className="bg-white/80 backdrop-blur-md border border-slate-300 rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 shadow-sm"
     >
       {/* Header cột */}
       <div className="flex items-center justify-between mb-3 group">
@@ -150,7 +150,7 @@ export default function BoardColumn({
       </div>
 
       {/* Danh sách các Cards */}
-      <div className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[50px]">
+      <div className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[50px] pt-1">
         {listCards.map((card) => (
           <BoardCard
             key={card.id}
@@ -158,7 +158,6 @@ export default function BoardColumn({
             isEditingCard={card.id === editingCardId}
             editCardTitle={editCardTitle}
             setEditCardTitle={setEditCardTitle}
-            editingCardId={editingCardId}
             setEditingCardId={setEditingCardId}
             handleRenameCardSubmit={handleRenameCardSubmit}
             setCardToDelete={setCardToDelete}
