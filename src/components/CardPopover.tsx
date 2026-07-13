@@ -260,6 +260,7 @@ export default function CardPopover({
   const popupWidth = 360;
   const margin = 12;
   const screenWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const screenHeight = typeof window !== "undefined" ? window.innerHeight : 800;
   const spaceOnRight = screenWidth - rect.right;
   const showOnRight = spaceOnRight > popupWidth + margin;
 
@@ -267,18 +268,22 @@ export default function CardPopover({
     ? rect.right + margin 
     : rect.left - popupWidth - margin;
 
-  const topPosition = rect.top;
+  const isLowerHalf = rect.top > screenHeight / 2;
+  const bottomPosition = isLowerHalf ? screenHeight - Math.min(rect.bottom, screenHeight * 0.92 - 12) : 0;
+  const topPosition = isLowerHalf ? 0 : rect.top;
+  const maxH = isLowerHalf ? screenHeight - bottomPosition - 16 : (screenHeight * 0.92 - 12) - topPosition;
 
   return (
     <div
       ref={popoverRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="fixed bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl border border-white/40 p-5 z-50 transition-all duration-200 max-h-[80vh] overflow-y-auto"
+      className="fixed bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl border border-white/40 p-5 z-50 transition-all duration-200 overflow-y-auto"
       style={{
         left: `${leftPosition}px`,
-        top: `${topPosition}px`,
+        ...(isLowerHalf ? { bottom: `${bottomPosition}px` } : { top: `${topPosition}px` }),
         width: `${popupWidth}px`,
+        maxHeight: `${maxH}px`,
       }}
     >
       {/* Input File Ẩn */}
