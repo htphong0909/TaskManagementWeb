@@ -71,13 +71,21 @@ export default function CardDetailModal({
   const descImageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Tự động giãn nở chiều cao textarea Mô tả công việc
   useEffect(() => {
     const textarea = descRef.current;
     if (textarea) {
+      const scrollContainer = scrollContainerRef.current;
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
+
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollTop;
+      }
     }
   }, [content, isDescPreview]);
 
@@ -85,8 +93,15 @@ export default function CardDetailModal({
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      const scrollContainer = scrollContainerRef.current;
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
+
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollTop;
+      }
     }
   }, [details, isPreviewMode]);
 
@@ -419,7 +434,7 @@ export default function CardDetailModal({
         </div>
 
         {/* Body Modal */}
-        <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+        <div ref={scrollContainerRef} className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
           <div className="grid grid-cols-3 gap-6">
             
             {/* CỘT TRÁI (Nội dung chính - 2/3 width) */}
