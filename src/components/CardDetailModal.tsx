@@ -461,7 +461,15 @@ export default function CardDetailModal({
                 </div>
 
                 {!isDescPreview ? (
-                  <div className="space-y-2">
+                  <div 
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget)) {
+                        saveField("content", content);
+                        setIsDescPreview(true);
+                      }
+                    }}
+                    className="space-y-2"
+                  >
                     {/* Toolbar */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex gap-2 items-center text-xs">
                       <button
@@ -479,9 +487,9 @@ export default function CardDetailModal({
                       ref={descRef}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      onBlur={() => saveField("content", content)}
                       placeholder="Nhập mô tả tóm tắt..."
                       className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-[120px] resize-none break-words overflow-hidden"
+                      autoFocus
                     />
                   </div>
                 ) : (
@@ -514,7 +522,15 @@ export default function CardDetailModal({
                 </div>
 
                 {!isPreviewMode ? (
-                  <div className="space-y-2">
+                  <div 
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget)) {
+                        saveField("details", details);
+                        setIsPreviewMode(true);
+                      }
+                    }}
+                    className="space-y-2"
+                  >
                     {/* Toolbar */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex gap-2 items-center text-xs">
                       <button
@@ -532,14 +548,15 @@ export default function CardDetailModal({
                       ref={textareaRef}
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
-                      onBlur={() => saveField("details", details)}
                       placeholder="Viết chi tiết kế hoạch của bạn ở đây bằng Markdown..."
                       className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[120px] focus:border-violet-400 outline-none font-mono break-words overflow-hidden"
+                      autoFocus
                     />
                   </div>
                 ) : (
                   <div
-                    className="border border-slate-200 rounded-lg p-4 bg-white min-h-[260px] max-w-none text-xs markdown-content"
+                    onClick={() => setIsPreviewMode(false)}
+                    className="border border-slate-200 rounded-lg p-4 bg-white min-h-[260px] max-w-none text-xs markdown-content cursor-pointer hover:bg-slate-50/30 transition duration-150"
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(details) }}
                   />
                 )}
