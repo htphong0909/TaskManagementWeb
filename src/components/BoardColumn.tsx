@@ -106,11 +106,17 @@ export default function BoardColumn({
   onCardClick,
   onCardDragOverListContainer,
 }: BoardColumnProps) {
-  const isDraggingList = activeDragListId === list.id;
+  const isEditingList = list.id === editingListId;
   const isAddingCard = list.id === addingCardListId;
+
+  const isDraggingList = list.id === activeDragListId;
+  const isDragOverList = list.id === dragOverListId && activeDragCardId !== null;
 
   return (
     <div
+      draggable
+      onDragStart={(e) => onDragStartList(e, list.id)}
+      onDragEnd={onDragEndList}
       onDragOver={(e) => {
         e.preventDefault();
         onDragOverList(e, list.id);
@@ -124,25 +130,17 @@ export default function BoardColumn({
           onDropList(e, list.id);
         }
       }}
-      className={`min-w-72 max-w-72 rounded-2xl flex flex-col h-full relative transition-all duration-300
+      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 transition-all duration-200
         ${isDraggingList 
-          ? "opacity-30 scale-95 border-dashed border-violet-400 bg-violet-50/20" 
-          : "bg-slate-100/70 border border-slate-200/50 shadow-[0_4px_20px_rgba(0,0,0,0.01)]"
+          ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
+          : "bg-white/80 border-slate-300 shadow-sm"
         }
-        ${dragOverListId === list.id && activeDragListId !== list.id && activeDragCardId === null
-          ? "ring-2 ring-violet-500/50 ring-offset-2 bg-slate-200/80 scale-[1.01]" 
-          : ""
-        }
+        ${isDragOverList ? "ring-2 ring-violet-400 ring-offset-2 shadow-md bg-white/90" : ""}
       `}
     >
-      {/* Khung tiêu đề cột */}
-      <div 
-        draggable
-        onDragStart={(e) => onDragStartList(e, list.id)}
-        onDragEnd={onDragEndList}
-        className="flex items-center justify-between p-4 cursor-grab active:cursor-grabbing border-b border-slate-200/50 bg-white/50 backdrop-blur-sm rounded-t-2xl select-none"
-      >
-        {editingListId === list.id ? (
+      {/* Header cột */}
+      <div className="flex items-center justify-between mb-3 group">
+        {isEditingList ? (
           <input
             type="text"
             value={editListTitle}
@@ -152,21 +150,25 @@ export default function BoardColumn({
               if (e.key === "Enter") handleRenameListSubmit(list.id);
               if (e.key === "Escape") setEditingListId(null);
             }}
-            className="w-full rounded-lg border border-violet-400 bg-white px-2 py-1 text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-violet-200/40"
+            className="bg-white border border-violet-400 outline-none text-sm font-bold text-slate-800 rounded-lg px-2.5 py-1 w-full"
             autoFocus
           />
         ) : (
           <>
-            <h3 
-              onDoubleClick={() => [setEditingListId(list.id), setEditListTitle(list.title)]}
-              className="text-xs font-bold text-slate-800 line-clamp-2 break-words max-w-[200px]"
+            <span
+              onClick={() => [setEditingListId(list.id), setEditListTitle(list.title)]}
+              className="text-sm font-bold text-slate-800 cursor-pointer select-none line-clamp-2 break-words flex-1 text-left"
             >
               {list.title}
-            </h3>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[10px] font-semibold text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded-md min-w-4 text-center">
-                {listCards.length}
-              </span>
+            </span>
+            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition duration-150">
+              <button
+                onClick={() => setAddingCardListId(list.id)}
+                className="h-6 w-6 rounded-lg hover:bg-violet-50 text-slate-400 hover:text-violet-600 flex items-center justify-center transition cursor-pointer"
+                title="Thêm thẻ công việc"
+              >
+                +
+              </button>
               <button
                 onClick={() => setListToDelete(list)}
                 className="h-6 w-6 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition cursor-pointer"

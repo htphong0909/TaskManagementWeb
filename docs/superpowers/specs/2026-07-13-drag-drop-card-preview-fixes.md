@@ -10,10 +10,11 @@
 
 ### Cập nhật cấu trúc `BoardColumn.tsx`
 - Bổ sung prop `onCardDragOverListContainer` vào giao diện `BoardColumnProps`.
+- Tăng `min-h` lên `100px` và thêm `pb-20` (80px khoảng trống đáy) vào container danh sách thẻ.
 - Đăng ký sự kiện `onDragOver` cho thẻ container chứa danh sách card:
 ```tsx
 <div 
-  className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[50px] pt-1"
+  className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[100px] pt-1 pb-20"
   onDragOver={(e) => {
     e.preventDefault();
     onCardDragOverListContainer(e, list.id);

@@ -394,6 +394,21 @@ export default function BoardPage() {
     const sourceCard = cards[sourceIdx];
     const targetCard = cards[targetIdx];
 
+    // Lấy tọa độ tương đối của chuột trên thẻ đích
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const height = rect.bottom - rect.top;
+
+    // Tránh giật màn hình (jitter/flicking): Chỉ tráo vị trí khi kéo qua đường ranh giới giữa (center line)
+    if (sourceCard.list_id === targetCard.list_id) {
+      if (sourceIdx < targetIdx && relativeY < height * 0.2) {
+        return; // Đang kéo xuống nhưng chưa đi qua 20% của card đích
+      }
+      if (sourceIdx > targetIdx && relativeY > height * 0.8) {
+        return; // Đang kéo lên nhưng chưa đi qua 80% của card đích
+      }
+    }
+
     // Sắp xếp lại danh sách cards cục bộ ngay lập tức
     if (sourceCard.list_id !== targetCard.list_id || sourceIdx !== targetIdx) {
       const updatedCards = [...cards];
@@ -408,6 +423,59 @@ export default function BoardPage() {
         updatedCards.splice(newTargetIdx, 0, draggedCard);
       } else {
         updatedCards.splice(targetIdx, 0, draggedCard);
+      }
+
+      setCards(updatedCards);
+    }
+  };
+
+  const handleCardDragOverListContainer = (e: React.DragEvent, listId: string) => {
+    e.preventDefault();
+    if (e.target !== e.currentTarget) return;
+    if (!activeDragCardId) return;
+
+    const sourceIdx = cards.findIndex((c) => c.id === activeDragCardId);
+    if (sourceIdx === -1) return;
+
+    const sourceCard = cards[sourceIdx];
+    const targetListCards = cards.filter((c) => c.list_id === listId && c.id !== activeDragCardId);
+
+    // Chỉ cho phép đẩy xuống đáy nếu chuột thực sự nằm dưới cùng của thẻ cuối cùng
+    if (targetListCards.length > 0) {
+      const lastCard = targetListCards[targetListCards.length - 1];
+      const lastCardEl = document.getElementById(lastCard.id);
+      if (lastCardEl) {
+        const lastCardRect = lastCardEl.getBoundingClientRect();
+        if (e.clientY < lastCardRect.bottom - lastCardRect.height * 0.2) {
+          return; // Chưa kéo qua phần dưới của thẻ cuối cùng
+        }
+      }
+    }
+
+    // Kiểm tra xem thẻ đang kéo có phải đã ở vị trí cuối cùng của cột đích chưa
+    const isAlreadyLastInTarget = 
+      sourceCard.list_id === listId && 
+      targetListCards.length > 0 && 
+      cards.findIndex((c) => c.id === activeDragCardId) > cards.findIndex((c) => c.id === targetListCards[targetListCards.length - 1].id);
+
+    if (!isAlreadyLastInTarget) {
+      const updatedCards = [...cards];
+      const [draggedCard] = updatedCards.splice(sourceIdx, 1);
+      draggedCard.list_id = listId;
+
+      // Tìm thẻ cuối cùng hiện tại của cột đích trong mảng đã bị splice
+      let lastCardIdx = -1;
+      for (let i = updatedCards.length - 1; i >= 0; i--) {
+        if (updatedCards[i].list_id === listId) {
+          lastCardIdx = i;
+          break;
+        }
+      }
+
+      if (lastCardIdx !== -1) {
+        updatedCards.splice(lastCardIdx + 1, 0, draggedCard);
+      } else {
+        updatedCards.push(draggedCard);
       }
 
       setCards(updatedCards);
@@ -556,6 +624,7 @@ export default function BoardPage() {
               onDragLeaveList={handleListDragLeave}
               onDragOverCard={handleCardDragOver}
               onDragLeaveCard={handleCardDragLeave}
+              onCardDragOverListContainer={handleCardDragOverListContainer}
             />
           );
         })}

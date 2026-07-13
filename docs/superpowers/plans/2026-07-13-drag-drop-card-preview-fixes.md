@@ -25,12 +25,15 @@
 
 - [ ] **Step 1:** Add `onCardDragOverListContainer` to the `BoardColumnProps` interface in [BoardColumn.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/BoardColumn.tsx).
 - [ ] **Step 2:** Destructure `onCardDragOverListContainer` inside the `BoardColumn` component arguments.
-- [ ] **Step 3:** Add `onDragOver` handler to the cards list container `div` (which has className `space-y-3 flex-1 overflow-y-auto...`):
+- [ ] **Step 3:** Add `onDragOver` handler to the cards list container `div` and update its style to include `min-h-[100px]` and `pb-20`:
   ```tsx
-  onDragOver={(e) => {
-    e.preventDefault();
-    onCardDragOverListContainer(e, list.id);
-  }}
+  <div 
+    className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[100px] pt-1 pb-20"
+    onDragOver={(e) => {
+      e.preventDefault();
+      onCardDragOverListContainer(e, list.id);
+    }}
+  >
   ```
 - [ ] **Step 4:** Run `npm run lint` to make sure there are no syntax errors (it will have TypeScript errors about missing props in page.tsx, which is expected before Task 2).
 - [ ] **Step 5:** Commit changes.
