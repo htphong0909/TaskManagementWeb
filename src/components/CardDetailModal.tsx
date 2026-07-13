@@ -92,11 +92,14 @@ export default function CardDetailModal({
   }, [cardId]);
 
   useEffect(() => {
-    fetchCardData();
+    const timer = setTimeout(() => {
+      fetchCardData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchCardData]);
 
   // Hàm lưu trường dữ liệu đơn lẻ (Title, Content, Details, Key Info)
-  const saveField = async (field: keyof Card, value: any) => {
+  const saveField = useCallback(async (field: keyof Card, value: string | Stakeholder[]) => {
     try {
       const { error } = await supabase
         .from("cards")
@@ -107,7 +110,7 @@ export default function CardDetailModal({
     } catch (err) {
       console.error(`Lỗi cập nhật ${field}:`, err);
     }
-  };
+  }, [cardId, onCardUpdated]);
 
   // Thêm Stakeholder
   const handleAddStakeholder = async (e: React.FormEvent) => {
@@ -278,7 +281,7 @@ export default function CardDetailModal({
     return () => {
       textarea.removeEventListener("paste", handlePaste);
     };
-  }, [details, isPreviewMode]);
+  }, [details, isPreviewMode, saveField]);
 
   if (!card) return null;
 
