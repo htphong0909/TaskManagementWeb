@@ -637,7 +637,7 @@ export default function CardDetailModal({
                         value={newShName}
                         onChange={(e) => setNewShName(e.target.value)}
                         required
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div>
@@ -646,7 +646,7 @@ export default function CardDetailModal({
                         placeholder="Vai trò..."
                         value={newShRole}
                         onChange={(e) => setNewShRole(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div>
@@ -655,7 +655,7 @@ export default function CardDetailModal({
                         placeholder="Email..."
                         value={newShEmail}
                         onChange={(e) => setNewShEmail(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div className="col-span-3 flex justify-end gap-2 mt-1">
