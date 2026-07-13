@@ -60,6 +60,7 @@ interface BoardColumnProps {
   onDragLeaveList: (e: React.DragEvent) => void;
   onDragOverCard: (e: React.DragEvent, cardId: string) => void;
   onDragLeaveCard: (e: React.DragEvent) => void;
+  onCardClick: (cardId: string) => void;
 }
 
 export default function BoardColumn({
@@ -101,6 +102,7 @@ export default function BoardColumn({
   onDragLeaveList,
   onDragOverCard,
   onDragLeaveCard,
+  onCardClick,
 }: BoardColumnProps) {
   const isEditingList = list.id === editingListId;
   const isAddingCard = list.id === addingCardListId;
@@ -198,6 +200,7 @@ export default function BoardColumn({
             dragOverCardId={dragOverCardId}
             onDragOverCard={onDragOverCard}
             onDragLeaveCard={onDragLeaveCard}
+            onCardClick={onCardClick}
           />
         ))}
       </div>

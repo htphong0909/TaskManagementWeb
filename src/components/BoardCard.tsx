@@ -27,6 +27,7 @@ interface BoardCardProps {
   dragOverCardId: string | null;
   onDragOverCard: (e: React.DragEvent, cardId: string) => void;
   onDragLeaveCard: (e: React.DragEvent) => void;
+  onCardClick: (cardId: string) => void;
 }
 
 export default function BoardCard({
@@ -46,6 +47,7 @@ export default function BoardCard({
   dragOverCardId,
   onDragOverCard,
   onDragLeaveCard,
+  onCardClick,
 }: BoardCardProps) {
   const formatCreatedAt = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -112,7 +114,18 @@ export default function BoardCard({
       onMouseEnter={(e) => handleCardMouseEnter(card, e)}
       onMouseLeave={handleCardMouseLeave}
       onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
-      className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative transition-all duration-150 cursor-grab active:cursor-grabbing
+      onClick={(e) => {
+        // Tránh kích hoạt modal khi đang click nút xóa, nút đóng, link hoặc input
+        if (
+          (e.target as HTMLElement).closest("button") ||
+          (e.target as HTMLElement).closest("input") ||
+          (e.target as HTMLElement).closest("a")
+        ) {
+          return;
+        }
+        onCardClick(card.id);
+      }}
+      className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative transition-all duration-150 cursor-pointer active:cursor-grabbing
         ${isDragging 
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
           : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80"

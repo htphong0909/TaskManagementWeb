@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import CardPopover from "@/components/CardPopover";
 import BoardColumn from "@/components/BoardColumn";
+import CardDetailModal from "@/components/CardDetailModal";
 
 interface List {
   id: string;
@@ -48,6 +49,10 @@ export default function BoardPage() {
   // Popover state cho Card
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
+
+  // States quản lý Modal chi tiết Card
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedListTitle, setSelectedListTitle] = useState<string>("");
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isPopoverBusy, setIsPopoverBusy] = useState(false);
 
@@ -241,6 +246,11 @@ export default function BoardPage() {
     } catch (err) {
       console.error("Lỗi xóa thẻ:", err);
     }
+  };
+
+  const handleCardClick = (cardId: string, listTitle: string) => {
+    setSelectedCardId(cardId);
+    setSelectedListTitle(listTitle);
   };
 
   // Hover Popover events
@@ -516,6 +526,7 @@ export default function BoardPage() {
               onDragEndCard={handleCardEnd}
               onCardDropOnList={handleCardDropOnList}
               onCardDropOnCard={handleCardDropOnCard}
+              onCardClick={(cardId) => handleCardClick(cardId, list.title)}
               // Enhanced drag states & handlers
               activeDragCardId={activeDragCardId}
               activeDragListId={activeDragListId}
@@ -646,6 +657,17 @@ export default function BoardPage() {
             </div>
           </div>
         </div>,
+        document.body
+      )}
+
+      {/* Hộp thoại chi tiết thẻ */}
+      {selectedCardId && mounted && createPortal(
+        <CardDetailModal
+          cardId={selectedCardId}
+          listTitle={selectedListTitle}
+          onClose={() => setSelectedCardId(null)}
+          onCardUpdated={fetchBoardData}
+        />,
         document.body
       )}
     </div>
