@@ -870,6 +870,9 @@ export default function CardDetailModal({
                 {!isDescPreview ? (
                   <div 
                     onBlur={(e) => {
+                      if (typeof document !== "undefined" && !document.hasFocus()) {
+                        return;
+                      }
                       if (!e.currentTarget.contains(e.relatedTarget)) {
                         saveField("content", content);
                         setIsDescPreview(true);
@@ -939,6 +942,9 @@ export default function CardDetailModal({
                 {!isPreviewMode ? (
                   <div 
                     onBlur={(e) => {
+                      if (typeof document !== "undefined" && !document.hasFocus()) {
+                        return;
+                      }
                       if (!e.currentTarget.contains(e.relatedTarget)) {
                         saveField("details", details);
                         setIsPreviewMode(true);
