@@ -24,6 +24,7 @@ interface Card {
   details: string | null;
   key_info: string | null;
   stakeholders: Stakeholder[];
+  is_completed?: boolean;
 }
 
 interface Attachment {
@@ -154,6 +155,18 @@ export default function CardDetailModal({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState("");
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [hasDeadline, setHasDeadline] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+
+  const formatForInput = (isoStr: string | null) => {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
 
   const merged = [
     ...attachments.map(a => ({ ...a, itemType: "file" as const })),
@@ -288,6 +301,9 @@ export default function CardDetailModal({
       setDetails(data.details || "");
       setKeyInfo(data.key_info || "");
       setStakeholders(data.stakeholders || []);
+      setIsCompleted(data.is_completed || false);
+      setHasDeadline(!!data.due_date);
+      setDueDate(formatForInput(data.due_date));
     }
 
     const { data: attData } = await supabase
@@ -313,7 +329,7 @@ export default function CardDetailModal({
   }, [fetchCardData]);
 
   // Hàm lưu trường dữ liệu đơn lẻ (Title, Content, Details, Key Info)
-  const saveField = useCallback(async (field: keyof Card, value: string | Stakeholder[]) => {
+  const saveField = useCallback(async (field: keyof Card, value: string | Stakeholder[] | boolean | null) => {
     try {
       const { error } = await supabase
         .from("cards")
@@ -417,6 +433,38 @@ export default function CardDetailModal({
       fetchCardData();
     } catch (err) {
       console.error("Lỗi hoán đổi vị trí:", err);
+    }
+  };
+
+
+  const handleToggleCompletedInModal = async (completed: boolean) => {
+    setIsCompleted(completed);
+    await saveField("is_completed", completed);
+  };
+
+  const handleToggleDeadlineEnable = async (enabled: boolean) => {
+    setHasDeadline(enabled);
+    if (enabled) {
+      // Set default deadline to tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setMinutes(0);
+      const iso = tomorrow.toISOString();
+      setDueDate(formatForInput(iso));
+      await saveField("due_date", iso);
+    } else {
+      setDueDate("");
+      await saveField("due_date", null);
+    }
+  };
+
+  const handleDueDateChange = async (val: string) => {
+    setDueDate(val);
+    if (val) {
+      const iso = new Date(val).toISOString();
+      await saveField("due_date", iso);
+    } else {
+      await saveField("due_date", null);
     }
   };
 
@@ -1207,6 +1255,54 @@ export default function CardDetailModal({
                 </div>
               </div>
 
+            </div>
+
+            {/* CỘT PHẢI (Cấu hình & Thiết lập - 1/3 width) */}
+            <div className="col-span-1 flex flex-col gap-6">
+              <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col gap-4">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">⚙️ Thiết lập thẻ</label>
+                
+                {/* Checkbox Trạng thái Hoàn thành */}
+                <div className="flex items-center gap-2 select-none">
+                  <input
+                    type="checkbox"
+                    id="completed-modal-checkbox"
+                    checked={isCompleted}
+                    onChange={(e) => handleToggleCompletedInModal(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                  />
+                  <label htmlFor="completed-modal-checkbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                    Đã hoàn thành công việc
+                  </label>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* Thiết lập Hạn chót */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 select-none">
+                    <input
+                      type="checkbox"
+                      id="enable-deadline-checkbox"
+                      checked={hasDeadline}
+                      onChange={(e) => handleToggleDeadlineEnable(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                    />
+                    <label htmlFor="enable-deadline-checkbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                      Bật hạn chót (Deadline)
+                    </label>
+                  </div>
+
+                  {hasDeadline && (
+                    <input
+                      type="datetime-local"
+                      value={dueDate}
+                      onChange={(e) => handleDueDateChange(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200/40"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
 
           </div>
