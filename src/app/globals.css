@@ -84,12 +84,14 @@ body {
 }
 
 .markdown-content,
-.markdown-content * {
-  word-break: break-all !important;
-  overflow-wrap: anywhere !important;
+.markdown-content p,
+.markdown-content li,
+textarea {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
-textarea {
+.markdown-content a {
   word-break: break-all !important;
   overflow-wrap: anywhere !important;
 }
