@@ -433,20 +433,20 @@ export default function CardPopover({
           </button>
         </div>
 
-        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+        <div className="space-y-1">
           {uploadingFile && (
-            <div className="flex items-center justify-between bg-violet-50/50 border border-violet-100 border-dashed p-2 rounded-xl text-xs">
-              <div className="flex items-center gap-2 text-violet-600 font-medium truncate flex-1">
-                <svg className="animate-spin h-3.5 w-3.5 text-violet-600 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+            <div className="flex items-center justify-between bg-violet-50/50 border border-violet-100 border-dashed p-1.5 rounded-lg text-[11px]">
+              <div className="flex items-center gap-1.5 text-violet-600 font-medium truncate flex-1">
+                <svg className="animate-spin h-3 w-3 text-violet-600 flex-shrink-0" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <span className="truncate">{uploadingFile.name}</span>
               </div>
-              <span className="text-violet-500 font-semibold ml-2 whitespace-nowrap">
+              <span className="text-violet-500 font-semibold ml-2 whitespace-nowrap text-[10px]">
                 {uploadingFile.stage === "uploading" 
                   ? `Đang tải: ${uploadingFile.progress}%` 
-                  : "Đang lưu lên Drive..."}
+                  : "Đang lưu..."}
               </span>
             </div>
           )}
@@ -467,7 +467,7 @@ export default function CardPopover({
               return (
                 <div
                   key={att.id}
-                  className={`flex items-center justify-between bg-white border ${borderClass} p-2 rounded-xl text-xs shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-all duration-150 gap-2`}
+                  className={`flex items-center justify-between bg-white border ${borderClass} p-1.5 rounded-lg text-[11px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:shadow-sm transition-all duration-150 gap-1.5`}
                 >
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {getFileIcon(fileInfo.type)}
@@ -492,18 +492,18 @@ export default function CardPopover({
                     )}
                   </div>
 
-                  <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border shrink-0 ${fileInfo.colorClass}`}>
+                  <span className={`text-[8px] font-extrabold uppercase px-1 py-0.5 rounded border shrink-0 ${fileInfo.colorClass}`}>
                     {fileInfo.label}
                   </span>
 
                   <button
                     onClick={() => handleDeleteAttachment(att.id)}
                     disabled={deletingIds.includes(att.id)}
-                    className="text-slate-400 hover:text-rose-500 h-5 w-5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0"
+                    className="text-slate-400 hover:text-rose-500 h-4.5 w-4.5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0 text-[10px]"
                     title="Xóa tệp đính kèm"
                   >
                     {deletingIds.includes(att.id) ? (
-                      <svg className="animate-spin h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-3 w-3 text-slate-500" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
