@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 interface Board {
   id: string;
   title: string;
+  position?: number;
 }
 
 interface BoardSwitcherProps {
@@ -32,14 +33,18 @@ export default function BoardSwitcher({
   // Xóa board state
   const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Kéo thả board state
+  const [activeDragBoardId, setActiveDragBoardId] = useState<string | null>(null);
+  const [dragOverBoardId, setDragOverBoardId] = useState<string | null>(null);
   
   const router = useRouter();
 
   const fetchBoards = useCallback(async () => {
     const { data } = await supabase
       .from("boards")
-      .select("id, title")
-      .order("created_at", { ascending: true });
+      .select("id, title, position")
+      .order("position", { ascending: true });
     setBoards(data || []);
   }, []);
 
@@ -61,9 +66,13 @@ export default function BoardSwitcher({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Tìm position lớn nhất hiện tại
+    const maxPos = boards.reduce((max, b) => ((b.position || 0) > max ? (b.position || 0) : max), 0);
+    const nextPos = maxPos > 0 ? maxPos + 1000 : 1000;
+
     const { data: newBoard } = await supabase
       .from("boards")
-      .insert([{ title: newBoardTitle.trim(), user_id: user.id }])
+      .insert([{ title: newBoardTitle.trim(), user_id: user.id, position: nextPos }])
       .select("id")
       .single();
 
@@ -72,6 +81,66 @@ export default function BoardSwitcher({
       setShowAddModal(false);
       await fetchBoards();
       router.push(`/board/${newBoard.id}`);
+    }
+  };
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, boardId: string) => {
+    e.dataTransfer.setData("text/board-id", boardId);
+    setActiveDragBoardId(boardId);
+  };
+
+  const handleDragEnd = () => {
+    setActiveDragBoardId(null);
+    setDragOverBoardId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, boardId: string) => {
+    e.preventDefault();
+    if (activeDragBoardId !== boardId) {
+      setDragOverBoardId(boardId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverBoardId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetBoardId: string) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData("text/board-id") || activeDragBoardId;
+    if (!draggedId || draggedId === targetBoardId) return;
+
+    const draggedIndex = boards.findIndex((b) => b.id === draggedId);
+    const targetIndex = boards.findIndex((b) => b.id === targetBoardId);
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const updatedBoards = [...boards];
+    const [draggedBoard] = updatedBoards.splice(draggedIndex, 1);
+    updatedBoards.splice(targetIndex, 0, draggedBoard);
+
+    let newPosition: number;
+    if (targetIndex === 0) {
+      newPosition = (updatedBoards[1]?.position || 1000) / 2;
+    } else if (targetIndex === updatedBoards.length - 1) {
+      newPosition = (updatedBoards[updatedBoards.length - 2]?.position || 0) + 1000;
+    } else {
+      const prevPos = updatedBoards[targetIndex - 1]?.position || 0;
+      const nextPos = updatedBoards[targetIndex + 1]?.position || 0;
+      newPosition = (prevPos + nextPos) / 2;
+    }
+
+    draggedBoard.position = newPosition;
+    setBoards(updatedBoards);
+
+    const { error } = await supabase
+      .from("boards")
+      .update({ position: newPosition })
+      .eq("id", draggedId);
+
+    if (error) {
+      console.error("Lỗi cập nhật thứ tự board:", error);
+      fetchBoards();
     }
   };
 
@@ -124,14 +193,30 @@ export default function BoardSwitcher({
         {boards.map((b) => {
           const isActive = b.id === activeBoardId;
           const isEditing = b.id === editingBoardId;
+          const isDraggingBoard = b.id === activeDragBoardId;
+          const isDragOverBoard = b.id === dragOverBoardId;
 
           return (
             <div
               key={b.id}
+              draggable={!isEditing}
+              onDragStart={(e) => handleDragStart(e, b.id)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, b.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, b.id)}
               className={`group flex items-center px-4 py-2 text-xs font-semibold rounded-t-xl transition-all duration-150 relative ${
                 isActive
                   ? "bg-white/80 border-t border-x border-slate-200/60 text-violet-600 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] h-[90%]"
                   : "bg-white/30 border-t border-x border-transparent text-slate-500 hover:bg-white/50 h-[80%] cursor-pointer"
+              } ${
+                isDraggingBoard 
+                  ? "opacity-30 scale-90 border-dashed border-violet-400 bg-violet-50/20" 
+                  : ""
+              } ${
+                isDragOverBoard 
+                  ? "ring-2 ring-violet-500/50 ring-offset-1 bg-white/70" 
+                  : ""
               }`}
               onDoubleClick={() => isActive && handleStartRename(b)}
               onClick={() => !isActive && !isEditing && router.push(`/board/${b.id}`)}
