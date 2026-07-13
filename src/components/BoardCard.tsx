@@ -8,6 +8,7 @@ interface Card {
   position: number;
   due_date: string | null;
   created_at: string;
+  is_completed?: boolean;
 }
 
 interface BoardCardProps {
@@ -28,6 +29,7 @@ interface BoardCardProps {
   onDragOverCard: (e: React.DragEvent, cardId: string) => void;
   onDragLeaveCard: (e: React.DragEvent) => void;
   onCardClick: (cardId: string) => void;
+  onToggleComplete?: (cardId: string, isCompleted: boolean) => void;
 }
 
 export default function BoardCard({
@@ -48,6 +50,7 @@ export default function BoardCard({
   onDragOverCard,
   onDragLeaveCard,
   onCardClick,
+  onToggleComplete,
 }: BoardCardProps) {
   const [mouseDownCoords, setMouseDownCoords] = useState<{ x: number; y: number } | null>(null);
   const formatCreatedAt = (dateStr: string) => {
@@ -76,7 +79,10 @@ export default function BoardCard({
       return `${hours}:${minutes} ${day}/${month}`;
     };
 
-    if (timeDiff < 0) {
+    if (card.is_completed) {
+      className += "bg-emerald-50 text-emerald-600 border border-emerald-100";
+      text = `Hoàn thành (${formatTime(due)})`;
+    } else if (timeDiff < 0) {
       className += "bg-rose-50 text-rose-600 border border-rose-100";
       text = `Quá hạn (${formatTime(due)})`;
     } else if (daysDiff <= 1) {
@@ -165,9 +171,21 @@ export default function BoardCard({
             {formatCreatedAt(card.created_at)}
           </span>
 
-          <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4">
-            {card.title}
-          </span>
+          <div className="flex items-start gap-1.5 flex-1 min-w-0">
+            <input
+              type="checkbox"
+              checked={card.is_completed || false}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleComplete?.(card.id, e.target.checked);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-3.5 w-3.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer flex-shrink-0 mt-0.5"
+            />
+            <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4 flex-1">
+              {card.title}
+            </span>
+          </div>
 
           {dlInfo && (
             <div className={dlInfo.className}>

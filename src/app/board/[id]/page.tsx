@@ -248,6 +248,19 @@ export default function BoardPage() {
     }
   };
 
+  const handleCardToggleComplete = async (cardId: string, isCompleted: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("cards")
+        .update({ is_completed: isCompleted })
+        .eq("id", cardId);
+      if (error) throw error;
+      await fetchBoardData();
+    } catch (err) {
+      console.error("Lỗi cập nhật trạng thái hoàn thành:", err);
+    }
+  };
+
   const handleCardClick = (cardId: string, listTitle: string) => {
     setSelectedCardId(cardId);
     setSelectedListTitle(listTitle);
@@ -607,6 +620,7 @@ export default function BoardPage() {
               setCardToDelete={setCardToDelete}
               handleCardMouseEnter={handleCardMouseEnter}
               handleCardMouseLeave={handleCardMouseLeave}
+              onToggleComplete={handleCardToggleComplete}
               onDragStartList={handleListDragStart}
               onDragEndList={handleListEnd}
               onDragOverList={handleListDragOver}
