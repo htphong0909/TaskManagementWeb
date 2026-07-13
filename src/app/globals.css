@@ -83,8 +83,14 @@ body {
   color: #0f172a;
 }
 
-.markdown-content {
-  word-break: break-word;
-  overflow-wrap: break-word;
+.markdown-content,
+.markdown-content * {
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+}
+
+textarea {
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
 }
 
