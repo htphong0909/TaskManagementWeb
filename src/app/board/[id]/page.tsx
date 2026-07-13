@@ -310,7 +310,29 @@ export default function BoardPage() {
   const handleListDragOver = (e: React.DragEvent, listId: string) => {
     e.preventDefault();
     if (activeDragCardId !== null) {
+      // Kéo card qua cột
+      const sourceCard = cards.find((c) => c.id === activeDragCardId);
+      if (sourceCard && sourceCard.list_id !== listId) {
+        // Chỉ dời sang cột mới nếu cột đó hiện chưa chứa card này hoặc không có card nào khác
+        const otherCardsInList = cards.filter((c) => c.list_id === listId);
+        if (otherCardsInList.length === 0) {
+          const updatedCards = cards.map((c) => 
+            c.id === activeDragCardId ? { ...c, list_id: listId } : c
+          );
+          setCards(updatedCards);
+        }
+      }
       setDragOverListId(listId);
+    } else if (activeDragListId !== null && activeDragListId !== listId) {
+      // Kéo cột qua cột khác
+      const sourceIdx = lists.findIndex((l) => l.id === activeDragListId);
+      const targetIdx = lists.findIndex((l) => l.id === listId);
+      if (sourceIdx !== -1 && targetIdx !== -1) {
+        const updatedLists = [...lists];
+        const [draggedList] = updatedLists.splice(sourceIdx, 1);
+        updatedLists.splice(targetIdx, 0, draggedList);
+        setLists(updatedLists);
+      }
     }
   };
 
@@ -318,35 +340,23 @@ export default function BoardPage() {
     setDragOverListId(null);
   };
 
-  const handleListDrop = async (e: React.DragEvent, targetListId: string) => {
+  const handleListDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverListId(null);
     setActiveDragListId(null);
-    const sourceListId = e.dataTransfer.getData("text/list-id");
-    if (!sourceListId || sourceListId === targetListId) return;
+    const sourceListId = e.dataTransfer.getData("text/list-id") || activeDragListId;
+    if (!sourceListId) return;
 
-    const sourceList = lists.find((l) => l.id === sourceListId);
-    const targetList = lists.find((l) => l.id === targetListId);
-    if (!sourceList || !targetList) return;
-
-    // Swap positions
-    const newLists = [...lists];
-    const sourceIdx = newLists.findIndex((l) => l.id === sourceListId);
-    const targetIdx = newLists.findIndex((l) => l.id === targetListId);
-
-    const tempPos = sourceList.position;
-    sourceList.position = targetList.position;
-    targetList.position = tempPos;
-
-    newLists[sourceIdx] = targetList;
-    newLists[targetIdx] = sourceList;
-    setLists(newLists.sort((a, b) => a.position - b.position));
+    // Lúc này mảng lists đã được sắp xếp đúng thứ tự trên giao diện qua dragOver rồi.
+    // Chúng ta chỉ cần cập nhật lại position của các cột trong DB
+    const promises = lists.map((l, index) => {
+      const newPos = index + 1;
+      l.position = newPos;
+      return supabase.from("lists").update({ position: newPos }).eq("id", l.id);
+    });
 
     try {
-      await Promise.all([
-        supabase.from("lists").update({ position: sourceList.position }).eq("id", sourceList.id),
-        supabase.from("lists").update({ position: targetList.position }).eq("id", targetList.id),
-      ]);
+      await Promise.all(promises);
     } catch (err) {
       console.error("Lỗi đồng bộ thứ tự cột:", err);
       await fetchBoardData();
@@ -374,8 +384,33 @@ export default function BoardPage() {
 
   const handleCardDragOver = (e: React.DragEvent, cardId: string) => {
     e.preventDefault();
-    if (activeDragCardId && activeDragCardId !== cardId) {
-      setDragOverCardId(cardId);
+    if (!activeDragCardId || activeDragCardId === cardId) return;
+
+    // Tìm index của card đang kéo và card đích trong mảng cards
+    const sourceIdx = cards.findIndex((c) => c.id === activeDragCardId);
+    const targetIdx = cards.findIndex((c) => c.id === cardId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const sourceCard = cards[sourceIdx];
+    const targetCard = cards[targetIdx];
+
+    // Sắp xếp lại danh sách cards cục bộ ngay lập tức
+    if (sourceCard.list_id !== targetCard.list_id || sourceIdx !== targetIdx) {
+      const updatedCards = [...cards];
+      const [draggedCard] = updatedCards.splice(sourceIdx, 1);
+      
+      // Cập nhật list_id mới cho card đang kéo
+      draggedCard.list_id = targetCard.list_id;
+
+      // Tìm lại vị trí chèn đích mới trong mảng đã bị splice
+      const newTargetIdx = updatedCards.findIndex((c) => c.id === cardId);
+      if (newTargetIdx !== -1) {
+        updatedCards.splice(newTargetIdx, 0, draggedCard);
+      } else {
+        updatedCards.splice(targetIdx, 0, draggedCard);
+      }
+
+      setCards(updatedCards);
     }
   };
 
@@ -383,88 +418,61 @@ export default function BoardPage() {
     setDragOverCardId(null);
   };
 
+  // Helper để đồng bộ thứ tự cards trong DB
+  const saveCardsOrder = async (listId: string) => {
+    const listCards = cards.filter((c) => c.list_id === listId);
+    try {
+      const promises = listCards.map((c, index) => {
+        const newPos = index + 1;
+        c.position = newPos;
+        return supabase
+          .from("cards")
+          .update({ list_id: listId, position: newPos })
+          .eq("id", c.id);
+      });
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Lỗi cập nhật thứ tự cards:", err);
+      await fetchBoardData();
+    }
+  };
+
   const handleCardDropOnList = async (e: React.DragEvent, targetListId: string) => {
     e.preventDefault();
     setDragOverListId(null);
-    setActiveDragCardId(null);
-    const cardId = e.dataTransfer.getData("text/card-id");
+    const cardId = e.dataTransfer.getData("text/card-id") || activeDragCardId;
     if (!cardId) return;
 
-    // Nếu thả vào cột khác hoặc thay đổi cấu trúc
-    const listCards = cards.filter((c) => c.list_id === targetListId);
-    const nextPosition = listCards.length > 0 ? Math.max(...listCards.map((c) => c.position)) + 1 : 1;
+    // Tìm card để xem source_list_id trước đó
+    const card = cards.find((c) => c.id === cardId);
+    const sourceListId = card?.list_id;
 
-    // 1. Cập nhật state lạc quan ngay lập tức
-    const updatedCards = cards.map((c) => {
-      if (c.id === cardId) {
-        return { ...c, list_id: targetListId, position: nextPosition };
-      }
-      return c;
-    });
-    setCards(updatedCards);
-
-    // 2. Lưu DB trong background
-    try {
-      const { error } = await supabase
-        .from("cards")
-        .update({ list_id: targetListId, position: nextPosition })
-        .eq("id", cardId);
-      if (error) throw error;
-    } catch (err) {
-      console.error("Lỗi thả card vào cột:", err);
-      // Rollback nếu có lỗi
-      await fetchBoardData();
+    await saveCardsOrder(targetListId);
+    if (sourceListId && sourceListId !== targetListId) {
+      await saveCardsOrder(sourceListId);
     }
+    setActiveDragCardId(null);
   };
 
   const handleCardDropOnCard = async (e: React.DragEvent, targetCardId: string) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverCardId(null);
-    setActiveDragCardId(null);
-    const cardId = e.dataTransfer.getData("text/card-id");
-    if (!cardId || cardId === targetCardId) return;
+    const cardId = e.dataTransfer.getData("text/card-id") || activeDragCardId;
+    if (!cardId) return;
 
     const sourceCard = cards.find((c) => c.id === cardId);
     const targetCard = cards.find((c) => c.id === targetCardId);
     if (!sourceCard || !targetCard) return;
 
+    const sourceListId = sourceCard.list_id;
     const targetListId = targetCard.list_id;
 
-    // 1. Sắp xếp danh sách cards mới tại cột mục tiêu
-    const listCards = cards
-      .filter((c) => c.list_id === targetListId && c.id !== cardId)
-      .sort((a, b) => a.position - b.position);
-    
-    const targetIdx = listCards.findIndex((c) => c.id === targetCardId);
-    listCards.splice(targetIdx, 0, { ...sourceCard, list_id: targetListId });
-
-    // 2. Cập nhật state lạc quan ngay lập tức
-    const updatedLocalCards = cards.map((c) => {
-      const updatedCardIdx = listCards.findIndex((lc) => lc.id === c.id);
-      if (updatedCardIdx !== -1) {
-        return { ...c, list_id: targetListId, position: updatedCardIdx + 1 };
-      }
-      if (c.id === cardId) {
-        return { ...c, list_id: targetListId, position: targetIdx + 1 };
-      }
-      return c;
-    });
-    setCards(updatedLocalCards);
-
-    // 3. Gửi các query update song song trong background
-    try {
-      const promises = listCards.map((c, index) => {
-        const newPos = index + 1;
-        return supabase.from("cards").update({ list_id: targetListId, position: newPos }).eq("id", c.id);
-      });
-
-      await Promise.all(promises);
-    } catch (err) {
-      console.error("Lỗi sắp xếp lại các card:", err);
-      // Rollback nếu có lỗi
-      await fetchBoardData();
+    await saveCardsOrder(targetListId);
+    if (sourceListId && sourceListId !== targetListId) {
+      await saveCardsOrder(sourceListId);
     }
+    setActiveDragCardId(null);
   };
 
   if (loadingWorkspace) {

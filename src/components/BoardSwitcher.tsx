@@ -87,7 +87,6 @@ export default function BoardSwitcher({
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, boardId: string) => {
     e.dataTransfer.setData("text/board-id", boardId);
-    setActiveDragBoardId(boardId);
   };
 
   const handleDragEnd = () => {
@@ -97,40 +96,42 @@ export default function BoardSwitcher({
 
   const handleDragOver = (e: React.DragEvent, boardId: string) => {
     e.preventDefault();
-    if (activeDragBoardId !== boardId) {
-      setDragOverBoardId(boardId);
-    }
+    if (!activeDragBoardId || activeDragBoardId === boardId) return;
+
+    const draggedIndex = boards.findIndex((b) => b.id === activeDragBoardId);
+    const targetIndex = boards.findIndex((b) => b.id === boardId);
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const updatedBoards = [...boards];
+    const [draggedBoard] = updatedBoards.splice(draggedIndex, 1);
+    updatedBoards.splice(targetIndex, 0, draggedBoard);
+    setBoards(updatedBoards);
   };
 
   const handleDragLeave = () => {
     setDragOverBoardId(null);
   };
 
-  const handleDrop = async (e: React.DragEvent, targetBoardId: string) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData("text/board-id") || activeDragBoardId;
-    if (!draggedId || draggedId === targetBoardId) return;
+    if (!draggedId) return;
 
-    const draggedIndex = boards.findIndex((b) => b.id === draggedId);
-    const targetIndex = boards.findIndex((b) => b.id === targetBoardId);
-    if (draggedIndex === -1 || targetIndex === -1) return;
-
-    const updatedBoards = [...boards];
-    const [draggedBoard] = updatedBoards.splice(draggedIndex, 1);
-    updatedBoards.splice(targetIndex, 0, draggedBoard);
+    const targetIndex = boards.findIndex((b) => b.id === draggedId);
+    if (targetIndex === -1) return;
 
     let newPosition: number;
     if (targetIndex === 0) {
-      newPosition = (updatedBoards[1]?.position || 1000) / 2;
-    } else if (targetIndex === updatedBoards.length - 1) {
-      newPosition = (updatedBoards[updatedBoards.length - 2]?.position || 0) + 1000;
+      newPosition = (boards[1]?.position || 1000) / 2;
+    } else if (targetIndex === boards.length - 1) {
+      newPosition = (boards[boards.length - 2]?.position || 0) + 1000;
     } else {
-      const prevPos = updatedBoards[targetIndex - 1]?.position || 0;
-      const nextPos = updatedBoards[targetIndex + 1]?.position || 0;
+      const prevPos = boards[targetIndex - 1]?.position || 0;
+      const nextPos = boards[targetIndex + 1]?.position || 0;
       newPosition = (prevPos + nextPos) / 2;
     }
 
-    draggedBoard.position = newPosition;
+    const updatedBoards = boards.map((b) => (b.id === draggedId ? { ...b, position: newPosition } : b));
     setBoards(updatedBoards);
 
     const { error } = await supabase
@@ -143,6 +144,10 @@ export default function BoardSwitcher({
       fetchBoards();
     }
   };
+
+
+
+
 
   const handleStartRename = (board: Board) => {
     setEditingBoardId(board.id);
@@ -204,7 +209,7 @@ export default function BoardSwitcher({
               onDragEnd={handleDragEnd}
               onDragOver={(e) => handleDragOver(e, b.id)}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, b.id)}
+              onDrop={(e) => handleDrop(e)}
               className={`group flex items-center px-4 py-2 text-xs font-semibold rounded-t-xl transition-all duration-150 relative ${
                 isActive
                   ? "bg-white/80 border-t border-x border-slate-200/60 text-violet-600 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] h-[90%]"
