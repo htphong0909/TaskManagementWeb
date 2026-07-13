@@ -185,11 +185,23 @@ export default function CardDetailModal({
       if (!res.ok) throw new Error("Upload ảnh thất bại");
       const fileData = await res.json();
 
-      // Convert Google Drive Link sang Direct Link
-      const directUrl = `https://docs.google.com/uc?export=view&id=${fileData.fileId}`;
+      // Convert Google Drive Link sang Thumbnail Direct Link
+      const directUrl = `https://drive.google.com/thumbnail?id=${fileData.fileId}&sz=w1600`;
       const imageMarkdown = `\n![${fileData.name}](${directUrl})\n`;
 
-      // Chèn vào vị trí con trỏ chuột
+      // 1. Lưu metadata vào bảng attachments để quản lý và tránh file mồ côi
+      const { error: dbError } = await supabase
+        .from("attachments")
+        .insert([{
+          card_id: cardId,
+          name: fileData.name,
+          url: directUrl,
+          file_id: fileData.fileId,
+          mime_type: fileData.mimeType,
+        }]);
+      if (dbError) throw dbError;
+
+      // 2. Chèn vào vị trí con trỏ chuột
       const textarea = textareaRef.current;
       if (textarea) {
         const start = textarea.selectionStart;
@@ -202,6 +214,9 @@ export default function CardDetailModal({
         setDetails(newDetails);
         await saveField("details", newDetails);
       }
+
+      // 3. Cập nhật lại thông tin thẻ
+      fetchCardData();
     } catch (err) {
       alert("Lỗi chèn ảnh: " + err);
     } finally {
@@ -238,14 +253,29 @@ export default function CardDetailModal({
             if (!res.ok) throw new Error("Upload dán ảnh thất bại");
             const fileData = await res.json();
 
-            const directUrl = `https://docs.google.com/uc?export=view&id=${fileData.fileId}`;
+            const directUrl = `https://drive.google.com/thumbnail?id=${fileData.fileId}&sz=w1600`;
             const imageMarkdown = `\n![Pasted Image](${directUrl})\n`;
+
+            // 1. Lưu metadata vào bảng attachments
+            const { error: dbError } = await supabase
+              .from("attachments")
+              .insert([{
+                card_id: cardId,
+                name: fileData.name,
+                url: directUrl,
+                file_id: fileData.fileId,
+                mime_type: fileData.mimeType,
+              }]);
+            if (dbError) throw dbError;
 
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const newDetails = details.substring(0, start) + imageMarkdown + details.substring(end);
             setDetails(newDetails);
             await saveField("details", newDetails);
+
+            // 2. Cập nhật lại thông tin thẻ
+            fetchCardData();
           } catch (err) {
             alert("Lỗi dán ảnh: " + err);
           } finally {
@@ -259,7 +289,7 @@ export default function CardDetailModal({
     return () => {
       textarea.removeEventListener("paste", handlePaste);
     };
-  }, [details, isPreviewMode, saveField]);
+  }, [details, isPreviewMode, saveField, cardId, fetchCardData]);
 
   if (!card) return null;
 
@@ -491,6 +521,15 @@ export default function CardDetailModal({
                       {/* Xóa file đính kèm */}
                       <button
                         onClick={async () => {
+                          if (att.file_id) {
+                            // Gọi API xóa file vật lý trên Google Drive
+                            const res = await fetch(`/api/attachments/delete?fileId=${att.file_id}`, {
+                              method: "DELETE"
+                            });
+                            if (!res.ok) {
+                              console.warn("Thất bại khi xóa file trên Google Drive");
+                            }
+                          }
                           const { error } = await supabase.from("attachments").delete().eq("id", att.id);
                           if (!error) fetchCardData();
                         }}
