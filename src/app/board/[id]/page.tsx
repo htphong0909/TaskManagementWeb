@@ -577,7 +577,7 @@ export default function BoardPage() {
       </div>
 
       {/* Board Columns Area */}
-      <div className="flex-1 flex gap-5 overflow-x-auto pb-4 items-start select-none pt-1">
+      <div className="flex-1 flex gap-5 overflow-x-auto px-2 pt-2 pb-4 items-start select-none">
         {lists.map((list) => {
           const listCards = cards.filter((c) => c.list_id === list.id);
 
