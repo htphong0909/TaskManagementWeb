@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { marked } from "marked";
 
@@ -63,6 +64,40 @@ export default function CardDetailModal({
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [isDescPreview, setIsDescPreview] = useState(true);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+
+  const openLightbox = (url: string) => {
+    setLightboxImageUrl(url);
+    setScale(1);
+  };
+
+  const closeLightbox = () => {
+    setLightboxImageUrl(null);
+    setScale(1);
+  };
+
+  // Zoom ảnh bằng phím Control + cuộn chuột trong Modal
+  useEffect(() => {
+    const el = lightboxRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const zoomFactor = 0.15;
+        setScale((prev) => {
+          const newScale = prev + (e.deltaY < 0 ? zoomFactor : -zoomFactor);
+          return Math.max(0.5, Math.min(newScale, 5));
+        });
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [lightboxImageUrl]);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -499,7 +534,7 @@ export default function CardDetailModal({
                       const target = e.target as HTMLElement;
                       if (target.tagName === "IMG") {
                         e.stopPropagation();
-                        setLightboxImageUrl((target as HTMLImageElement).src);
+                        openLightbox((target as HTMLImageElement).src);
                       } else {
                         setIsDescPreview(false);
                       }
@@ -568,7 +603,7 @@ export default function CardDetailModal({
                       const target = e.target as HTMLElement;
                       if (target.tagName === "IMG") {
                         e.stopPropagation();
-                        setLightboxImageUrl((target as HTMLImageElement).src);
+                        openLightbox((target as HTMLImageElement).src);
                       } else {
                         setIsPreviewMode(false);
                       }
@@ -706,7 +741,7 @@ export default function CardDetailModal({
                     <div key={att.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-lg text-xs">
                       {att.mime_type?.startsWith("image/") ? (
                         <button
-                          onClick={() => setLightboxImageUrl(att.url)}
+                          onClick={() => openLightbox(att.url)}
                           className="text-slate-655 hover:text-violet-600 truncate max-w-[130px] font-medium text-left cursor-pointer"
                         >
                           {att.name}
@@ -750,14 +785,15 @@ export default function CardDetailModal({
       </div>
 
       {/* Lightbox Modal */}
-      {lightboxImageUrl && (
+      {lightboxImageUrl && typeof document !== "undefined" && createPortal(
         <div 
+          ref={lightboxRef}
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setLightboxImageUrl(null)}
+          onClick={closeLightbox}
         >
           <div className="relative max-w-[90vw] max-h-[90vh]">
             <button
-              onClick={() => setLightboxImageUrl(null)}
+              onClick={closeLightbox}
               className="absolute -top-12 right-0 text-white hover:text-slate-200 text-sm font-semibold flex items-center gap-1 bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-xl transition cursor-pointer"
             >
               ✕ Đóng
@@ -767,10 +803,15 @@ export default function CardDetailModal({
               src={lightboxImageUrl} 
               alt="Zoomed" 
               className="rounded-xl object-contain max-w-[90vw] max-h-[80vh] shadow-2xl border border-white/10"
+              style={{ transform: `scale(${scale})`, transition: "transform 0.1s ease-out" }}
               onClick={(e) => e.stopPropagation()}
             />
+            <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-white/70 text-[10px] bg-black/30 px-3 py-1 rounded-full whitespace-nowrap">
+              Giữ phím Ctrl + Cuộn chuột để phóng to/thu nhỏ
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
