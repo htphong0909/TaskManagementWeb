@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 
 async function getAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", {

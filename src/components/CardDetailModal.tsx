@@ -68,6 +68,16 @@ export default function CardDetailModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
+
+  // Tự động giãn nở chiều cao textarea Mô tả công việc
+  useEffect(() => {
+    const textarea = descRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [content]);
 
   const fetchCardData = useCallback(async () => {
     const { data, error } = await supabase
@@ -185,8 +195,8 @@ export default function CardDetailModal({
       if (!res.ok) throw new Error("Upload ảnh thất bại");
       const fileData = await res.json();
 
-      // Convert Google Drive Link sang Thumbnail Direct Link
-      const directUrl = `https://drive.google.com/thumbnail?id=${fileData.fileId}&sz=w1600`;
+      // Convert Google Drive Link sang API Proxy Link
+      const directUrl = `/api/attachments/proxy?fileId=${fileData.fileId}`;
       const imageMarkdown = `\n![${fileData.name}](${directUrl})\n`;
 
       // 1. Lưu metadata vào bảng attachments để quản lý và tránh file mồ côi
@@ -253,7 +263,7 @@ export default function CardDetailModal({
             if (!res.ok) throw new Error("Upload dán ảnh thất bại");
             const fileData = await res.json();
 
-            const directUrl = `https://drive.google.com/thumbnail?id=${fileData.fileId}&sz=w1600`;
+            const directUrl = `/api/attachments/proxy?fileId=${fileData.fileId}`;
             const imageMarkdown = `\n![Pasted Image](${directUrl})\n`;
 
             // 1. Lưu metadata vào bảng attachments
@@ -330,11 +340,12 @@ export default function CardDetailModal({
               <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">📝 Mô Tả Công Việc (Tóm tắt ngắn)</label>
                 <textarea
+                  ref={descRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   onBlur={() => saveField("content", content)}
                   placeholder="Nhập mô tả tóm tắt..."
-                  className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none"
+                  className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none break-words overflow-hidden"
                 />
               </div>
 
@@ -379,7 +390,7 @@ export default function CardDetailModal({
                       onChange={(e) => setDetails(e.target.value)}
                       onBlur={() => saveField("details", details)}
                       placeholder="Viết chi tiết kế hoạch của bạn ở đây bằng Markdown..."
-                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[220px] focus:border-violet-400 outline-none font-mono"
+                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[220px] focus:border-violet-400 outline-none font-mono break-words"
                     />
                   </div>
                 ) : (
@@ -495,7 +506,7 @@ export default function CardDetailModal({
                   onChange={(e) => setKeyInfo(e.target.value)}
                   onBlur={() => saveField("key_info", keyInfo)}
                   placeholder="Ghi lại các ghi chú, mật khẩu, hoặc cảnh báo dự án..."
-                  className="w-full text-xs text-slate-950 bg-transparent border-0 resize-y min-h-[160px] outline-none placeholder-amber-600/50 leading-relaxed font-sans"
+                  className="w-full text-xs text-slate-950 bg-transparent border-0 resize-y min-h-[160px] outline-none placeholder-amber-600/50 leading-relaxed font-sans break-words"
                 />
               </div>
 
