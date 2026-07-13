@@ -33,6 +33,91 @@ interface Attachment {
   file_id: string | null;
 }
 
+const getFileTypeAndRank = (name: string, mimeType: string | null) => {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  const mime = mimeType?.toLowerCase() || "";
+
+  // 1. PDF
+  if (ext === "pdf" || mime === "application/pdf") {
+    return { type: "PDF", rank: 1, colorClass: "bg-rose-50 text-rose-700 border-rose-100", label: "PDF" };
+  }
+  // 2. EXCEL
+  if (
+    ["xlsx", "xls", "csv"].includes(ext) ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv"
+  ) {
+    return { type: "EXCEL", rank: 2, colorClass: "bg-emerald-50 text-emerald-700 border-emerald-100", label: "EXCEL" };
+  }
+  // 3. PPT
+  if (ext === "ppt" || mime === "application/vnd.ms-powerpoint") {
+    return { type: "PPT", rank: 3, colorClass: "bg-orange-50 text-orange-700 border-orange-100", label: "PPT" };
+  }
+  // 4. PPTX
+  if (ext === "pptx" || mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+    return { type: "PPTX", rank: 4, colorClass: "bg-orange-50/80 text-orange-700 border-orange-100/80", label: "PPTX" };
+  }
+  // 5. DOCX
+  if (ext === "docx" || mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    return { type: "DOCX", rank: 5, colorClass: "bg-blue-50 text-blue-700 border-blue-100", label: "DOCX" };
+  }
+  // 6. DOC
+  if (ext === "doc" || mime === "application/msword") {
+    return { type: "DOC", rank: 6, colorClass: "bg-blue-50/80 text-blue-700 border-blue-100/80", label: "DOC" };
+  }
+  // 7. Image
+  if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext) || mime.startsWith("image/")) {
+    return { type: "Image", rank: 7, colorClass: "bg-indigo-50 text-indigo-700 border-indigo-100", label: "IMAGE" };
+  }
+  // 8. File khác
+  return { type: "Other", rank: 8, colorClass: "bg-slate-50 text-slate-600 border-slate-200", label: "FILE" };
+};
+
+const getFileIcon = (type: string) => {
+  switch (type) {
+    case "PDF":
+      return (
+        <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h1.5M9 13h6m-6 4h6" />
+        </svg>
+      );
+    case "EXCEL":
+      return (
+        <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case "PPT":
+    case "PPTX":
+      return (
+        <svg className="w-4 h-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    case "DOC":
+    case "DOCX":
+      return (
+        <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case "Image":
+      return (
+        <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+      );
+  }
+};
+
 interface CardDetailModalProps {
   cardId: string;
   listTitle: string;
@@ -637,7 +722,7 @@ export default function CardDetailModal({
                         value={newShName}
                         onChange={(e) => setNewShName(e.target.value)}
                         required
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div>
@@ -646,7 +731,7 @@ export default function CardDetailModal({
                         placeholder="Vai trò..."
                         value={newShRole}
                         onChange={(e) => setNewShRole(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div>
@@ -655,7 +740,7 @@ export default function CardDetailModal({
                         placeholder="Email..."
                         value={newShEmail}
                         onChange={(e) => setNewShEmail(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400"
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
                     <div className="col-span-3 flex justify-end gap-2 mt-1">
@@ -736,42 +821,74 @@ export default function CardDetailModal({
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                  {attachments.map((att) => (
-                    <div key={att.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-lg text-xs">
-                      {att.mime_type?.startsWith("image/") ? (
-                        <button
-                          onClick={() => openLightbox(att.url)}
-                          className="text-slate-655 hover:text-violet-600 truncate max-w-[130px] font-medium text-left cursor-pointer"
+                <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                  {[...attachments]
+                    .sort((a, b) => {
+                      const infoA = getFileTypeAndRank(a.name, a.mime_type);
+                      const infoB = getFileTypeAndRank(b.name, b.mime_type);
+                      if (infoA.rank !== infoB.rank) {
+                        return infoA.rank - infoB.rank;
+                      }
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((att) => {
+                      const fileInfo = getFileTypeAndRank(att.name, att.mime_type);
+                      const borderClass = fileInfo.rank <= 7 ? fileInfo.colorClass.split(" ")[2] : "border-slate-100";
+
+                      return (
+                        <div
+                          key={att.id}
+                          className={`flex items-center justify-between bg-white border ${borderClass} p-2 rounded-xl text-xs shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-all duration-150 gap-2`}
                         >
-                          {att.name}
-                        </button>
-                      ) : (
-                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-violet-600 truncate max-w-[130px] font-medium">
-                          {att.name}
-                        </a>
-                      )}
-                      {/* Xóa file đính kèm */}
-                      <button
-                        onClick={async () => {
-                          if (att.file_id) {
-                            // Gọi API xóa file vật lý trên Google Drive
-                            const res = await fetch(`/api/attachments/delete?fileId=${att.file_id}`, {
-                              method: "DELETE"
-                            });
-                            if (!res.ok) {
-                              console.warn("Thất bại khi xóa file trên Google Drive");
-                            }
-                          }
-                          const { error } = await supabase.from("attachments").delete().eq("id", att.id);
-                          if (!error) fetchCardData();
-                        }}
-                        className="text-slate-400 hover:text-rose-500 cursor-pointer"
-                      >
-                        🗑
-                      </button>
-                    </div>
-                  ))}
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            {getFileIcon(fileInfo.type)}
+                            {fileInfo.type === "Image" ? (
+                              <button
+                                onClick={() => openLightbox(att.url)}
+                                className="text-slate-700 hover:text-violet-600 truncate font-semibold text-left cursor-pointer flex-1 min-w-0"
+                                title={att.name}
+                              >
+                                {att.name}
+                              </button>
+                            ) : (
+                              <a
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-slate-700 hover:text-violet-600 truncate font-semibold flex-1 min-w-0"
+                                title={att.name}
+                              >
+                                {att.name}
+                              </a>
+                            )}
+                          </div>
+
+                          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border shrink-0 ${fileInfo.colorClass}`}>
+                            {fileInfo.label}
+                          </span>
+
+                          {/* Xóa file đính kèm */}
+                          <button
+                            onClick={async () => {
+                              if (att.file_id) {
+                                // Gọi API xóa file vật lý trên Google Drive
+                                const res = await fetch(`/api/attachments/delete?fileId=${att.file_id}`, {
+                                  method: "DELETE",
+                                });
+                                if (!res.ok) {
+                                  console.warn("Thất bại khi xóa file trên Google Drive");
+                                }
+                              }
+                              const { error } = await supabase.from("attachments").delete().eq("id", att.id);
+                              if (!error) fetchCardData();
+                            }}
+                            className="text-slate-400 hover:text-rose-500 cursor-pointer shrink-0 ml-1"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      );
+                    })}
                   {attachments.length === 0 && (
                     <div className="text-[11px] text-slate-400 italic">Chưa có tệp nào được đính kèm.</div>
                   )}
