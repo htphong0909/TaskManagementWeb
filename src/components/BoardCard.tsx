@@ -95,8 +95,14 @@ export default function BoardCard({
   return (
     <div
       draggable
-      onDragStart={(e) => onDragStartCard(e, card.id, card.list_id)}
-      onDragEnd={onDragEndCard}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        onDragStartCard(e, card.id, card.list_id);
+      }}
+      onDragEnd={(e) => {
+        e.stopPropagation();
+        onDragEndCard(e);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         onDragOverCard(e, card.id);

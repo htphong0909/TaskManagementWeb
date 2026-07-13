@@ -45,6 +45,7 @@ interface BoardColumnProps {
   handleCardMouseLeave: () => void;
   // Drag & Drop handlers
   onDragStartList: (e: React.DragEvent, listId: string) => void;
+  onDragEndList: (e: React.DragEvent) => void;
   onDragOverList: (e: React.DragEvent, listId: string) => void;
   onDropList: (e: React.DragEvent, targetListId: string) => void;
   onDragStartCard: (e: React.DragEvent, cardId: string, listId: string) => void;
@@ -86,6 +87,7 @@ export default function BoardColumn({
   handleCardMouseEnter,
   handleCardMouseLeave,
   onDragStartList,
+  onDragEndList,
   onDragOverList,
   onDropList,
   onDragStartCard,
@@ -110,6 +112,7 @@ export default function BoardColumn({
     <div
       draggable
       onDragStart={(e) => onDragStartList(e, list.id)}
+      onDragEnd={onDragEndList}
       onDragOver={(e) => {
         e.preventDefault();
         onDragOverList(e, list.id);
