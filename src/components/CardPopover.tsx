@@ -620,7 +620,7 @@ export default function CardPopover({
       ref={popoverRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="fixed bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl border border-white/40 p-5 z-50 overflow-y-auto"
+      className="fixed bg-white shadow-2xl rounded-2xl border border-slate-100 p-5 z-50 overflow-y-auto"
       style={{
         left: `${leftPosition}px`,
         ...(isLowerHalf ? { bottom: `${bottomPosition}px` } : { top: `${topPosition}px` }),

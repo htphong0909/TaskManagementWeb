@@ -681,6 +681,7 @@ export default function BoardPage() {
       {/* Floating Card Popover */}
       {hoveredCard && hoveredRect && (
         <CardPopover
+          key={hoveredCard.id}
           card={hoveredCard}
           rect={hoveredRect}
           onClose={() => {
