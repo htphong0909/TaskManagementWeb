@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { marked } from "marked";
 
 interface Stakeholder {
   id: string;
@@ -208,33 +209,10 @@ export default function CardDetailModal({
     }
   };
 
-  // Trình phân tích markdown regex siêu nhẹ
+  // Trình phân tích markdown using marked
   const renderMarkdown = (text: string) => {
     if (!text) return "<p class='text-slate-400 italic'>Chưa có thông tin chi tiết.</p>";
-    let html = text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Ảnh Markdown
-    html = html.replace(/!\[(.*?)\]\((.*?)\)/g, "<img src='$2' alt='$1' class='max-w-full h-auto rounded-xl my-3 border border-slate-100 shadow-sm' />");
-    // Link Markdown
-    html = html.replace(/\[(.*?)\]\((.*?)\)/g, "<a href='$2' target='_blank' rel='noopener noreferrer' class='text-violet-600 hover:underline'>$1</a>");
-    // Bold
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    // Italic
-    html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
-    // Headings
-    html = html.replace(/^### (.*?)$/gm, "<h3 class='text-sm font-bold text-slate-800 mt-4 mb-2'>$1</h3>");
-    html = html.replace(/^## (.*?)$/gm, "<h2 class='text-base font-bold text-slate-800 mt-5 mb-2'>$1</h2>");
-    html = html.replace(/^# (.*?)$/gm, "<h1 class='text-lg font-bold text-slate-900 mt-6 mb-3'>$1</h1>");
-    // List
-    html = html.replace(/^\s*-\s+(.*?)$/gm, "<li class='list-disc ml-5 my-1'>$1</li>");
-
-    return html.split(/\n\n+/).map(p => {
-      if (p.trim().startsWith("<li") || p.trim().startsWith("<h") || p.trim().startsWith("<img")) return p;
-      return `<p class='mb-2 text-slate-600 leading-relaxed'>${p.replace(/\n/g, "<br/>")}</p>`;
-    }).join("");
+    return marked.parse(text, { breaks: true, gfm: true }) as string;
   };
 
   // Thêm sự kiện paste ảnh trực tiếp vào textarea chi tiết công việc
@@ -300,7 +278,7 @@ export default function CardDetailModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => saveField("title", title)}
-              className="text-base font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-violet-500 focus:ring-0 outline-none w-full py-0.5"
+              className="text-base font-bold text-slate-950 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-violet-500 focus:ring-0 outline-none w-full py-0.5"
             />
             <div className="text-xs text-slate-400 mt-1">
               nằm trong cột: <strong className="text-violet-600">{listTitle}</strong>
@@ -326,7 +304,7 @@ export default function CardDetailModal({
                   onChange={(e) => setContent(e.target.value)}
                   onBlur={() => saveField("content", content)}
                   placeholder="Nhập mô tả tóm tắt..."
-                  className="w-full text-xs text-slate-700 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none"
+                  className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none"
                 />
               </div>
 
@@ -371,12 +349,12 @@ export default function CardDetailModal({
                       onChange={(e) => setDetails(e.target.value)}
                       onBlur={() => saveField("details", details)}
                       placeholder="Viết chi tiết kế hoạch của bạn ở đây bằng Markdown..."
-                      className="w-full text-xs text-slate-800 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[220px] focus:border-violet-400 outline-none font-mono"
+                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[220px] focus:border-violet-400 outline-none font-mono"
                     />
                   </div>
                 ) : (
                   <div
-                    className="border border-slate-200 rounded-lg p-4 bg-white min-h-[260px] prose prose-slate max-w-none text-xs"
+                    className="border border-slate-200 rounded-lg p-4 bg-white min-h-[260px] max-w-none text-xs markdown-content"
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(details) }}
                   />
                 )}
@@ -449,13 +427,13 @@ export default function CardDetailModal({
                   <tbody className="divide-y divide-slate-100">
                     {stakeholders.map((sh) => (
                       <tr key={sh.id}>
-                        <td className="py-2.5 font-semibold text-slate-700">{sh.name}</td>
+                        <td className="py-2.5 font-semibold text-slate-950">{sh.name}</td>
                         <td className="py-2.5">
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                          <span className="bg-slate-100 text-slate-900 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                             {sh.role || "N/A"}
                           </span>
                         </td>
-                        <td className="py-2.5 text-slate-500">{sh.email || "N/A"}</td>
+                        <td className="py-2.5 text-slate-900">{sh.email || "N/A"}</td>
                         <td className="py-2.5 text-right">
                           <button onClick={() => handleDeleteStakeholder(sh.id)} className="text-slate-400 hover:text-rose-500 cursor-pointer text-sm">
                             ✕
@@ -487,7 +465,7 @@ export default function CardDetailModal({
                   onChange={(e) => setKeyInfo(e.target.value)}
                   onBlur={() => saveField("key_info", keyInfo)}
                   placeholder="Ghi lại các ghi chú, mật khẩu, hoặc cảnh báo dự án..."
-                  className="w-full text-xs text-amber-900 bg-transparent border-0 resize-y min-h-[160px] outline-none placeholder-amber-600/50 leading-relaxed font-sans"
+                  className="w-full text-xs text-slate-950 bg-transparent border-0 resize-y min-h-[160px] outline-none placeholder-amber-600/50 leading-relaxed font-sans"
                 />
               </div>
 
