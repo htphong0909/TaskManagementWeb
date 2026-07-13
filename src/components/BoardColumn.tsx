@@ -183,7 +183,7 @@ export default function BoardColumn({
 
       {/* Danh sách các Cards */}
       <div 
-        className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[50px] pt-1"
+        className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[100px] pt-1 pb-20"
         onDragOver={(e) => {
           e.preventDefault();
           onCardDragOverListContainer(e, list.id);
