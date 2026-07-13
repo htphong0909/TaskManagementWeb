@@ -272,7 +272,7 @@ export default function BoardPage() {
     closeTimeoutRef.current = setTimeout(() => {
       setHoveredCard(null);
       setHoveredRect(null);
-    }, 200);
+    }, 100);
   };
 
   const handlePopoverMouseEnter = () => {
@@ -287,7 +287,7 @@ export default function BoardPage() {
     closeTimeoutRef.current = setTimeout(() => {
       setHoveredCard(null);
       setHoveredRect(null);
-    }, 200);
+    }, 100);
   };
 
   // Drag & Drop Lists
