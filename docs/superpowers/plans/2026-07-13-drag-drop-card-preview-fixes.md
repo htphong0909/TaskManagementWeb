@@ -93,8 +93,9 @@
   ```tsx
   onCardDragOverListContainer={handleCardDragOverListContainer}
   ```
-- [ ] **Step 3:** Run `npm run lint` and verify there are no syntax or type errors.
-- [ ] **Step 4:** Commit changes.
+- [ ] **Step 3:** Update columns container `div` className in [page.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/app/board/%5Bid%5D/page.tsx) to `flex-1 flex gap-5 overflow-x-auto px-2 pt-2 pb-4 items-start select-none`.
+- [ ] **Step 4:** Run `npm run lint` and verify there are no syntax or type errors.
+- [ ] **Step 5:** Commit changes.
 
 ---
 

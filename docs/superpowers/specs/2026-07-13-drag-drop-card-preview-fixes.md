@@ -64,6 +64,10 @@ const handleCardDragOverListContainer = (e: React.DragEvent, listId: string) => 
 };
 ```
 - Truyền callback này vào phần render danh sách `<BoardColumn />`.
+- **Tránh che viền cột trái cùng:** Thêm `px-2 pt-2` vào container cuộn ngang của các cột (`Board Columns Area`) để tạo khoảng đệm ngăn chặn mép cắt cuộn ngang làm che khuất bóng mờ và viền sáng `ring` của các cột ở biên:
+```tsx
+<div className="flex-1 flex gap-5 overflow-x-auto px-2 pt-2 pb-4 items-start select-none">
+```
 
 ### Cập nhật `BoardCard.tsx`
 - Tách thuộc tính transition: Chỉ kích hoạt `transition-all duration-150` khi thẻ không trong trạng thái kéo thả (`!isDragging`).
