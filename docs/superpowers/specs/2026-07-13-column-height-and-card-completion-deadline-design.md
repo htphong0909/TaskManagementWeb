@@ -38,6 +38,7 @@ Tài liệu này đặc tả thiết kế kỹ thuật cho việc tối ưu bố
 - **Bố cục Modal Body:**
   - Grid 3 cột đầy đủ:
     - **Cột trái (`col-span-2`):** Mô tả, Chi tiết kế hoạch, Stakeholders, Key Info, File đính kèm.
+      - **Bảo toàn chế độ soạn thảo khi mất focus hệ thống (Alt-Tab/Chuyển tab):** Cả 2 trình soạn thảo (Mô tả tóm tắt `content` và Chi tiết công việc `details`) khi mất nét (`onBlur`) cần kiểm tra trạng thái hoạt động của tài liệu qua `document.hasFocus()`. Nếu tài liệu mất nét do người dùng rời khỏi ứng dụng, không tự động chuyển về chế độ Preview để bảo toàn con trỏ và vị trí soạn thảo khi họ quay lại.
     - **Cột phải (`col-span-1`):** Hộp cài đặt `📅 Hạn chót & Trạng thái`:
       - **Hoàn thành:** Checkbox trạng thái `Hoàn thành`. Tích chọn để đổi trạng thái của card thông qua hàm `saveField("is_completed", value)`.
       - **Bật hạn chót (Deadline):** Checkbox để kích hoạt/vô hiệu hóa hạn chót.
