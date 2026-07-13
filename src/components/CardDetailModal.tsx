@@ -10,6 +10,7 @@ interface Stakeholder {
   name: string;
   role: string;
   email: string;
+  phone?: string;
 }
 
 interface Card {
@@ -143,6 +144,7 @@ export default function CardDetailModal({
   const [newShName, setNewShName] = useState("");
   const [newShRole, setNewShRole] = useState("");
   const [newShEmail, setNewShEmail] = useState("");
+  const [newShPhone, setNewShPhone] = useState("");
   const [isAddingSh, setIsAddingSh] = useState(false);
 
   // Markdown Mode Toggle
@@ -280,6 +282,7 @@ export default function CardDetailModal({
       name: newShName.trim(),
       role: newShRole.trim(),
       email: newShEmail.trim(),
+      phone: newShPhone.trim(),
     };
 
     const updatedList = [...stakeholders, newSh];
@@ -289,6 +292,7 @@ export default function CardDetailModal({
     setNewShName("");
     setNewShRole("");
     setNewShEmail("");
+    setNewShPhone("");
     setIsAddingSh(false);
   };
 
@@ -713,8 +717,8 @@ export default function CardDetailModal({
                   )}
                 </div>
 
-                {isAddingSh && (
-                  <form onSubmit={handleAddStakeholder} className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 grid grid-cols-3 gap-3 text-xs">
+                 {isAddingSh && (
+                  <form onSubmit={handleAddStakeholder} className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 grid grid-cols-4 gap-3 text-xs">
                     <div>
                       <input
                         type="text"
@@ -743,7 +747,16 @@ export default function CardDetailModal({
                         className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
                       />
                     </div>
-                    <div className="col-span-3 flex justify-end gap-2 mt-1">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="SĐT..."
+                        value={newShPhone}
+                        onChange={(e) => setNewShPhone(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-violet-400 text-slate-950 placeholder-slate-400 font-medium"
+                      />
+                    </div>
+                    <div className="col-span-4 flex justify-end gap-2 mt-1">
                       <button type="button" onClick={() => setIsAddingSh(false)} className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-semibold text-slate-600 cursor-pointer">
                         Hủy
                       </button>
@@ -760,6 +773,7 @@ export default function CardDetailModal({
                       <th className="pb-2">Tên</th>
                       <th className="pb-2">Vai trò</th>
                       <th className="pb-2">Email</th>
+                      <th className="pb-2">SĐT</th>
                       <th className="pb-2 text-right">Thao tác</th>
                     </tr>
                   </thead>
@@ -773,6 +787,7 @@ export default function CardDetailModal({
                           </span>
                         </td>
                         <td className="py-2.5 text-slate-900">{sh.email || "N/A"}</td>
+                        <td className="py-2.5 text-slate-900">{sh.phone || "N/A"}</td>
                         <td className="py-2.5 text-right">
                           <button onClick={() => handleDeleteStakeholder(sh.id)} className="text-slate-400 hover:text-rose-500 cursor-pointer text-sm">
                             ✕
@@ -782,7 +797,7 @@ export default function CardDetailModal({
                     ))}
                     {stakeholders.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-4 text-slate-400 italic text-center">
+                        <td colSpan={5} className="py-4 text-slate-400 italic text-center">
                           Chưa có bên liên quan nào được định nghĩa.
                         </td>
                       </tr>
