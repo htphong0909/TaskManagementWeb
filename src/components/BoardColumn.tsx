@@ -15,6 +15,7 @@ interface Card {
   position: number;
   due_date: string | null;
   created_at: string;
+  is_completed?: boolean;
 }
 
 interface BoardColumnProps {
@@ -61,6 +62,7 @@ interface BoardColumnProps {
   onDragOverCard: (e: React.DragEvent, cardId: string) => void;
   onDragLeaveCard: (e: React.DragEvent) => void;
   onCardClick: (cardId: string) => void;
+  onCardDragOverListContainer: (e: React.DragEvent, listId: string) => void;
 }
 
 export default function BoardColumn({
@@ -103,6 +105,7 @@ export default function BoardColumn({
   onDragOverCard,
   onDragLeaveCard,
   onCardClick,
+  onCardDragOverListContainer,
 }: BoardColumnProps) {
   const isEditingList = list.id === editingListId;
   const isAddingCard = list.id === addingCardListId;
@@ -128,7 +131,7 @@ export default function BoardColumn({
           onDropList(e, list.id);
         }
       }}
-      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 transition-all duration-200
+      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-full shrink-0 transition-all duration-200
         ${isDraggingList 
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
           : "bg-white/80 border-slate-300 shadow-sm"
@@ -180,7 +183,13 @@ export default function BoardColumn({
       </div>
 
       {/* Danh sách các Cards */}
-      <div className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[50px] pt-1">
+      <div 
+        className="space-y-3 flex-1 overflow-y-auto mb-3 pr-1 min-h-[100px] pt-1 pb-20"
+        onDragOver={(e) => {
+          e.preventDefault();
+          onCardDragOverListContainer(e, list.id);
+        }}
+      >
         {listCards.map((card) => (
           <BoardCard
             key={card.id}

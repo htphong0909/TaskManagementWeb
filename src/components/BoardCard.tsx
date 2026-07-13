@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface Card {
   id: string;
@@ -8,6 +8,7 @@ interface Card {
   position: number;
   due_date: string | null;
   created_at: string;
+  is_completed?: boolean;
 }
 
 interface BoardCardProps {
@@ -49,6 +50,7 @@ export default function BoardCard({
   onDragLeaveCard,
   onCardClick,
 }: BoardCardProps) {
+  const [mouseDownCoords, setMouseDownCoords] = useState<{ x: number; y: number } | null>(null);
   const formatCreatedAt = (dateStr: string) => {
     const d = new Date(dateStr);
     const day = String(d.getDate()).padStart(2, "0");
@@ -75,7 +77,10 @@ export default function BoardCard({
       return `${hours}:${minutes} ${day}/${month}`;
     };
 
-    if (timeDiff < 0) {
+    if (card.is_completed) {
+      className += "bg-emerald-50 text-emerald-600 border border-emerald-100";
+      text = `Hoàn thành (${formatTime(due)})`;
+    } else if (timeDiff < 0) {
       className += "bg-rose-50 text-rose-600 border border-rose-100";
       text = `Quá hạn (${formatTime(due)})`;
     } else if (daysDiff <= 1) {
@@ -96,6 +101,7 @@ export default function BoardCard({
 
   return (
     <div
+      id={card.id}
       draggable
       onDragStart={(e) => {
         e.stopPropagation();
@@ -113,6 +119,7 @@ export default function BoardCard({
       onDrop={(e) => onCardDropOnCard(e, card.id)}
       onMouseEnter={(e) => handleCardMouseEnter(card, e)}
       onMouseLeave={handleCardMouseLeave}
+      onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
       onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
       onClick={(e) => {
         // Tránh kích hoạt modal khi đang click nút xóa, nút đóng, link hoặc input
@@ -123,12 +130,18 @@ export default function BoardCard({
         ) {
           return;
         }
+        if (mouseDownCoords) {
+          const dist = Math.sqrt(
+            Math.pow(e.clientX - mouseDownCoords.x, 2) + Math.pow(e.clientY - mouseDownCoords.y, 2)
+          );
+          if (dist > 5) return; // Ignore clicks during drag
+        }
         onCardClick(card.id);
       }}
-      className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative transition-all duration-150 cursor-pointer active:cursor-grabbing
+      className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative cursor-pointer active:cursor-grabbing
         ${isDragging 
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
-          : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80"
+          : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
         }
         ${isDragOver ? "border-violet-400 bg-violet-50/20" : ""}
       `}
@@ -152,9 +165,16 @@ export default function BoardCard({
         />
       ) : (
         <>
-          <span className="text-[10px] text-slate-400 font-medium text-left">
-            {formatCreatedAt(card.created_at)}
-          </span>
+          <div className="flex items-center gap-2 select-none">
+            <span className="text-[10px] text-slate-400 font-medium text-left">
+              {formatCreatedAt(card.created_at)}
+            </span>
+            {card.is_completed && (
+              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full tracking-wider">
+                ĐÃ HOÀN THÀNH
+              </span>
+            )}
+          </div>
 
           <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4">
             {card.title}
