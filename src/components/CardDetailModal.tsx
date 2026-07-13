@@ -68,6 +68,7 @@ export default function CardDetailModal({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const descImageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
 
@@ -79,6 +80,15 @@ export default function CardDetailModal({
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   }, [content]);
+
+  // Tự động giãn nở chiều cao textarea Chi tiết công việc
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [details]);
 
   const fetchCardData = useCallback(async () => {
     const { data, error } = await supabase
@@ -235,72 +245,149 @@ export default function CardDetailModal({
     }
   };
 
+  // Xử lý chèn ảnh vào Mô tả công việc
+  const handleDescImageAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/attachments/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload ảnh thất bại");
+      const fileData = await res.json();
+
+      const directUrl = `/api/attachments/proxy?fileId=${fileData.fileId}`;
+      const imageMarkdown = `\n![${fileData.name}](${directUrl})\n`;
+
+      const { error: dbError } = await supabase
+        .from("attachments")
+        .insert([{
+          card_id: cardId,
+          name: fileData.name,
+          url: directUrl,
+          file_id: fileData.fileId,
+          mime_type: fileData.mimeType,
+        }]);
+      if (dbError) throw dbError;
+
+      const textarea = descRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newContent = content.substring(0, start) + imageMarkdown + content.substring(end);
+        setContent(newContent);
+        await saveField("content", newContent);
+      } else {
+        const newContent = content + imageMarkdown;
+        setContent(newContent);
+        await saveField("content", newContent);
+      }
+      fetchCardData();
+    } catch (err) {
+      alert("Lỗi chèn ảnh: " + err);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Trình phân tích markdown using marked
   const renderMarkdown = (text: string) => {
     if (!text) return "<p class='text-slate-400 italic'>Chưa có thông tin chi tiết.</p>";
     return marked.parse(text, { breaks: true, gfm: true }) as string;
   };
 
-  // Thêm sự kiện paste ảnh trực tiếp vào textarea chi tiết công việc
+  // Thêm sự kiện paste ảnh trực tiếp vào cả 2 textarea
   useEffect(() => {
     const textarea = textareaRef.current;
-    if (!textarea || isPreviewMode) return;
+    const descTextarea = descRef.current;
 
-    const handlePaste = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
+    const createPasteHandler = (
+      targetRef: React.RefObject<HTMLTextAreaElement | null>,
+      currentVal: string,
+      setVal: (v: string) => void,
+      fieldName: "details" | "content"
+    ) => {
+      return async (e: ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
 
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-          const file = items[i].getAsFile();
-          if (!file) continue;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            const file = items[i].getAsFile();
+            if (!file) continue;
 
-          e.preventDefault(); // Ngăn hành vi dán mặc định (text)
-          setUploadingImage(true);
-          try {
-            const formData = new FormData();
-            formData.append("file", file);
-            const res = await fetch("/api/attachments/upload", { method: "POST", body: formData });
-            if (!res.ok) throw new Error("Upload dán ảnh thất bại");
-            const fileData = await res.json();
+            e.preventDefault(); // Ngăn hành vi dán mặc định (text)
+            setUploadingImage(true);
+            try {
+              const formData = new FormData();
+              formData.append("file", file);
+              const res = await fetch("/api/attachments/upload", { method: "POST", body: formData });
+              if (!res.ok) throw new Error("Upload dán ảnh thất bại");
+              const fileData = await res.json();
 
-            const directUrl = `/api/attachments/proxy?fileId=${fileData.fileId}`;
-            const imageMarkdown = `\n![Pasted Image](${directUrl})\n`;
+              const directUrl = `/api/attachments/proxy?fileId=${fileData.fileId}`;
+              const imageMarkdown = `\n![Pasted Image](${directUrl})\n`;
 
-            // 1. Lưu metadata vào bảng attachments
-            const { error: dbError } = await supabase
-              .from("attachments")
-              .insert([{
-                card_id: cardId,
-                name: fileData.name,
-                url: directUrl,
-                file_id: fileData.fileId,
-                mime_type: fileData.mimeType,
-              }]);
-            if (dbError) throw dbError;
+              // 1. Lưu metadata vào bảng attachments
+              const { error: dbError } = await supabase
+                .from("attachments")
+                .insert([{
+                  card_id: cardId,
+                  name: fileData.name,
+                  url: directUrl,
+                  file_id: fileData.fileId,
+                  mime_type: fileData.mimeType,
+                }]);
+              if (dbError) throw dbError;
 
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const newDetails = details.substring(0, start) + imageMarkdown + details.substring(end);
-            setDetails(newDetails);
-            await saveField("details", newDetails);
+              const el = targetRef.current;
+              if (el) {
+                const start = el.selectionStart;
+                const end = el.selectionEnd;
+                const newVal = currentVal.substring(0, start) + imageMarkdown + currentVal.substring(end);
+                setVal(newVal);
+                await saveField(fieldName, newVal);
+              } else {
+                const newVal = currentVal + imageMarkdown;
+                setVal(newVal);
+                await saveField(fieldName, newVal);
+              }
 
-            // 2. Cập nhật lại thông tin thẻ
-            fetchCardData();
-          } catch (err) {
-            alert("Lỗi dán ảnh: " + err);
-          } finally {
-            setUploadingImage(false);
+              // 2. Cập nhật lại thông tin thẻ
+              fetchCardData();
+            } catch (err) {
+              alert("Lỗi dán ảnh: " + err);
+            } finally {
+              setUploadingImage(false);
+            }
           }
         }
-      }
+      };
     };
 
-    textarea.addEventListener("paste", handlePaste);
+    let detailsHandler: ((e: ClipboardEvent) => void) | null = null;
+    let contentHandler: ((e: ClipboardEvent) => void) | null = null;
+
+    if (textarea && !isPreviewMode) {
+      detailsHandler = createPasteHandler(textareaRef, details, setDetails, "details");
+      textarea.addEventListener("paste", detailsHandler);
+    }
+
+    if (descTextarea && !isDescPreview) {
+      contentHandler = createPasteHandler(descRef, content, setContent, "content");
+      descTextarea.addEventListener("paste", contentHandler);
+    }
+
     return () => {
-      textarea.removeEventListener("paste", handlePaste);
+      if (textarea && detailsHandler) {
+        textarea.removeEventListener("paste", detailsHandler);
+      }
+      if (descTextarea && contentHandler) {
+        descTextarea.removeEventListener("paste", contentHandler);
+      }
     };
-  }, [details, isPreviewMode, saveField, cardId, fetchCardData]);
+  }, [details, content, isPreviewMode, isDescPreview, saveField, cardId, fetchCardData]);
 
   if (!card) return null;
 
@@ -309,6 +396,7 @@ export default function CardDetailModal({
       {/* Ẩn inputs file */}
       <input type="file" ref={fileInputRef} onChange={handleFileAttach} className="hidden" />
       <input type="file" ref={imageInputRef} onChange={handleImageAttach} accept="image/*" className="hidden" />
+      <input type="file" ref={descImageInputRef} onChange={handleDescImageAttach} accept="image/*" className="hidden" />
 
       <div className="bg-white border border-slate-200/80 rounded-2xl w-[96vw] h-[92vh] max-w-[1600px] shadow-2xl overflow-hidden flex flex-col">
         {/* Header Modal */}
@@ -358,14 +446,29 @@ export default function CardDetailModal({
                 </div>
 
                 {!isDescPreview ? (
-                  <textarea
-                    ref={descRef}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    onBlur={() => saveField("content", content)}
-                    placeholder="Nhập mô tả tóm tắt..."
-                    className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none break-words overflow-hidden"
-                  />
+                  <div className="space-y-2">
+                    {/* Toolbar */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex gap-2 items-center text-xs">
+                      <button
+                        type="button"
+                        onClick={() => descImageInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-semibold text-slate-600 cursor-pointer disabled:opacity-40"
+                      >
+                        {uploadingImage ? "Đang upload..." : "🖼️ Chèn ảnh từ máy"}
+                      </button>
+                      <span className="text-[10px] text-slate-400 ml-auto italic">Kéo thả / Dán ảnh trực tiếp</span>
+                    </div>
+
+                    <textarea
+                      ref={descRef}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      onBlur={() => saveField("content", content)}
+                      placeholder="Nhập mô tả tóm tắt..."
+                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-[120px] resize-none break-words overflow-hidden"
+                    />
+                  </div>
                 ) : (
                   <div
                     onClick={() => setIsDescPreview(false)}
@@ -416,7 +519,7 @@ export default function CardDetailModal({
                       onChange={(e) => setDetails(e.target.value)}
                       onBlur={() => saveField("details", details)}
                       placeholder="Viết chi tiết kế hoạch của bạn ở đây bằng Markdown..."
-                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[220px] focus:border-violet-400 outline-none font-mono break-words"
+                      className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-3 min-h-[120px] focus:border-violet-400 outline-none font-mono break-words overflow-hidden"
                     />
                   </div>
                 ) : (
