@@ -60,7 +60,7 @@ export default function CardDetailModal({
   const [isAddingSh, setIsAddingSh] = useState(false);
 
   // Markdown Mode Toggle
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [isDescPreview, setIsDescPreview] = useState(true);
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -79,7 +79,7 @@ export default function CardDetailModal({
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  }, [content]);
+  }, [content, isDescPreview]);
 
   // Tự động giãn nở chiều cao textarea Chi tiết công việc
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function CardDetailModal({
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  }, [details]);
+  }, [details, isPreviewMode]);
 
   const fetchCardData = useCallback(async () => {
     const { data, error } = await supabase
