@@ -792,12 +792,6 @@ export default function CardDetailModal({
           onClick={closeLightbox}
         >
           <div className="relative max-w-[90vw] max-h-[90vh]">
-            <button
-              onClick={closeLightbox}
-              className="absolute -top-12 right-0 text-white hover:text-slate-200 text-sm font-semibold flex items-center gap-1 bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-xl transition cursor-pointer"
-            >
-              ✕ Đóng
-            </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={lightboxImageUrl} 
