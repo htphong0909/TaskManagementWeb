@@ -291,7 +291,7 @@ export default function CardDetailModal({
       <input type="file" ref={fileInputRef} onChange={handleFileAttach} className="hidden" />
       <input type="file" ref={imageInputRef} onChange={handleImageAttach} accept="image/*" className="hidden" />
 
-      <div className="bg-white border border-slate-200/80 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white border border-slate-200/80 rounded-2xl w-[96vw] h-[92vh] max-w-[1600px] shadow-2xl overflow-hidden flex flex-col">
         {/* Header Modal */}
         <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex-1 min-w-0 mr-4">
