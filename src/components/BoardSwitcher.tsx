@@ -37,6 +37,7 @@ export default function BoardSwitcher({
   // Kéo thả board state
   const [activeDragBoardId, setActiveDragBoardId] = useState<string | null>(null);
   const [dragOverBoardId, setDragOverBoardId] = useState<string | null>(null);
+  const [mouseDownCoords, setMouseDownCoords] = useState<{ x: number; y: number } | null>(null);
   
   const router = useRouter();
 
@@ -87,6 +88,7 @@ export default function BoardSwitcher({
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, boardId: string) => {
     e.dataTransfer.setData("text/board-id", boardId);
+    setActiveDragBoardId(boardId);
   };
 
   const handleDragEnd = () => {
@@ -144,9 +146,6 @@ export default function BoardSwitcher({
       fetchBoards();
     }
   };
-
-
-
 
 
   const handleStartRename = (board: Board) => {
@@ -210,7 +209,8 @@ export default function BoardSwitcher({
               onDragOver={(e) => handleDragOver(e, b.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e)}
-              className={`group flex items-center px-4 py-2 text-xs font-semibold rounded-t-xl transition-all duration-150 relative ${
+              onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
+              className={`group flex items-center px-5 py-2.5 text-xs font-semibold rounded-t-xl transition-all duration-150 relative ${
                 isActive
                   ? "bg-white/80 border-t border-x border-slate-200/60 text-violet-600 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] h-[90%]"
                   : "bg-white/30 border-t border-x border-transparent text-slate-500 hover:bg-white/50 h-[80%] cursor-pointer"
@@ -224,7 +224,15 @@ export default function BoardSwitcher({
                   : ""
               }`}
               onDoubleClick={() => isActive && handleStartRename(b)}
-              onClick={() => !isActive && !isEditing && router.push(`/board/${b.id}`)}
+              onClick={(e) => {
+                if (mouseDownCoords) {
+                  const dist = Math.sqrt(
+                    Math.pow(e.clientX - mouseDownCoords.x, 2) + Math.pow(e.clientY - mouseDownCoords.y, 2)
+                  );
+                  if (dist > 5) return;
+                }
+                if (!isActive && !isEditing) router.push(`/board/${b.id}`);
+              }}
             >
               {isEditing ? (
                 <input
@@ -240,7 +248,9 @@ export default function BoardSwitcher({
                   autoFocus
                 />
               ) : (
-                <span className="pr-4">{b.title}</span>
+                <span className="pr-5 max-w-[140px] truncate" title={b.title}>
+                  {b.title}
+                </span>
               )}
 
               {/* Nút Xoá bảng xuất hiện khi hover vào active tab */}

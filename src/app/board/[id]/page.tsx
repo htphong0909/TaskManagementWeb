@@ -511,7 +511,7 @@ export default function BoardPage() {
       {/* Board Columns Area */}
       <div className="flex-1 flex gap-5 overflow-x-auto pb-4 items-start select-none pt-1">
         {lists.map((list) => {
-          const listCards = cards.filter((c) => c.list_id === list.id).sort((a, b) => a.position - b.position);
+          const listCards = cards.filter((c) => c.list_id === list.id);
 
           return (
             <BoardColumn

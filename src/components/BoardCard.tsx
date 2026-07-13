@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface Card {
   id: string;
@@ -49,6 +49,7 @@ export default function BoardCard({
   onDragLeaveCard,
   onCardClick,
 }: BoardCardProps) {
+  const [mouseDownCoords, setMouseDownCoords] = useState<{ x: number; y: number } | null>(null);
   const formatCreatedAt = (dateStr: string) => {
     const d = new Date(dateStr);
     const day = String(d.getDate()).padStart(2, "0");
@@ -113,6 +114,7 @@ export default function BoardCard({
       onDrop={(e) => onCardDropOnCard(e, card.id)}
       onMouseEnter={(e) => handleCardMouseEnter(card, e)}
       onMouseLeave={handleCardMouseLeave}
+      onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
       onDoubleClick={() => !isEditingCard && [setEditingCardId(card.id), setEditCardTitle(card.title)]}
       onClick={(e) => {
         // Tránh kích hoạt modal khi đang click nút xóa, nút đóng, link hoặc input
@@ -122,6 +124,12 @@ export default function BoardCard({
           (e.target as HTMLElement).closest("a")
         ) {
           return;
+        }
+        if (mouseDownCoords) {
+          const dist = Math.sqrt(
+            Math.pow(e.clientX - mouseDownCoords.x, 2) + Math.pow(e.clientY - mouseDownCoords.y, 2)
+          );
+          if (dist > 5) return; // Ignore clicks during drag
         }
         onCardClick(card.id);
       }}
