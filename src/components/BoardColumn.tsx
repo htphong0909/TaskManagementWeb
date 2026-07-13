@@ -130,7 +130,7 @@ export default function BoardColumn({
           onDropList(e, list.id);
         }
       }}
-      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-[calc(100vh-140px)] shrink-0 transition-all duration-200
+      className={`backdrop-blur-md border rounded-2xl p-4 flex flex-col min-w-72 max-w-72 max-h-full shrink-0 transition-all duration-200
         ${isDraggingList 
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
           : "bg-white/80 border-slate-300 shadow-sm"

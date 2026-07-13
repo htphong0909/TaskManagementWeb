@@ -553,7 +553,7 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-tr from-[#bae6fd] via-[#c7d2fe] to-[#e0e7ff] p-6 flex flex-col gap-6 text-slate-800 relative overflow-hidden">
+    <div className="h-full bg-gradient-to-tr from-[#bae6fd] via-[#c7d2fe] to-[#e0e7ff] p-6 flex flex-col gap-6 text-slate-800 relative overflow-hidden">
       {/* Background glowing pastel circles */}
       <div className="absolute top-[10%] left-[10%] h-[350px] w-[350px] rounded-full bg-violet-300/20 blur-[80px] pointer-events-none"></div>
       <div className="absolute bottom-[10%] right-[10%] h-[350px] w-[350px] rounded-full bg-pink-300/20 blur-[80px] pointer-events-none"></div>
