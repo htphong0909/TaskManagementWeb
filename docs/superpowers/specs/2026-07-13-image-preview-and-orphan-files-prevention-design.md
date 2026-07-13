@@ -1,54 +1,64 @@
-# Design Spec: Sửa Lỗi Hiển Thị Ảnh Drive & Đồng Bộ Xóa File Đính Kèm Tránh File Mồ Côi
+# Design Spec: Thiết kế Next.js API Proxy Cho Ảnh Drive & Tối Ưu Hóa Giao Diện Modal, Popover
 
-Biện pháp cải tiến giao diện chi tiết thẻ (Card) liên quan đến hiển thị hình ảnh và cơ chế quản lý file đính kèm nhằm tránh tình trạng tệp mồ côi (orphan files) trên bộ lưu trữ Google Drive.
-
----
-
-## 1. Vấn đề hiện tại
-- **Lỗi hiển thị ảnh Drive:** Định dạng URL `https://docs.google.com/uc?export=view&id={fileId}` bị chặn hiển thị bởi các trình duyệt hiện đại (như Chrome/Safari) do các chính sách hạn chế cookie của bên thứ ba (Third-party cookie restrictions).
-- **Nguy cơ tồn tại file mồ côi:** 
-  - Khi người dùng tải ảnh lên qua Markdown Editor, ảnh được tải trực tiếp lên Google Drive nhưng thông tin metadata không được lưu vào bảng `attachments`. Do đó, người dùng không biết file đó đang nằm ở đâu để quản lý hay xóa.
-  - Khi xóa file đính kèm trong [CardDetailModal.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/CardDetailModal.tsx), giao diện chỉ gọi lệnh xóa record trong Database của Supabase mà chưa gọi API `/api/attachments/delete` để xóa file vật lý trên Google Drive, làm lãng phí không gian lưu trữ và tạo ra file mồ côi.
+Bản đặc tả thiết kế chi tiết để giải quyết triệt để lỗi không hiển thị hình ảnh từ Google Drive bằng cơ chế Server-side Proxy, cùng các tối ưu hóa giao diện (auto-resize mô tả, giới hạn chiều cao popover, ngắt dòng văn bản).
 
 ---
 
-## 2. Giải pháp kỹ thuật
+## 1. Thành phần và Kiến trúc
 
-### 2.1 Định dạng URL ảnh xem trước mới
-Thay thế hoàn toàn định dạng link xem trước trong Markdown editor khi tải ảnh lên bằng URL thumbnail tối đa 1600px của Google Drive:
-```text
-https://drive.google.com/thumbnail?id={fileId}&sz=w1600
-```
-Định dạng này cho phép tải ảnh nhúng không cần cookie của bên thứ ba trên mọi trình duyệt.
+### 1.1 API Proxy hình ảnh (`/api/attachments/proxy`)
+- **Mục tiêu:** Cung cấp link ảnh trung gian từ server Next.js để trình duyệt tải trực tiếp, không qua domain Google Drive nhằm tránh bị chặn cookie.
+- **Nguyên lý:**
+  - Nhận tham số `fileId` từ query string.
+  - Sử dụng Google OAuth credentials ở phía server (Refresh Token) để lấy Access Token.
+  - Gọi API Google Drive lấy file nhị phân: `GET https://www.googleapis.com/drive/v3/files/{fileId}?alt=media`.
+  - Stream dữ liệu file nhị phân về trình duyệt kèm `Content-Type` thích hợp và cấu hình cache client `Cache-Control`.
+- **Cấu trúc URL mới trong Markdown:** `/api/attachments/proxy?fileId={fileId}`
 
-### 2.2 Tự động đồng bộ ảnh tải lên qua Markdown vào danh sách File đính kèm
-Trong các hàm xử lý upload ảnh (nút tải ảnh và dán ảnh từ clipboard), tiến hành ghi thêm bản ghi vào bảng `attachments` của Supabase:
-```typescript
-await supabase.from("attachments").insert([{
-  card_id: cardId,
-  name: fileData.name,
-  url: directUrl,
-  file_id: fileData.fileId,
-  mime_type: fileData.mimeType
-}]);
-```
-Nhờ đó, bất kỳ tệp ảnh nào xuất hiện trong khung chi tiết công việc cũng sẽ hiển thị ở danh sách "File đính kèm" bên cột phải.
+### 1.2 Tự động co giãn mô tả công việc (Auto-resize Description Textarea)
+- **Mục tiêu:** Textarea của phần mô tả công việc sẽ tự tăng/giảm chiều cao theo lượng văn bản bên trong, tránh việc hiển thị thanh cuộn nội bộ gây khó chịu và giúp giao diện liền mạch.
+- **Nguyên lý:** Sử dụng React `useRef` và một `useEffect` theo dõi biến `content` để set `height = scrollHeight + 'px'`.
 
-### 2.3 Thực hiện xóa tệp vật lý trên Google Drive khi xóa File đính kèm
-Cập nhật nút xóa file đính kèm trong [CardDetailModal.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/CardDetailModal.tsx). Trước khi xóa bản ghi khỏi Supabase, gửi yêu cầu API xóa file trên Drive:
-```typescript
-if (att.file_id) {
-  await fetch(`/api/attachments/delete?fileId=${att.file_id}`, {
-    method: "DELETE"
-  });
-}
+### 1.3 Giới hạn chiều cao và thanh cuộn cho Popover (Card Hover Popover)
+- **Mục tiêu:** Ngăn không cho Popover của thẻ hiển thị tràn xuống dưới cạnh màn hình gây mất nội dung.
+- **Nguyên lý:** Cập nhật CSS class của Popover trong [CardPopover.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/CardPopover.tsx), đặt `max-h-[80vh] overflow-y-auto` để tự xuất hiện thanh cuộn dọc khi Popover quá dài.
+
+### 1.4 Khắc phục lỗi tràn chữ (Word Wrap / Break Words)
+- **Mục tiêu:** Ngăn không cho các liên kết URL dài hoặc từ dài trong Markdown preview và Textarea phá vỡ chiều ngang container.
+- **Nguyên lý:**
+  - Bổ sung `word-break: break-word` và `overflow-wrap: break-word` cho `.markdown-content` trong [globals.css](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/app/globals.css).
+  - Thêm class `break-words` vào các `textarea` trong [CardDetailModal.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/CardDetailModal.tsx).
+
+---
+
+## 2. Luồng xử lý và Tương tác (Sequence & Data Flow)
+
+```mermaid
+sequenceDiagram
+    participant Browser as Trình duyệt (Client)
+    participant Server as Next.js Server
+    participant DB as Supabase CSDL
+    participant Drive as Google Drive API
+
+    Browser->>Server: Tải ảnh lên (Upload file)
+    Server->>Drive: Tải tệp lên Drive bằng Refresh Token
+    Drive-->>Server: Trả về fileId và metadata
+    Server-->>Browser: Trả về { fileId, mimeType, name }
+    
+    Browser->>DB: Lưu tệp đính kèm mới với URL = /api/attachments/proxy?fileId={fileId}
+    Browser->>DB: Lưu chi tiết Markdown có chứa ![](URL proxy)
+    
+    Note over Browser, Drive: Khi người dùng xem Preview (Tải ảnh)
+    Browser->>Server: GET /api/attachments/proxy?fileId={fileId}
+    Server->>Drive: GET /files/{fileId}?alt=media
+    Drive-->>Server: Trả về Binary Data và Content-Type
+    Server-->>Browser: Phản hồi ảnh nhị phân với Header cache và Content-Type
 ```
 
 ---
 
 ## 3. Kế hoạch kiểm thử & Xác minh
-- Tải thử tệp tin ảnh qua Markdown editor bằng cách nhấn nút "Chèn ảnh từ máy" và kiểm tra xem:
-  1. Hình ảnh hiển thị bình thường trong chế độ Preview.
-  2. Hình ảnh xuất hiện trong danh sách "File đính kèm" bên cột phải.
-- Dán thử ảnh từ clipboard để kiểm tra tính năng đồng bộ tương tự.
-- Click nút xóa (thùng rác 🗑) ở một file đính kèm của card, kiểm tra API logs để chắc chắn API `/api/attachments/delete` được gọi và xóa file thành công trên Google Drive.
+- **Kiểm thử Preview ảnh:** Biên tập chi tiết công việc, tải ảnh lên, chuyển sang chế độ Preview và xác minh ảnh được hiển thị trơn tru, không có lỗi console về 3rd-party cookies.
+- **Kiểm thử Auto-resize:** Viết mô tả dài hơn 4 dòng và xác minh ô nhập mô tả giãn to ra đẩy phần chi tiết xuống dưới, không có thanh cuộn trong ô nhập.
+- **Kiểm thử Popover:** Thêm nhiều file đính kèm và mô tả dài vào 1 card. Di chuột hover vào card đó và kiểm tra popover không tràn quá mép màn hình, có thanh cuộn dọc.
+- **Kiểm thử Tràn chữ:** Dán một link URL rất dài không có khoảng trắng vào Markdown, chuyển sang Preview kiểm tra xem link có tự động ngắt dòng xuống dưới không.
