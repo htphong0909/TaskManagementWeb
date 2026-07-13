@@ -40,6 +40,7 @@ export default function CardPopover({
   // Markdown states
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [description, setDescription] = useState(card.content || "");
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   // Upload states
   const [uploadingFile, setUploadingFile] = useState<{
@@ -339,15 +340,25 @@ export default function CardPopover({
 
           {attachments.map((att) => (
             <div key={att.id} className="flex items-center justify-between bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-xs transition duration-150">
-              <a
-                href={att.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-slate-600 hover:text-violet-600 font-medium truncate flex-1"
-              >
-                <span>{getFileIcon(att.mime_type)}</span>
-                <span className="truncate">{att.name}</span>
-              </a>
+              {att.mime_type?.startsWith("image/") ? (
+                <button
+                  onClick={() => setLightboxImageUrl(att.url)}
+                  className="flex items-center gap-2 text-slate-650 hover:text-violet-650 font-medium truncate flex-1 text-left cursor-pointer"
+                >
+                  <span>{getFileIcon(att.mime_type)}</span>
+                  <span className="truncate">{att.name}</span>
+                </button>
+              ) : (
+                <a
+                  href={att.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-slate-600 hover:text-violet-650 font-medium truncate flex-1"
+                >
+                  <span>{getFileIcon(att.mime_type)}</span>
+                  <span className="truncate">{att.name}</span>
+                </a>
+              )}
               <button
                 onClick={() => handleDeleteAttachment(att.id)}
                 disabled={deletingIds.includes(att.id)}
@@ -392,12 +403,44 @@ export default function CardPopover({
           </div>
         ) : (
           <div
-            onClick={() => setIsEditingDesc(true)}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.tagName === "IMG") {
+                e.stopPropagation();
+                setLightboxImageUrl((target as HTMLImageElement).src);
+              } else {
+                setIsEditingDesc(true);
+              }
+            }}
             className="p-3 rounded-xl border border-slate-100 hover:border-violet-200 bg-slate-50/20 hover:bg-white transition cursor-pointer text-xs font-normal markdown-content"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(card.content || "") }}
           />
         )}
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImageUrl && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxImageUrl(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <button
+              onClick={() => setLightboxImageUrl(null)}
+              className="absolute -top-12 right-0 text-white hover:text-slate-200 text-sm font-semibold flex items-center gap-1 bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-xl transition cursor-pointer"
+            >
+              ✕ Đóng
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={lightboxImageUrl} 
+              alt="Zoomed" 
+              className="rounded-xl object-contain max-w-[90vw] max-h-[80vh] shadow-2xl border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

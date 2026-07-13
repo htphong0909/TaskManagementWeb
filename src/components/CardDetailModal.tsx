@@ -62,6 +62,7 @@ export default function CardDetailModal({
   // Markdown Mode Toggle
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [isDescPreview, setIsDescPreview] = useState(true);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -494,7 +495,15 @@ export default function CardDetailModal({
                   </div>
                 ) : (
                   <div
-                    onClick={() => setIsDescPreview(false)}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === "IMG") {
+                        e.stopPropagation();
+                        setLightboxImageUrl((target as HTMLImageElement).src);
+                      } else {
+                        setIsDescPreview(false);
+                      }
+                    }}
                     className="border border-slate-200 rounded-lg p-3 bg-white min-h-16 max-w-none text-xs markdown-content cursor-pointer hover:bg-slate-50/30 transition duration-150"
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
                   />
@@ -555,7 +564,15 @@ export default function CardDetailModal({
                   </div>
                 ) : (
                   <div
-                    onClick={() => setIsPreviewMode(false)}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === "IMG") {
+                        e.stopPropagation();
+                        setLightboxImageUrl((target as HTMLImageElement).src);
+                      } else {
+                        setIsPreviewMode(false);
+                      }
+                    }}
                     className="border border-slate-200 rounded-lg p-4 bg-white min-h-[260px] max-w-none text-xs markdown-content cursor-pointer hover:bg-slate-50/30 transition duration-150"
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(details) }}
                   />
@@ -687,9 +704,18 @@ export default function CardDetailModal({
                 <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
                   {attachments.map((att) => (
                     <div key={att.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-lg text-xs">
-                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-violet-600 truncate max-w-[130px] font-medium">
-                        {att.name}
-                      </a>
+                      {att.mime_type?.startsWith("image/") ? (
+                        <button
+                          onClick={() => setLightboxImageUrl(att.url)}
+                          className="text-slate-655 hover:text-violet-600 truncate max-w-[130px] font-medium text-left cursor-pointer"
+                        >
+                          {att.name}
+                        </button>
+                      ) : (
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-violet-600 truncate max-w-[130px] font-medium">
+                          {att.name}
+                        </a>
+                      )}
                       {/* Xóa file đính kèm */}
                       <button
                         onClick={async () => {
@@ -722,6 +748,30 @@ export default function CardDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImageUrl && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxImageUrl(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <button
+              onClick={() => setLightboxImageUrl(null)}
+              className="absolute -top-12 right-0 text-white hover:text-slate-200 text-sm font-semibold flex items-center gap-1 bg-black/40 hover:bg-black/60 px-3 py-1.5 rounded-xl transition cursor-pointer"
+            >
+              ✕ Đóng
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={lightboxImageUrl} 
+              alt="Zoomed" 
+              className="rounded-xl object-contain max-w-[90vw] max-h-[80vh] shadow-2xl border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
