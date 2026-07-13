@@ -25,6 +25,16 @@ interface Attachment {
   url: string;
   mime_type: string | null;
   file_id: string | null;
+  folder_id: string | null;
+  position: number;
+}
+
+interface AttachmentFolder {
+  id: string;
+  card_id: string;
+  name: string;
+  position: number;
+  created_at?: string;
 }
 
 const getFileTypeAndRank = (name: string, mimeType: string | null) => {
@@ -122,6 +132,42 @@ export default function CardPopover({
   onBusyChange,
 }: CardPopoverProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [folders, setFolders] = useState<AttachmentFolder[]>([]);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editFolderName, setEditFolderName] = useState("");
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+
+  const merged = [
+    ...attachments.map(a => ({ ...a, itemType: "file" as const })),
+    ...folders.map(f => ({ ...f, itemType: "folder" as const }))
+  ].sort((a, b) => {
+    if (a.position !== b.position) {
+      return a.position - b.position;
+    }
+    if (a.itemType !== b.itemType) {
+      return a.itemType === "folder" ? -1 : 1;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  const topFiles: Attachment[] = [];
+  const folderGroups: { folder: AttachmentFolder; files: Attachment[] }[] = [];
+  let currentGroup: { folder: AttachmentFolder; files: Attachment[] } | null = null;
+
+  merged.forEach((item) => {
+    if (item.itemType === "folder") {
+      currentGroup = { folder: item as AttachmentFolder, files: [] };
+      folderGroups.push(currentGroup);
+    } else {
+      const file = item as Attachment;
+      if (currentGroup === null) {
+        topFiles.push(file);
+      } else {
+        currentGroup.files.push(file);
+      }
+    }
+  });
   
   // Markdown states
   const [isEditingDesc, setIsEditingDesc] = useState(false);
@@ -180,9 +226,17 @@ export default function CardPopover({
   const fetchAttachments = useCallback(async () => {
     const { data } = await supabase
       .from("attachments")
-      .select("id, name, url, mime_type, file_id")
-      .eq("card_id", card.id);
+      .select("*")
+      .eq("card_id", card.id)
+      .order("position", { ascending: true });
     setAttachments(data || []);
+
+    const { data: folderData } = await supabase
+      .from("attachment_folders")
+      .select("*")
+      .eq("card_id", card.id)
+      .order("position", { ascending: true });
+    setFolders(folderData || []);
   }, [card.id]);
 
   useEffect(() => {
@@ -199,6 +253,100 @@ export default function CardPopover({
     }
   }, [uploadingFile, deletingIds, onBusyChange]);
 
+  // ==========================================
+  // ATTACHMENT FOLDER & FILE ACTIONS (UNIFIED POSITION SYSTEM)
+  // ==========================================
+  const handleCreateFolder = async (e: React.FormEvent | React.FocusEvent) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+
+    try {
+      const nextPos = merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0;
+      const { error } = await supabase
+        .from("attachment_folders")
+        .insert([{
+          card_id: card.id,
+          name: newFolderName.trim(),
+          position: nextPos
+        }]);
+
+      if (error) throw error;
+      setNewFolderName("");
+      setShowNewFolderInput(false);
+      fetchAttachments();
+    } catch (err) {
+      console.error("Lỗi tạo thư mục:", err);
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string) => {
+    if (!editFolderName.trim()) return;
+    try {
+      const { error } = await supabase
+        .from("attachment_folders")
+        .update({ name: editFolderName.trim() })
+        .eq("id", folderId);
+      if (error) throw error;
+      setEditingFolderId(null);
+      setEditFolderName("");
+      fetchAttachments();
+    } catch (err) {
+      console.error("Lỗi đổi tên thư mục:", err);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("attachment_folders")
+        .delete()
+        .eq("id", folderId);
+      if (error) throw error;
+      fetchAttachments();
+    } catch (err) {
+      console.error("Lỗi xóa thư mục:", err);
+    }
+  };
+
+  const handleMoveItem = async (itemId: string, itemType: "file" | "folder", direction: "up" | "down") => {
+    const idx = merged.findIndex((x) => x.id === itemId && x.itemType === itemType);
+    if (idx === -1) return;
+
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= merged.length) return;
+
+    const itemA = merged[idx];
+    const itemB = merged[targetIdx];
+
+    const posA = itemA.position;
+    const posB = itemB.position;
+
+    let newPosA = posB;
+    let newPosB = posA;
+
+    if (posA === posB) {
+      newPosA = posA - 0.5;
+      newPosB = posB + 0.5;
+    }
+
+    try {
+      const updateA = supabase
+        .from(itemA.itemType === "file" ? "attachments" : "attachment_folders")
+        .update({ position: newPosA })
+        .eq("id", itemA.id);
+
+      const updateB = supabase
+        .from(itemB.itemType === "file" ? "attachments" : "attachment_folders")
+        .update({ position: newPosB })
+        .eq("id", itemB.id);
+
+      await Promise.all([updateA, updateB]);
+      fetchAttachments();
+    } catch (err) {
+      console.error("Lỗi hoán đổi vị trí:", err);
+    }
+  };
+
   // Cập nhật Mô tả
   const handleSaveDescription = useCallback(async () => {
     try {
@@ -213,7 +361,7 @@ export default function CardPopover({
     } catch (err) {
       console.error("Lỗi cập nhật mô tả thẻ:", err);
     }
-  }, [card.id, description, onCardUpdated]);
+  }, [card.id, description, onCardUpdated, setIsEditingDesc]);
 
   // Đồng bộ lại nội dung mô tả khi prop card thay đổi từ bên ngoài
   useEffect(() => {
@@ -240,6 +388,7 @@ export default function CardPopover({
   // Thêm file đính kèm
   const handleAddAttachment = async (file: { name: string; url: string; fileId: string; mimeType: string }) => {
     try {
+      const nextPos = merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0;
       const { error } = await supabase
         .from("attachments")
         .insert([
@@ -249,6 +398,7 @@ export default function CardPopover({
             url: file.url,
             file_id: file.fileId,
             mime_type: file.mimeType,
+            position: nextPos,
           },
         ]);
 
@@ -368,6 +518,84 @@ export default function CardPopover({
     return marked.parse(text, { breaks: true, gfm: true }) as string;
   };
 
+  const renderAttachmentCard = (att: Attachment) => {
+    const fileInfo = getFileTypeAndRank(att.name, att.mime_type);
+    const borderClass = fileInfo.rank <= 7 ? fileInfo.colorClass.split(" ")[2] : "border-slate-100";
+    const globalIdx = merged.findIndex((x) => x.id === att.id && x.itemType === "file");
+
+    return (
+      <div
+        key={att.id}
+        className={`flex items-center justify-between bg-white border ${borderClass} p-1.5 rounded-lg text-[11px] gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:shadow-sm transition-all duration-150`}
+      >
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          {getFileIcon(fileInfo.type)}
+          {fileInfo.type === "Image" ? (
+            <button
+              onClick={() => openLightbox(att.url)}
+              className="text-slate-700 hover:text-violet-600 truncate font-semibold text-left cursor-pointer flex-1 min-w-0"
+              title={att.name}
+            >
+              {att.name}
+            </button>
+          ) : (
+            <a
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-700 hover:text-violet-600 truncate font-semibold flex-1 min-w-0"
+              title={att.name}
+            >
+              {att.name}
+            </a>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 select-none">
+          <span className={`text-[8px] font-extrabold uppercase px-1 py-0.5 rounded border shrink-0 ${fileInfo.colorClass}`}>
+            {fileInfo.label}
+          </span>
+
+          {/* Nút di chuyển thứ tự tệp */}
+          {globalIdx > 0 && (
+            <button
+              onClick={() => handleMoveItem(att.id, "file", "up")}
+              className="text-xs text-slate-400 hover:text-violet-600 cursor-pointer hover:font-bold"
+              title="Di chuyển lên"
+            >
+              ↑
+            </button>
+          )}
+          {globalIdx < merged.length - 1 && (
+            <button
+              onClick={() => handleMoveItem(att.id, "file", "down")}
+              className="text-xs text-slate-400 hover:text-violet-600 cursor-pointer hover:font-bold"
+              title="Di chuyển xuống"
+            >
+              ↓
+            </button>
+          )}
+
+          <button
+            onClick={() => handleDeleteAttachment(att.id)}
+            disabled={deletingIds.includes(att.id)}
+            className="text-slate-400 hover:text-rose-500 h-4.5 w-4.5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0 text-[10px]"
+            title="Xóa tệp đính kèm"
+          >
+            {deletingIds.includes(att.id) ? (
+              <svg className="animate-spin h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              "✕"
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (!rect) return null;
 
   const isBusy = uploadingFile !== null || deletingIds.length > 0 || lightboxImageUrl !== null;
@@ -424,16 +652,51 @@ export default function CardPopover({
       <div className="mb-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">File Đính Kèm</span>
-          <button
-            onClick={handleAttachClick}
-            disabled={isBusy}
-            className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            📎 Đính kèm tệp tin
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0 select-none">
+            {showNewFolderInput ? (
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateFolder(e);
+                  if (e.key === "Escape") {
+                    setNewFolderName("");
+                    setShowNewFolderInput(false);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (newFolderName.trim()) {
+                    handleCreateFolder(e);
+                  } else {
+                    setShowNewFolderInput(false);
+                  }
+                }}
+                placeholder="Tên thư mục..."
+                className="rounded border border-violet-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-800 outline-none w-20 focus:ring-1 focus:ring-violet-300"
+                autoFocus
+              />
+            ) : (
+              <button
+                onClick={() => setShowNewFolderInput(true)}
+                disabled={isBusy}
+                className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer disabled:opacity-30"
+              >
+                + Thư mục
+              </button>
+            )}
+            <span className="text-slate-300 text-[10px]">|</span>
+            <button
+              onClick={handleAttachClick}
+              disabled={isBusy}
+              className="text-[10px] font-semibold text-violet-600 hover:text-violet-500 cursor-pointer flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              📎 Thêm tệp
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           {uploadingFile && (
             <div className="flex items-center justify-between bg-violet-50/50 border border-violet-100 border-dashed p-1.5 rounded-lg text-[11px]">
               <div className="flex items-center gap-1.5 text-violet-600 font-medium truncate flex-1">
@@ -451,70 +714,100 @@ export default function CardPopover({
             </div>
           )}
 
-          {[...attachments]
-            .sort((a, b) => {
-              const infoA = getFileTypeAndRank(a.name, a.mime_type);
-              const infoB = getFileTypeAndRank(b.name, b.mime_type);
-              if (infoA.rank !== infoB.rank) {
-                return infoA.rank - infoB.rank;
-              }
-              return a.name.localeCompare(b.name);
-            })
-            .map((att) => {
-              const fileInfo = getFileTypeAndRank(att.name, att.mime_type);
-              const borderClass = fileInfo.rank <= 7 ? fileInfo.colorClass.split(" ")[2] : "border-slate-100";
+          {/* Top-level attachments (outside folders) */}
+          {topFiles.length > 0 && (
+            <div className="space-y-1">
+              {topFiles.map(att => renderAttachmentCard(att))}
+            </div>
+          )}
 
-              return (
-                <div
-                  key={att.id}
-                  className={`flex items-center justify-between bg-white border ${borderClass} p-1.5 rounded-lg text-[11px] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:shadow-sm transition-all duration-150 gap-1.5`}
-                >
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    {getFileIcon(fileInfo.type)}
-                    {fileInfo.type === "Image" ? (
-                      <button
-                        onClick={() => openLightbox(att.url)}
-                        className="text-slate-700 hover:text-violet-600 truncate font-semibold text-left cursor-pointer flex-1 min-w-0"
-                        title={att.name}
-                      >
-                        {att.name}
-                      </button>
+          {/* Danh sách Thư mục */}
+          {folderGroups.map((group, index) => {
+            const { folder, files } = group;
+            const globalFolderIdx = merged.findIndex((x) => x.id === folder.id && x.itemType === "folder");
+
+            return (
+              <div
+                key={folder.id}
+                className="flex flex-col gap-1 rounded-lg p-1.5 bg-slate-50 border border-slate-100 shadow-sm"
+              >
+                {/* Folder Header */}
+                <div className="flex items-center justify-between group/folder">
+                  <div className="flex items-center gap-1 flex-1 min-w-0">
+                    <svg className="w-3.5 h-3.5 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    {editingFolderId === folder.id ? (
+                      <input
+                        type="text"
+                        value={editFolderName}
+                        onChange={(e) => setEditFolderName(e.target.value)}
+                        onBlur={() => handleRenameFolder(folder.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameFolder(folder.id);
+                          if (e.key === "Escape") setEditingFolderId(null);
+                        }}
+                        className="text-[10px] text-slate-800 bg-white border border-slate-300 rounded px-1 py-0.5 outline-none font-semibold w-full"
+                        autoFocus
+                      />
                     ) : (
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-700 hover:text-violet-600 truncate font-semibold flex-1 min-w-0"
-                        title={att.name}
+                      <span
+                        onDoubleClick={() => {
+                          setEditingFolderId(folder.id);
+                          setEditFolderName(folder.name);
+                        }}
+                        className="text-[10px] font-bold text-slate-700 truncate cursor-pointer select-none"
+                        title="Kích đúp để đổi tên"
                       >
-                        {att.name}
-                      </a>
+                        {folder.name}
+                      </span>
                     )}
+                    <span className="text-[9px] text-slate-400 select-none">({files.length})</span>
                   </div>
 
-                  <span className={`text-[8px] font-extrabold uppercase px-1 py-0.5 rounded border shrink-0 ${fileInfo.colorClass}`}>
-                    {fileInfo.label}
-                  </span>
-
-                  <button
-                    onClick={() => handleDeleteAttachment(att.id)}
-                    disabled={deletingIds.includes(att.id)}
-                    className="text-slate-400 hover:text-rose-500 h-4.5 w-4.5 flex items-center justify-center rounded-full hover:bg-rose-50 transition cursor-pointer flex-shrink-0 text-[10px]"
-                    title="Xóa tệp đính kèm"
-                  >
-                    {deletingIds.includes(att.id) ? (
-                      <svg className="animate-spin h-3 w-3 text-slate-500" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      "🗑"
+                  <div className="flex items-center gap-1 shrink-0 select-none">
+                    {/* Nút di chuyển thứ tự thư mục */}
+                    {globalFolderIdx > 0 && (
+                      <button
+                        onClick={() => handleMoveItem(folder.id, "folder", "up")}
+                        className="text-xs text-slate-400 hover:text-violet-600 cursor-pointer font-bold leading-none"
+                        title="Di chuyển thư mục lên"
+                      >
+                        ↑
+                      </button>
                     )}
-                  </button>
+                    {globalFolderIdx < merged.length - 1 && (
+                      <button
+                        onClick={() => handleMoveItem(folder.id, "folder", "down")}
+                        className="text-xs text-slate-400 hover:text-violet-600 cursor-pointer font-bold leading-none"
+                        title="Di chuyển thư mục xuống"
+                      >
+                        ↓
+                      </button>
+                    )}
+
+                    {/* Xóa thư mục */}
+                    <button
+                      onClick={() => handleDeleteFolder(folder.id)}
+                      className="text-slate-400 hover:text-rose-500 cursor-pointer leading-none text-xs"
+                      title="Xóa thư mục"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-          {attachments.length === 0 && !uploadingFile && (
+
+                {/* Files list */}
+                <div className="space-y-1 pl-1 border-l-2 border-slate-100">
+                  {files.map(att => renderAttachmentCard(att))}
+                  {files.length === 0 && (
+                    <div className="text-[9px] text-slate-400 italic py-0.5 pl-1">Thư mục trống.</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {attachments.length === 0 && folders.length === 0 && !uploadingFile && (
             <p className="text-[11px] text-slate-400 italic">Chưa có tệp nào được đính kèm.</p>
           )}
         </div>
