@@ -245,6 +245,7 @@ export default function BoardPage() {
 
   // Hover Popover events
   const handleCardMouseEnter = (card: Card, event: React.MouseEvent<HTMLDivElement>) => {
+    if (activeDragCardId || activeDragListId) return;
     if (isPopoverBusy) return;
     if (editingCardId === card.id) return;
     if (closeTimeoutRef.current) {
@@ -281,6 +282,12 @@ export default function BoardPage() {
 
   // Drag & Drop Lists
   const handleListDragStart = (e: React.DragEvent, listId: string) => {
+    setHoveredCard(null);
+    setHoveredRect(null);
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     e.dataTransfer.setData("text/list-id", listId);
     setActiveDragListId(listId);
   };
@@ -338,6 +345,12 @@ export default function BoardPage() {
 
   // Drag & Drop Cards
   const handleCardDragStart = (e: React.DragEvent, cardId: string, listId: string) => {
+    setHoveredCard(null);
+    setHoveredRect(null);
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     e.dataTransfer.setData("text/card-id", cardId);
     e.dataTransfer.setData("text/source-list-id", listId);
     setActiveDragCardId(cardId);
