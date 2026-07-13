@@ -160,6 +160,12 @@ export default function CardDetailModal({
   const [hasDeadline, setHasDeadline] = useState(false);
   const [dueDate, setDueDate] = useState("");
 
+  const [editingShId, setEditingShId] = useState<string | null>(null);
+  const [editShName, setEditShName] = useState("");
+  const [editShRole, setEditShRole] = useState("");
+  const [editShEmail, setEditShEmail] = useState("");
+  const [editShPhone, setEditShPhone] = useState("");
+
   const formatForInput = (isoStr: string | null) => {
     if (!isoStr) return "";
     const d = new Date(isoStr);
@@ -497,6 +503,40 @@ export default function CardDetailModal({
     const updatedList = stakeholders.filter(sh => sh.id !== shId);
     setStakeholders(updatedList);
     await saveField("stakeholders", updatedList);
+  };
+
+  // Sửa Stakeholder
+  const handleStartEditStakeholder = (sh: Stakeholder) => {
+    setEditingShId(sh.id);
+    setEditShName(sh.name);
+    setEditShRole(sh.role || "");
+    setEditShEmail(sh.email || "");
+    setEditShPhone(sh.phone || "");
+  };
+
+  const handleSaveEditStakeholder = async (shId: string) => {
+    if (!editShName.trim()) return;
+
+    const updatedList = stakeholders.map((sh) => {
+      if (sh.id === shId) {
+        return {
+          ...sh,
+          name: editShName.trim(),
+          role: editShRole.trim(),
+          email: editShEmail.trim(),
+          phone: editShPhone.trim(),
+        };
+      }
+      return sh;
+    });
+
+    setStakeholders(updatedList);
+    await saveField("stakeholders", updatedList);
+    setEditingShId(null);
+  };
+
+  const handleCancelEditStakeholder = () => {
+    setEditingShId(null);
   };
 
   // File Attachments upload
@@ -1066,23 +1106,105 @@ export default function CardDetailModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {stakeholders.map((sh) => (
-                      <tr key={sh.id}>
-                        <td className="py-2.5 font-semibold text-slate-950">{sh.name}</td>
-                        <td className="py-2.5">
-                          <span className="bg-slate-100 text-slate-900 px-2 py-0.5 rounded-full text-[10px] font-semibold">
-                            {sh.role || "N/A"}
-                          </span>
-                        </td>
-                        <td className="py-2.5 text-slate-900">{sh.email || "N/A"}</td>
-                        <td className="py-2.5 text-slate-900">{sh.phone || "N/A"}</td>
-                        <td className="py-2.5 text-right">
-                          <button onClick={() => handleDeleteStakeholder(sh.id)} className="text-slate-400 hover:text-rose-500 cursor-pointer text-sm">
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {stakeholders.map((sh) => {
+                      const isEditing = sh.id === editingShId;
+                      return (
+                        <tr 
+                          key={sh.id} 
+                          onDoubleClick={() => !isEditing && handleStartEditStakeholder(sh)}
+                          className={!isEditing ? "hover:bg-slate-50/50 cursor-pointer select-none transition duration-150" : ""}
+                          title={!isEditing ? "Double click để sửa thông tin" : ""}
+                        >
+                          {isEditing ? (
+                            <>
+                              <td className="py-1">
+                                <input
+                                  type="text"
+                                  value={editShName}
+                                  onChange={(e) => setEditShName(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-violet-400 text-xs font-semibold text-slate-950"
+                                  autoFocus
+                                  required
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditStakeholder(sh.id);
+                                    if (e.key === "Escape") handleCancelEditStakeholder();
+                                  }}
+                                />
+                              </td>
+                              <td className="py-1">
+                                <input
+                                  type="text"
+                                  value={editShRole}
+                                  onChange={(e) => setEditShRole(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-violet-400 text-xs text-slate-950"
+                                  placeholder="Vai trò..."
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditStakeholder(sh.id);
+                                    if (e.key === "Escape") handleCancelEditStakeholder();
+                                  }}
+                                />
+                              </td>
+                              <td className="py-1">
+                                <input
+                                  type="email"
+                                  value={editShEmail}
+                                  onChange={(e) => setEditShEmail(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-violet-400 text-xs text-slate-950"
+                                  placeholder="Email..."
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditStakeholder(sh.id);
+                                    if (e.key === "Escape") handleCancelEditStakeholder();
+                                  }}
+                                />
+                              </td>
+                              <td className="py-1">
+                                <input
+                                  type="text"
+                                  value={editShPhone}
+                                  onChange={(e) => setEditShPhone(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-violet-400 text-xs text-slate-950"
+                                  placeholder="SĐT..."
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditStakeholder(sh.id);
+                                    if (e.key === "Escape") handleCancelEditStakeholder();
+                                  }}
+                                />
+                              </td>
+                              <td className="py-1 text-right select-none whitespace-nowrap">
+                                <button
+                                  onClick={() => handleSaveEditStakeholder(sh.id)}
+                                  className="text-violet-600 hover:text-violet-700 cursor-pointer text-xs font-semibold mr-2"
+                                >
+                                  Lưu
+                                </button>
+                                <button
+                                  onClick={handleCancelEditStakeholder}
+                                  className="text-slate-400 hover:text-slate-600 cursor-pointer text-xs font-semibold"
+                                >
+                                  Hủy
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-2.5 font-semibold text-slate-950">{sh.name}</td>
+                              <td className="py-2.5">
+                                <span className="bg-slate-100 text-slate-900 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                                  {sh.role || "N/A"}
+                                </span>
+                              </td>
+                              <td className="py-2.5 text-slate-900">{sh.email || "N/A"}</td>
+                              <td className="py-2.5 text-slate-900">{sh.phone || "N/A"}</td>
+                              <td className="py-2.5 text-right">
+                                <button onClick={() => handleDeleteStakeholder(sh.id)} className="text-slate-400 hover:text-rose-500 cursor-pointer text-sm">
+                                  ✕
+                                </button>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
                     {stakeholders.length === 0 && (
                       <tr>
                         <td colSpan={5} className="py-4 text-slate-400 italic text-center">
