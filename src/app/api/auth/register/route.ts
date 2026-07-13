@@ -43,10 +43,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, user: data.user });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Lỗi đăng ký tài khoản:", error);
+    const message = error instanceof Error ? error.message : "Đã xảy ra lỗi hệ thống";
     return NextResponse.json(
-      { error: error.message || "Đã xảy ra lỗi hệ thống" },
+      { error: message },
       { status: 500 }
     );
   }

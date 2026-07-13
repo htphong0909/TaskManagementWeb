@@ -11,6 +11,7 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [securityKey, setSecurityKey] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
   const [submittingAuth, setSubmittingAuth] = useState(false);
@@ -86,12 +87,27 @@ export default function Home() {
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
+        if (!securityKey) {
+          throw new Error("Vui lòng nhập mã đăng ký bảo mật.");
+        }
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password, securityKey }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Đăng ký thất bại");
+        }
+
+        // Tự động đăng nhập
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
-        setAuthSuccess("Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.");
+        if (signInErr) throw signInErr;
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "Có lỗi xảy ra trong quá trình xác thực.";
@@ -180,6 +196,20 @@ export default function Home() {
               required
             />
           </div>
+
+          {authMode === "signup" && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Mã đăng ký bảo mật</label>
+              <input
+                type="password"
+                value={securityKey}
+                onChange={(e) => setSecurityKey(e.target.value)}
+                placeholder="Nhập mã bảo mật để đăng ký"
+                className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-violet-400 focus:ring-4 focus:ring-violet-200/40 focus:bg-white"
+                required
+              />
+            </div>
+          )}
 
           <button
             type="submit"
