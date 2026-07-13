@@ -155,7 +155,7 @@ export default function BoardColumn({
           <>
             <span
               onClick={() => [setEditingListId(list.id), setEditListTitle(list.title)]}
-              className="text-sm font-bold text-slate-800 cursor-pointer select-none truncate flex-1 text-left"
+              className="text-sm font-bold text-slate-800 cursor-pointer select-none line-clamp-2 break-words flex-1 text-left"
             >
               {list.title}
             </span>
