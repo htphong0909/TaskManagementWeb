@@ -61,6 +61,7 @@ export default function CardDetailModal({
 
   // Markdown Mode Toggle
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isDescPreview, setIsDescPreview] = useState(true);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -338,15 +339,40 @@ export default function CardDetailModal({
               
               {/* Mô tả công việc */}
               <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">📝 Mô Tả Công Việc (Tóm tắt ngắn)</label>
-                <textarea
-                  ref={descRef}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  onBlur={() => saveField("content", content)}
-                  placeholder="Nhập mô tả tóm tắt..."
-                  className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none break-words overflow-hidden"
-                />
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">📝 Mô Tả Công Việc (Markdown)</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsDescPreview(false)}
+                      className={`text-xs px-2.5 py-1 rounded-md font-semibold cursor-pointer ${!isDescPreview ? "bg-violet-100 text-violet-700" : "text-slate-500 hover:bg-slate-100"}`}
+                    >
+                      Soạn thảo
+                    </button>
+                    <button
+                      onClick={() => setIsDescPreview(true)}
+                      className={`text-xs px-2.5 py-1 rounded-md font-semibold cursor-pointer ${isDescPreview ? "bg-violet-100 text-violet-700" : "text-slate-500 hover:bg-slate-100"}`}
+                    >
+                      Xem trước
+                    </button>
+                  </div>
+                </div>
+
+                {!isDescPreview ? (
+                  <textarea
+                    ref={descRef}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    onBlur={() => saveField("content", content)}
+                    placeholder="Nhập mô tả tóm tắt..."
+                    className="w-full text-xs text-slate-950 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-violet-400 min-h-16 resize-none break-words overflow-hidden"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setIsDescPreview(false)}
+                    className="border border-slate-200 rounded-lg p-3 bg-white min-h-16 max-w-none text-xs markdown-content cursor-pointer hover:bg-slate-50/30 transition duration-150"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+                  />
+                )}
               </div>
 
               {/* Chi tiết công việc (Markdown Editor) */}

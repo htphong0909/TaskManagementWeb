@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { marked } from "marked";
 
 interface CardPopoverProps {
   card: {
@@ -247,37 +248,10 @@ export default function CardPopover({
     return "📎";
   };
 
-  // Trình dịch Markdown Regex cục bộ siêu nhẹ
+  // Trình phân tích markdown using marked
   const renderMarkdown = (text: string) => {
-    if (!text) return "<span class='text-slate-400 italic'>Chưa có mô tả chi tiết cho thẻ này. Nhấp chuột để viết mô tả...</span>";
-
-    let html = text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Bold
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong class='font-bold text-slate-800'>$1</strong>");
-    // Italic
-    html = html.replace(/\*(.*?)\*/g, "<em class='italic'>$1</em>");
-    // Heading 3
-    html = html.replace(/^### (.*?)$/gm, "<h3 class='text-xs font-bold text-slate-800 mt-2 mb-1'>$1</h3>");
-    // Heading 2
-    html = html.replace(/^## (.*?)$/gm, "<h2 class='text-sm font-bold text-slate-800 mt-3 mb-1'>$1</h2>");
-    // Heading 1
-    html = html.replace(/^# (.*?)$/gm, "<h1 class='text-base font-bold text-slate-900 mt-3 mb-2'>$1</h1>");
-    // Code block
-    html = html.replace(/```([\s\S]*?)```/g, "<pre class='bg-slate-900 text-slate-100 p-2 rounded-lg my-2 font-mono text-[10px] overflow-x-auto'>$1</pre>");
-    // Lists
-    html = html.replace(/^\s*-\s+(.*?)$/gm, "<li class='list-disc ml-4 my-0.5'>$1</li>");
-
-    const paras = html.split(/\n\n+/);
-    return paras.map(p => {
-      if (p.trim().startsWith("<li") || p.trim().startsWith("<pre") || p.trim().startsWith("<h")) {
-        return p;
-      }
-      return `<p class='mb-1.5 text-slate-600 leading-relaxed'>${p.replace(/\n/g, "<br/>")}</p>`;
-    }).join("");
+    if (!text) return "<p class='text-slate-400 italic'>Chưa có mô tả công việc.</p>";
+    return marked.parse(text, { breaks: true, gfm: true }) as string;
   };
 
   if (!rect) return null;
@@ -401,36 +375,20 @@ export default function CardPopover({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onBlur={handleSaveDescription}
               placeholder="Nhập mô tả thẻ công việc... (Hỗ trợ Markdown)"
-              className="w-full h-32 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200/40 font-normal leading-relaxed resize-none"
+              className="w-full h-32 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-950 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200/40 font-normal leading-relaxed resize-none break-words"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter" && e.ctrlKey) handleSaveDescription();
                 if (e.key === "Escape") setIsEditingDesc(false);
               }}
             />
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span>Hỗ trợ Markdown: **đậm**, *nghiêng*, - danh sách</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsEditingDesc(false)}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleSaveDescription}
-                  className="px-2.5 py-1 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-500 cursor-pointer shadow-sm shadow-violet-600/10"
-                >
-                  Lưu
-                </button>
-              </div>
-            </div>
           </div>
         ) : (
           <div
             onClick={() => setIsEditingDesc(true)}
-            className="p-3 rounded-xl border border-slate-100 hover:border-violet-200 bg-slate-50/20 hover:bg-white transition cursor-pointer text-xs font-normal"
+            className="p-3 rounded-xl border border-slate-100 hover:border-violet-200 bg-slate-50/20 hover:bg-white transition cursor-pointer text-xs font-normal markdown-content"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(card.content || "") }}
           />
         )}
