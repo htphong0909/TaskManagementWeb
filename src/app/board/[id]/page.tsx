@@ -22,6 +22,7 @@ interface Card {
   position: number;
   due_date: string | null;
   created_at: string;
+  is_completed?: boolean;
 }
 
 export default function BoardPage() {
@@ -101,7 +102,7 @@ export default function BoardPage() {
         const listIds = currentLists.map((l) => l.id);
         const { data: cardData } = await supabase
           .from("cards")
-          .select("id, list_id, title, content, position, due_date, created_at")
+          .select("id, list_id, title, content, position, due_date, created_at, is_completed")
           .in("list_id", listIds)
           .order("position", { ascending: true });
         setCards(cardData || []);
@@ -245,19 +246,6 @@ export default function BoardPage() {
       await fetchBoardData();
     } catch (err) {
       console.error("Lỗi xóa thẻ:", err);
-    }
-  };
-
-  const handleCardToggleComplete = async (cardId: string, isCompleted: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("cards")
-        .update({ is_completed: isCompleted })
-        .eq("id", cardId);
-      if (error) throw error;
-      await fetchBoardData();
-    } catch (err) {
-      console.error("Lỗi cập nhật trạng thái hoàn thành:", err);
     }
   };
 
@@ -620,7 +608,6 @@ export default function BoardPage() {
               setCardToDelete={setCardToDelete}
               handleCardMouseEnter={handleCardMouseEnter}
               handleCardMouseLeave={handleCardMouseLeave}
-              onToggleComplete={handleCardToggleComplete}
               onDragStartList={handleListDragStart}
               onDragEndList={handleListEnd}
               onDragOverList={handleListDragOver}

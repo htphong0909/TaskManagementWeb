@@ -63,7 +63,6 @@ interface BoardColumnProps {
   onDragLeaveCard: (e: React.DragEvent) => void;
   onCardClick: (cardId: string) => void;
   onCardDragOverListContainer: (e: React.DragEvent, listId: string) => void;
-  onToggleComplete?: (cardId: string, isCompleted: boolean) => void;
 }
 
 export default function BoardColumn({
@@ -107,7 +106,6 @@ export default function BoardColumn({
   onDragLeaveCard,
   onCardClick,
   onCardDragOverListContainer,
-  onToggleComplete,
 }: BoardColumnProps) {
   const isEditingList = list.id === editingListId;
   const isAddingCard = list.id === addingCardListId;
@@ -212,7 +210,6 @@ export default function BoardColumn({
             onDragOverCard={onDragOverCard}
             onDragLeaveCard={onDragLeaveCard}
             onCardClick={onCardClick}
-            onToggleComplete={onToggleComplete}
           />
         ))}
       </div>

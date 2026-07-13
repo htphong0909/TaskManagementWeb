@@ -29,7 +29,6 @@ interface BoardCardProps {
   onDragOverCard: (e: React.DragEvent, cardId: string) => void;
   onDragLeaveCard: (e: React.DragEvent) => void;
   onCardClick: (cardId: string) => void;
-  onToggleComplete?: (cardId: string, isCompleted: boolean) => void;
 }
 
 export default function BoardCard({
@@ -50,7 +49,6 @@ export default function BoardCard({
   onDragOverCard,
   onDragLeaveCard,
   onCardClick,
-  onToggleComplete,
 }: BoardCardProps) {
   const [mouseDownCoords, setMouseDownCoords] = useState<{ x: number; y: number } | null>(null);
   const formatCreatedAt = (dateStr: string) => {
@@ -167,25 +165,20 @@ export default function BoardCard({
         />
       ) : (
         <>
-          <span className="text-[10px] text-slate-400 font-medium text-left">
-            {formatCreatedAt(card.created_at)}
-          </span>
-
-          <div className="flex items-start gap-1.5 flex-1 min-w-0">
-            <input
-              type="checkbox"
-              checked={card.is_completed || false}
-              onChange={(e) => {
-                e.stopPropagation();
-                onToggleComplete?.(card.id, e.target.checked);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="h-3.5 w-3.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer flex-shrink-0 mt-0.5"
-            />
-            <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4 flex-1">
-              {card.title}
+          <div className="flex items-center gap-2 select-none">
+            <span className="text-[10px] text-slate-400 font-medium text-left">
+              {formatCreatedAt(card.created_at)}
             </span>
+            {card.is_completed && (
+              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full tracking-wider">
+                ĐÃ HOÀN THÀNH
+              </span>
+            )}
           </div>
+
+          <span className="text-xs font-semibold text-slate-700 text-left select-none break-words line-clamp-2 pr-4">
+            {card.title}
+          </span>
 
           {dlInfo && (
             <div className={dlInfo.className}>
