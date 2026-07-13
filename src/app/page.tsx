@@ -153,10 +153,10 @@ export default function Home() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800">
-            {authMode === "signin" ? "Đăng nhập Webapp" : "Đăng ký tài khoản"}
+            {authMode === "signin" ? "Đăng nhập HTPhongNAThy" : "Đăng ký HTPhongNAThy"}
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            {authMode === "signin" ? "Chào mừng trở lại ứng dụng của bạn" : "Tạo tài khoản sử dụng riêng"}
+            {authMode === "signin" ? "Chào mừng trở lại không gian làm việc của bạn" : "Tạo tài khoản sử dụng riêng"}
           </p>
         </div>
 

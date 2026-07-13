@@ -45,7 +45,7 @@ test('renders the task management homepage login form after initialization', asy
   await act(async () => {
     render(<Home />);
   });
-  const loginHeader = screen.getByText(/Đăng nhập Webapp/i);
+  const loginHeader = screen.getByText(/Đăng nhập HTPhongNAThy/i);
   expect(loginHeader).toBeDefined();
 });
 
