@@ -15,6 +15,7 @@ interface BoardSwitcherProps {
   onSignOut: () => void;
   onBoardDeleted?: () => void;
   onBoardRenamed?: () => void;
+  onToggleSidebar: () => void;
 }
 
 export default function BoardSwitcher({
@@ -22,7 +23,8 @@ export default function BoardSwitcher({
   userEmail,
   onSignOut,
   onBoardDeleted,
-  onBoardRenamed
+  onBoardRenamed,
+  onToggleSidebar
 }: BoardSwitcherProps) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -191,104 +193,152 @@ export default function BoardSwitcher({
   };
 
   return (
-    <div className="h-full w-full flex items-center justify-between px-6 bg-white/40 backdrop-blur-md border-t border-white/30 text-slate-700 select-none">
-      {/* Cánh trái: Excel Sheet-like tabs */}
-      <div className="flex items-end h-full gap-1 pt-2">
-        {boards.map((b) => {
-          const isActive = b.id === activeBoardId;
-          const isEditing = b.id === editingBoardId;
-          const isDraggingBoard = b.id === activeDragBoardId;
-          const isDragOverBoard = b.id === dragOverBoardId;
-
-          return (
-            <div
-              key={b.id}
-              draggable={!isEditing}
-              onDragStart={(e) => handleDragStart(e, b.id)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => handleDragOver(e, b.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e)}
-              onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
-              className={`group flex items-center px-5 py-2.5 text-xs font-semibold rounded-t-xl transition-all duration-150 relative ${
-                isActive
-                  ? "bg-white/80 border-t border-x border-slate-200/60 text-violet-600 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] h-[90%]"
-                  : "bg-white/30 border-t border-x border-transparent text-slate-500 hover:bg-white/50 h-[80%] cursor-pointer"
-              } ${
-                isDraggingBoard 
-                  ? "opacity-30 scale-90 border-dashed border-violet-400 bg-violet-50/20" 
-                  : ""
-              } ${
-                isDragOverBoard 
-                  ? "ring-2 ring-violet-500/50 ring-offset-1 bg-white/70" 
-                  : ""
-              }`}
-              onDoubleClick={() => isActive && handleStartRename(b)}
-              onClick={(e) => {
-                if (mouseDownCoords) {
-                  const dist = Math.sqrt(
-                    Math.pow(e.clientX - mouseDownCoords.x, 2) + Math.pow(e.clientY - mouseDownCoords.y, 2)
-                  );
-                  if (dist > 5) return;
-                }
-                if (!isActive && !isEditing) router.push(`/board/${b.id}`);
-              }}
-            >
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => handleRenameSubmit(b.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRenameSubmit(b.id);
-                    if (e.key === "Escape") setEditingBoardId(null);
-                  }}
-                  className="bg-transparent border-b border-violet-500 outline-none text-violet-600 font-bold px-0.5 w-24 text-xs"
-                  autoFocus
-                />
-              ) : (
-                <span className="pr-5 max-w-[140px] truncate" title={b.title}>
-                  {b.title}
-                </span>
-              )}
-
-              {/* Nút Xoá bảng xuất hiện khi hover vào active tab */}
-              {isActive && !isEditing && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBoardToDelete(b);
-                  }}
-                  className="hidden group-hover:flex absolute right-1.5 top-1/2 -translate-y-1/2 h-4 w-4 items-center justify-center rounded-full hover:bg-rose-50 text-rose-500 transition cursor-pointer"
-                  title="Xóa bảng"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
+    <div className="h-full w-full flex flex-col justify-between p-4 text-slate-700 select-none">
+      {/* Header Branding & Collapse button */}
+      <div>
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/10">
+              T
             </div>
-          );
-        })}
-        
-        {/* Nút cộng thêm Board mới */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-3 py-1.5 mb-1 text-xs font-bold rounded-lg bg-white/50 border border-slate-200/50 hover:bg-white/80 transition cursor-pointer text-slate-600 flex items-center justify-center h-[70%]"
-        >
-          +
-        </button>
+            <span className="text-sm font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              TaskApp Workspace
+            </span>
+          </div>
+          
+          <button
+            onClick={onToggleSidebar}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+            title="Đóng sidebar"
+          >
+            <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">
+          Danh sách bảng
+        </div>
+
+        {/* Vertical Scrollable Boards list */}
+        <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[60vh] pr-1 scrollbar-thin">
+          {boards.map((b) => {
+            const isActive = b.id === activeBoardId;
+            const isEditing = b.id === editingBoardId;
+            const isDraggingBoard = b.id === activeDragBoardId;
+            const isDragOverBoard = b.id === dragOverBoardId;
+
+            return (
+              <div
+                key={b.id}
+                draggable={!isEditing}
+                onDragStart={(e) => handleDragStart(e, b.id)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, b.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e)}
+                onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
+                className={`group flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 relative ${
+                  isActive
+                    ? "bg-violet-500/10 text-violet-600 border border-violet-500/20 shadow-[0_2px_8px_rgba(139,92,246,0.03)]"
+                    : "text-slate-600 hover:bg-white/40 hover:text-slate-800"
+                } ${
+                  isDraggingBoard 
+                    ? "opacity-30 scale-95 border-dashed border-violet-400 bg-violet-50/20" 
+                    : ""
+                } ${
+                  isDragOverBoard 
+                    ? "ring-2 ring-violet-500/50 ring-offset-1 bg-white/70" 
+                    : ""
+                }`}
+                onDoubleClick={() => isActive && handleStartRename(b)}
+                onClick={(e) => {
+                  if (mouseDownCoords) {
+                    const dist = Math.sqrt(
+                      Math.pow(e.clientX - mouseDownCoords.x, 2) + Math.pow(e.clientY - mouseDownCoords.y, 2)
+                    );
+                    if (dist > 5) return;
+                  }
+                  if (!isActive && !isEditing) router.push(`/board/${b.id}`);
+                }}
+              >
+                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                  {/* Folder icon */}
+                  <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onBlur={() => handleRenameSubmit(b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRenameSubmit(b.id);
+                        if (e.key === "Escape") setEditingBoardId(null);
+                      }}
+                      className="bg-transparent border-b border-violet-500 outline-none text-violet-600 font-bold px-0.5 w-full text-xs"
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="truncate flex-1" title={b.title}>
+                      {b.title}
+                    </span>
+                  )}
+                </div>
+
+                {/* Delete Board Button */}
+                {isActive && !isEditing && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBoardToDelete(b);
+                    }}
+                    className="hidden group-hover:flex h-4.5 w-4.5 items-center justify-center rounded-lg hover:bg-rose-50 text-rose-500 transition cursor-pointer shrink-0 ml-2"
+                    title="Xóa bảng"
+                  >
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Inline Add Board button */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="mt-2 w-full px-3 py-2 text-xs font-semibold rounded-xl bg-white/40 border border-slate-200/50 hover:bg-white/70 transition cursor-pointer text-slate-500 hover:text-slate-700 flex items-center gap-2 justify-center"
+          >
+            <span>+ Tạo bảng mới</span>
+          </button>
+        </div>
       </div>
 
-      {/* Cánh phải: Auth Info & Signout */}
-      <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-        <span className="truncate max-w-[150px]">{userEmail}</span>
+      {/* Footer Section: User profile and logout */}
+      <div className="pt-4 border-t border-slate-200/50 flex flex-col gap-2">
+        <div className="flex items-center gap-2 px-2">
+          <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shadow-inner">
+            {userEmail ? userEmail[0] : "?"}
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-[10px] text-slate-400 font-medium leading-none">Tài khoản</span>
+            <span className="text-xs text-slate-600 font-semibold truncate max-w-[170px] mt-0.5" title={userEmail}>
+              {userEmail}
+            </span>
+          </div>
+        </div>
         <button
           onClick={onSignOut}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white/40 hover:bg-white/80 transition cursor-pointer text-slate-600 font-semibold"
+          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white/40 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition cursor-pointer text-slate-600 font-semibold text-xs flex items-center gap-2 justify-center"
         >
-          Đăng xuất
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Đăng xuất</span>
         </button>
       </div>
 

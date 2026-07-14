@@ -9,9 +9,21 @@ import BoardSwitcher from "@/components/BoardSwitcher";
 export default function BoardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
   const boardId = pathname.split("/board/")[1];
+
+  useEffect(() => {
+    const saved = localStorage.getItem("board_sidebar_open");
+    if (saved !== null) {
+      const isOpen = saved === "true";
+      const timer = setTimeout(() => {
+        setIsSidebarOpen(isOpen);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,24 +59,53 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] h-screen w-full flex flex-col overflow-hidden text-slate-800 relative select-none">
+    <div className="bg-gradient-to-tr from-[#fff5f5] via-[#f3f0ff] to-[#e6f0fa] h-screen w-full flex overflow-hidden text-slate-800 relative select-none">
       {/* Background Blobs */}
       <div className="absolute top-[20%] left-[20%] h-[350px] w-[350px] rounded-full bg-violet-300/20 blur-[80px] pointer-events-none"></div>
       <div className="absolute bottom-[20%] right-[20%] h-[350px] w-[350px] rounded-full bg-pink-300/20 blur-[80px] pointer-events-none"></div>
 
-      {/* 1. Main Workspace Area */}
-      <div className="h-[92%] w-full overflow-hidden relative z-10">
-        {children}
+      {/* Left Collapsible Sidebar */}
+      <div 
+        className={`h-full shrink-0 z-30 transition-all duration-300 ease-in-out border-r border-slate-200/50 bg-white/20 backdrop-blur-md flex flex-col relative ${
+          isSidebarOpen ? "w-64" : "w-0 overflow-hidden border-none"
+        }`}
+      >
+        {isSidebarOpen && (
+          <BoardSwitcher
+            activeBoardId={boardId}
+            userEmail={user.email}
+            onSignOut={handleSignOut}
+            onBoardDeleted={() => router.push("/")}
+            onToggleSidebar={() => {
+              setIsSidebarOpen(false);
+              localStorage.setItem("board_sidebar_open", "false");
+            }}
+          />
+        )}
       </div>
 
-      {/* 2. Bottom Excel Switcher Bar */}
-      <div className="h-[8%] w-full z-20">
-        <BoardSwitcher
-          activeBoardId={boardId}
-          userEmail={user.email}
-          onSignOut={handleSignOut}
-          onBoardDeleted={() => router.push("/")}
-        />
+      {/* Main Content Area */}
+      <div className="flex-1 h-full overflow-hidden relative z-10 flex flex-col">
+        {/* Top-Left Toggle Button (floating when sidebar is closed) */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => {
+              setIsSidebarOpen(true);
+              localStorage.setItem("board_sidebar_open", "true");
+            }}
+            className="absolute top-4 left-4 z-40 p-2 rounded-xl bg-white/70 backdrop-blur-md border border-slate-200/60 hover:bg-white hover:scale-105 transition duration-150 shadow-sm text-slate-500 hover:text-slate-700 cursor-pointer"
+            title="Mở menu bảng"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
+
+        {/* Children Viewport */}
+        <div className={`flex-1 w-full overflow-hidden transition-all duration-300 ${!isSidebarOpen ? "pt-12 pl-14" : ""}`}>
+          {children}
+        </div>
       </div>
     </div>
   );
