@@ -66,6 +66,29 @@ export default function BoardPage() {
   const params = useParams();
   const boardId = params?.id as string;
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("board_sidebar_open");
+    if (saved !== null) {
+      const isOpen = saved === "true";
+      const timer = setTimeout(() => {
+        setIsSidebarOpen(isOpen);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleSync = () => {
+      const current = localStorage.getItem("board_sidebar_open");
+      setIsSidebarOpen(current === "true");
+    };
+    
+    window.addEventListener("board-sidebar-state-change", handleSync);
+    return () => window.removeEventListener("board-sidebar-state-change", handleSync);
+  }, []);
+
   // Đồng bộ hoveredCard với dữ liệu cards mới nhất khi cards thay đổi
   useEffect(() => {
     if (hoveredCard) {
@@ -562,11 +585,28 @@ export default function BoardPage() {
       {/* Header Board */}
       <div className="flex items-center justify-between border-b border-slate-300/50 pb-4 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 shadow-md shadow-violet-600/10">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-          </div>
+          <button
+            onClick={() => window.dispatchEvent(new Event("toggle-board-sidebar"))}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 transition duration-150 shadow-md shadow-violet-600/10 cursor-pointer group shrink-0 ${
+              !isSidebarOpen ? "animate-pulse animate-duration-1000" : ""
+            }`}
+            title={isSidebarOpen ? "Đóng menu bảng" : "Mở menu bảng"}
+          >
+            {isSidebarOpen ? (
+              <>
+                <svg className="h-5 w-5 text-white block group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <svg className="h-5 w-5 text-white hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </>
+            ) : (
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
           <div>
             <h1 className="text-[10px] font-bold tracking-wider text-violet-700 uppercase leading-none">Workspace</h1>
             <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
