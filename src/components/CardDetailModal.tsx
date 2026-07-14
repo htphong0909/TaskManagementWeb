@@ -575,27 +575,44 @@ export default function CardDetailModal({
           mimeType: file.type || "application/octet-stream"
         };
       } else {
-        // 2. Thực hiện tải tệp trực tiếp lên Google Drive qua PUT
-        finalFileData = await new Promise<any>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                resolve(JSON.parse(xhr.responseText));
-              } catch {
-                reject(new Error("Lỗi phân tích phản hồi máy chủ Google"));
-              }
-            } else {
-              reject(new Error(xhr.statusText || "Lỗi tải tệp lên Google Drive"));
-            }
-          };
+        // 2. Thực hiện tải tệp theo từng chunk
+        const totalSize = file.size;
+        let offset = 0;
+        let completedData = null;
+        const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
 
-          xhr.onerror = () => reject(new Error("Lỗi mạng kết nối đến Google"));
+        while (offset < totalSize) {
+          const end = Math.min(offset + CHUNK_SIZE, totalSize);
+          const chunk = file.slice(offset, end);
           
-          xhr.open("PUT", initData.uploadUrl);
-          xhr.send(file);
-        });
+          const res = await fetch("/api/attachments/upload?action=chunk", {
+            method: "PUT",
+            headers: {
+              "x-upload-url": initData.uploadUrl,
+              "x-content-range": `bytes ${offset}-${end - 1}/${totalSize}`,
+              "content-type": file.type || "application/octet-stream",
+            },
+            body: chunk,
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Tải phần tệp tại ${offset} thất bại: ${errText}`);
+          }
+
+          const result = await res.json();
+          offset = end;
+
+          if (result.completed) {
+            completedData = result.data;
+          }
+        }
+
+        if (!completedData) {
+          throw new Error("Không nhận được phản hồi hoàn tất từ Google Drive");
+        }
+
+        finalFileData = completedData;
 
         // 3. Cập nhật quyền xem tệp thành công khai
         const completeRes = await fetch("/api/attachments/upload?action=complete", {
@@ -665,27 +682,44 @@ export default function CardDetailModal({
           mimeType: file.type || "application/octet-stream"
         };
       } else {
-        // 2. Thực hiện tải tệp trực tiếp lên Google Drive qua PUT
-        finalFileData = await new Promise<any>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                resolve(JSON.parse(xhr.responseText));
-              } catch {
-                reject(new Error("Lỗi phân tích phản hồi máy chủ Google"));
-              }
-            } else {
-              reject(new Error(xhr.statusText || "Lỗi tải tệp lên Google Drive"));
-            }
-          };
+        // 2. Thực hiện tải tệp theo từng chunk
+        const totalSize = file.size;
+        let offset = 0;
+        let completedData = null;
+        const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
 
-          xhr.onerror = () => reject(new Error("Lỗi mạng kết nối đến Google"));
+        while (offset < totalSize) {
+          const end = Math.min(offset + CHUNK_SIZE, totalSize);
+          const chunk = file.slice(offset, end);
           
-          xhr.open("PUT", initData.uploadUrl);
-          xhr.send(file);
-        });
+          const res = await fetch("/api/attachments/upload?action=chunk", {
+            method: "PUT",
+            headers: {
+              "x-upload-url": initData.uploadUrl,
+              "x-content-range": `bytes ${offset}-${end - 1}/${totalSize}`,
+              "content-type": file.type || "application/octet-stream",
+            },
+            body: chunk,
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Tải phần tệp tại ${offset} thất bại: ${errText}`);
+          }
+
+          const result = await res.json();
+          offset = end;
+
+          if (result.completed) {
+            completedData = result.data;
+          }
+        }
+
+        if (!completedData) {
+          throw new Error("Không nhận được phản hồi hoàn tất từ Google Drive");
+        }
+
+        finalFileData = completedData;
 
         // 3. Cập nhật quyền xem tệp thành công khai
         const completeRes = await fetch("/api/attachments/upload?action=complete", {

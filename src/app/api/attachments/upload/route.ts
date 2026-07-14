@@ -63,7 +63,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // 2. Initiation Action: Create Session URL
+    // 2. Chunk Upload Action
+    if (action === "chunk") {
+      const uploadUrl = request.headers.get("x-upload-url");
+      const contentRange = request.headers.get("x-content-range");
+      const contentType = request.headers.get("content-type") || "application/octet-stream";
+
+      if (!uploadUrl || !contentRange) {
+        return NextResponse.json({ error: "Missing x-upload-url or x-content-range headers" }, { status: 400 });
+      }
+
+      // Read binary chunk from request body
+      const chunkBuffer = Buffer.from(await request.arrayBuffer());
+
+      const googleResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Range": contentRange,
+          "Content-Type": contentType,
+        },
+        body: chunkBuffer,
+      });
+
+      // Google returns 308 Resume Incomplete for successful intermediate chunk uploads
+      if (googleResponse.status !== 308 && !googleResponse.ok) {
+        const errText = await googleResponse.text();
+        throw new Error(`Google Drive chunk upload failed with status ${googleResponse.status}: ${errText}`);
+      }
+
+      if (googleResponse.status === 200 || googleResponse.status === 201) {
+        const data = await googleResponse.json();
+        return NextResponse.json({ completed: true, data });
+      }
+
+      return NextResponse.json({ completed: false });
+    }
+
+    // 3. Initiation Action: Create Session URL
     const { name, mimeType, size } = await request.json();
     if (!name || size === undefined) {
       return NextResponse.json({ error: "Missing name or size in request body" }, { status: 400 });
@@ -121,4 +157,8 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Internal Server Error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function PUT(request: Request) {
+  return POST(request);
 }
