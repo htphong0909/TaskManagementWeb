@@ -451,7 +451,7 @@ export default function BoardSwitcher({
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e)}
         onMouseDown={(e) => setMouseDownCoords({ x: e.clientX, y: e.clientY })}
-        className={`group flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 relative ${
+        className={`group flex items-start justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all duration-150 relative ${
           isActive
             ? "bg-violet-500/10 text-violet-600 border border-violet-500/20 shadow-[0_2px_8px_rgba(139,92,246,0.03)]"
             : "text-slate-600 hover:bg-white/40 hover:text-slate-800"
@@ -475,9 +475,9 @@ export default function BoardSwitcher({
           if (!isActive && !isEditing) router.push(`/board/${b.id}`);
         }}
       >
-        <div className="flex items-center gap-2 overflow-hidden flex-1">
+        <div className="flex items-start gap-2 overflow-hidden flex-1 pt-0.5">
           {/* Board icon */}
-          <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
 
@@ -495,7 +495,7 @@ export default function BoardSwitcher({
               autoFocus
             />
           ) : (
-            <span className="truncate flex-1" title={b.title}>
+            <span className="line-clamp-2 break-words flex-1" title={b.title}>
               {b.title}
             </span>
           )}
@@ -508,7 +508,7 @@ export default function BoardSwitcher({
               e.stopPropagation();
               setBoardToDelete(b);
             }}
-            className="hidden group-hover:flex h-4.5 w-4.5 items-center justify-center rounded-lg hover:bg-rose-50 text-rose-500 transition cursor-pointer shrink-0 ml-2"
+            className="hidden group-hover:flex h-4.5 w-4.5 items-center justify-center rounded-lg hover:bg-rose-50 text-rose-500 transition cursor-pointer shrink-0 ml-2 mt-0.5"
             title="Xóa bảng"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -565,20 +565,20 @@ export default function BoardSwitcher({
               >
                 {/* Folder Header */}
                 <div
-                  className="group flex items-center justify-between px-2 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100/50 cursor-pointer"
+                  className="group flex items-start justify-between px-2 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100/50 cursor-pointer"
                   onClick={() => toggleFolderCollapse(folder.id)}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     handleStartRenameFolder(folder);
                   }}
                 >
-                  <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+                  <div className="flex items-start gap-1.5 overflow-hidden flex-1 pt-0.5">
                     {/* Expand/Collapse arrow */}
-                    <span className="text-[9px] text-slate-400 shrink-0">
+                    <span className="text-[9px] text-slate-400 shrink-0 mt-0.5">
                       {isFolderCollapsed ? "▶" : "▼"}
                     </span>
                     {/* Folder icon */}
-                    <svg className="h-4.5 w-4.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-4.5 w-4.5 shrink-0 text-amber-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                     
@@ -597,7 +597,7 @@ export default function BoardSwitcher({
                         autoFocus
                       />
                     ) : (
-                      <span className="truncate flex-1" title={folder.title}>
+                      <span className="line-clamp-2 break-words flex-1" title={folder.title}>
                         {folder.title}
                       </span>
                     )}
@@ -605,7 +605,7 @@ export default function BoardSwitcher({
 
                   {/* Move up / down & Delete folder buttons */}
                   {!isEditingFolder && (
-                    <div className="hidden group-hover:flex items-center gap-1 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="hidden group-hover:flex items-start gap-1 shrink-0 ml-2 mt-0.5" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleMoveFolder(folder.id, "up")}
                         className="h-4.5 w-4.5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
