@@ -12,6 +12,7 @@ interface List {
   id: string;
   title: string;
   position: number;
+  description?: string | null;
 }
 
 interface Card {
@@ -38,6 +39,8 @@ export default function BoardPage() {
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editListTitle, setEditListTitle] = useState("");
   const [listToDelete, setListToDelete] = useState<List | null>(null);
+  const [editingListDescId, setEditingListDescId] = useState<string | null>(null);
+  const [editListDesc, setEditListDesc] = useState("");
 
   // States quản lý Thẻ (Card)
   const [addingCardListId, setAddingCardListId] = useState<string | null>(null);
@@ -120,7 +123,7 @@ export default function BoardPage() {
       // 2. Tải danh sách Lists
       const { data: listData } = await supabase
         .from("lists")
-        .select("id, title, position")
+        .select("id, title, position, description")
         .eq("board_id", boardId)
         .order("position", { ascending: true });
 
@@ -197,6 +200,22 @@ export default function BoardPage() {
       await fetchBoardData();
     } catch (err) {
       console.error("Lỗi đổi tên cột:", err);
+    }
+  };
+
+  // Đổi mô tả Cột
+  const handleRenameListDescSubmit = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("lists")
+        .update({ description: editListDesc.trim() || null })
+        .eq("id", id);
+
+      if (error) throw error;
+      setEditingListDescId(null);
+      await fetchBoardData();
+    } catch (err) {
+      console.error("Lỗi đổi mô tả cột:", err);
     }
   };
 
@@ -640,6 +659,11 @@ export default function BoardPage() {
               setEditListTitle={setEditListTitle}
               handleRenameListSubmit={handleRenameListSubmit}
               setListToDelete={setListToDelete}
+              editingListDescId={editingListDescId}
+              setEditingListDescId={setEditingListDescId}
+              editListDesc={editListDesc}
+              setEditListDesc={setEditListDesc}
+              handleRenameListDescSubmit={handleRenameListDescSubmit}
               addingCardListId={addingCardListId}
               setAddingCardListId={setAddingCardListId}
               newCardTitle={newCardTitle}
