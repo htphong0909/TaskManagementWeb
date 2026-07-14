@@ -26,6 +26,19 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
+    const handleToggle = () => {
+      setIsSidebarOpen((prev) => {
+        const next = !prev;
+        localStorage.setItem("board_sidebar_open", next ? "true" : "false");
+        window.dispatchEvent(new Event("board-sidebar-state-change"));
+        return next;
+      });
+    };
+    window.addEventListener("toggle-board-sidebar", handleToggle);
+    return () => window.removeEventListener("toggle-board-sidebar", handleToggle);
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
@@ -79,6 +92,7 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
             onToggleSidebar={() => {
               setIsSidebarOpen(false);
               localStorage.setItem("board_sidebar_open", "false");
+              window.dispatchEvent(new Event("board-sidebar-state-change"));
             }}
           />
         )}
@@ -86,24 +100,8 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
 
       {/* Main Content Area */}
       <div className="flex-1 h-full overflow-hidden relative z-10 flex flex-col">
-        {/* Top-Left Toggle Button (floating when sidebar is closed) */}
-        {!isSidebarOpen && (
-          <button
-            onClick={() => {
-              setIsSidebarOpen(true);
-              localStorage.setItem("board_sidebar_open", "true");
-            }}
-            className="absolute top-4 left-4 z-40 p-2 rounded-xl bg-white/70 backdrop-blur-md border border-slate-200/60 hover:bg-white hover:scale-105 transition duration-150 shadow-sm text-slate-500 hover:text-slate-700 cursor-pointer"
-            title="Mở menu bảng"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        )}
-
-        {/* Children Viewport */}
-        <div className={`flex-1 w-full overflow-hidden transition-all duration-300 ${!isSidebarOpen ? "pt-12 pl-14" : ""}`}>
+        {/* Children Viewport - Strict flex sizing, no padding shift */}
+        <div className="flex-1 w-full overflow-hidden">
           {children}
         </div>
       </div>
