@@ -5,6 +5,7 @@ interface List {
   id: string;
   title: string;
   position: number;
+  description?: string | null;
 }
 
 interface Card {
@@ -27,6 +28,11 @@ interface BoardColumnProps {
   setEditListTitle: (title: string) => void;
   handleRenameListSubmit: (id: string) => void;
   setListToDelete: (list: List) => void;
+  editingListDescId: string | null;
+  setEditingListDescId: (id: string | null) => void;
+  editListDesc: string;
+  setEditListDesc: (desc: string) => void;
+  handleRenameListDescSubmit: (id: string) => void;
   // Card Creation Form
   addingCardListId: string | null;
   setAddingCardListId: (id: string | null) => void;
@@ -74,6 +80,11 @@ export default function BoardColumn({
   setEditListTitle,
   handleRenameListSubmit,
   setListToDelete,
+  editingListDescId,
+  setEditingListDescId,
+  editListDesc,
+  setEditListDesc,
+  handleRenameListDescSubmit,
   addingCardListId,
   setAddingCardListId,
   newCardTitle,
@@ -140,46 +151,78 @@ export default function BoardColumn({
       `}
     >
       {/* Header cột */}
-      <div className="flex items-center justify-between mb-3 group">
-        {isEditingList ? (
-          <input
-            type="text"
-            value={editListTitle}
-            onChange={(e) => setEditListTitle(e.target.value)}
-            onBlur={() => handleRenameListSubmit(list.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleRenameListSubmit(list.id);
-              if (e.key === "Escape") setEditingListId(null);
-            }}
-            className="bg-white border border-violet-400 outline-none text-sm font-bold text-slate-800 rounded-lg px-2.5 py-1 w-full"
-            autoFocus
-          />
-        ) : (
-          <>
+      <div className="flex flex-col mb-3 group">
+        <div className="flex items-center justify-between w-full">
+          {isEditingList ? (
+            <input
+              type="text"
+              value={editListTitle}
+              onChange={(e) => setEditListTitle(e.target.value)}
+              onBlur={() => handleRenameListSubmit(list.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameListSubmit(list.id);
+                if (e.key === "Escape") setEditingListId(null);
+              }}
+              className="bg-white border border-violet-400 outline-none text-sm font-bold text-slate-800 rounded-lg px-2.5 py-1 w-full"
+              autoFocus
+            />
+          ) : (
+            <>
+              <span
+                onDoubleClick={() => [setEditingListId(list.id), setEditListTitle(list.title)]}
+                className="text-sm font-bold text-slate-800 cursor-pointer select-none line-clamp-2 break-words flex-1 text-left"
+                title="Double click để sửa tên cột"
+              >
+                {list.title}
+              </span>
+              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition duration-150 shrink-0">
+                <button
+                  onClick={() => setAddingCardListId(list.id)}
+                  className="h-6 w-6 rounded-lg hover:bg-violet-50 text-slate-400 hover:text-violet-600 flex items-center justify-center transition cursor-pointer"
+                  title="Thêm thẻ công việc"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => setListToDelete(list)}
+                  className="h-6 w-6 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition cursor-pointer"
+                  title="Xóa danh sách"
+                >
+                  ✕
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Subtitle / Description cột */}
+        <div className="w-full mt-1 min-h-[16px]">
+          {list.id === editingListDescId ? (
+            <input
+              type="text"
+              value={editListDesc}
+              onChange={(e) => setEditListDesc(e.target.value)}
+              onBlur={() => handleRenameListDescSubmit(list.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameListDescSubmit(list.id);
+                if (e.key === "Escape") setEditingListDescId(null);
+              }}
+              className="bg-white border border-violet-400 outline-none text-[11px] font-normal text-slate-600 rounded-lg px-2 py-0.5 w-full block text-left"
+              autoFocus
+              placeholder="Nhập mô tả cột..."
+            />
+          ) : (
             <span
-              onClick={() => [setEditingListId(list.id), setEditListTitle(list.title)]}
-              className="text-sm font-bold text-slate-800 cursor-pointer select-none line-clamp-2 break-words flex-1 text-left"
+              onDoubleClick={() => [setEditingListDescId(list.id), setEditListDesc(list.description || "")]}
+              className={`text-[11px] leading-relaxed font-normal text-left break-words block w-full select-none cursor-pointer ${
+                list.description ? "text-slate-500/80" : "text-slate-400/40 italic hover:text-slate-400/80"
+              }`}
+              title="Double click để sửa mô tả cột"
             >
-              {list.title}
+              {list.description || "+ Thêm mô tả..."}
             </span>
-            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition duration-150">
-              <button
-                onClick={() => setAddingCardListId(list.id)}
-                className="h-6 w-6 rounded-lg hover:bg-violet-50 text-slate-400 hover:text-violet-600 flex items-center justify-center transition cursor-pointer"
-                title="Thêm thẻ công việc"
-              >
-                +
-              </button>
-              <button
-                onClick={() => setListToDelete(list)}
-                className="h-6 w-6 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-500 flex items-center justify-center transition cursor-pointer"
-                title="Xóa danh sách"
-              >
-                ✕
-              </button>
-            </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Danh sách các Cards */}
