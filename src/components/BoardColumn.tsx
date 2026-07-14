@@ -17,6 +17,7 @@ interface Card {
   due_date: string | null;
   created_at: string;
   is_completed?: boolean;
+  is_in_progress?: boolean;
 }
 
 interface BoardColumnProps {
