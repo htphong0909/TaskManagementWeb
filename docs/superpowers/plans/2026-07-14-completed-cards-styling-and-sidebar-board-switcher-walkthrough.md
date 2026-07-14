@@ -36,6 +36,10 @@ Implemented the requested changes for completed tasks and moving the board switc
   - When open, it displays a document icon which morphs to a collapse chevron `[<-]` on hover.
   - When closed, it morphs into a Hamburger Menu icon (with a subtle pulsing animation) to trigger expanding the sidebar.
 
+### 5. Deferring State Syncs (Bug Fix)
+- **Modifications**:
+  - Resolved the console warning `Cannot update a component (BoardPage) while rendering a different component (BoardLayout)` by wrapping state-syncing calls (`setIsSidebarOpen`) and event dispatches inside a `setTimeout(() => ..., 0)` queue. This decouples the synchronous cascade, letting React finish the active render cycle first.
+
 ---
 
 ## Verification Results
@@ -47,8 +51,8 @@ Executed `npm run build`:
 ### Tests
 Ran unit tests using `npm run test`:
 ```
- ✓ src/__tests__/BoardCard.test.tsx (1 test) 43ms
- ✓ src/__tests__/page.test.tsx (2 tests) 66ms
+ ✓ src/__tests__/BoardCard.test.tsx (1 test) 95ms
+ ✓ src/__tests__/page.test.tsx (2 tests) 134ms
 
  Test Files  2 passed (2)
       Tests  3 passed (3)
