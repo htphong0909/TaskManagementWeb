@@ -2,133 +2,35 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Style completed cards with a subtle green border and dim completed label, and move the board switcher to a collapsible vertical sidebar on the left.
+**Goal:** Style completed cards with a subtle green border/badge, convert the board switcher to a collapsible vertical left sidebar, fix layout shifting on open/close, and implement space-saving morphing toggles.
 
-**Architecture:** We will update `BoardCard.tsx` to conditionalize styling on `card.is_completed`. We will adjust `layout.tsx` to handle collapsible left sidebar visibility using local storage persistence, and restructure `BoardSwitcher.tsx` to build a clean vertical, interactive sidebar instead of horizontal Excel-like tabs.
+**Architecture:** We will update `layout.tsx` to listen for custom events, toggle `isSidebarOpen` state, and dispatch sync events. `BoardSwitcher.tsx` will use its top-left workspace icon ("T") as a close trigger (morphing on hover). `page.tsx` will listen to sync events and morph its workspace/board title icon into a toggle trigger.
 
 **Tech Stack:** React, Next.js (App Router), Tailwind CSS.
 
 ## Global Constraints
-- Target layout must support persistent sidebar pushing workspace page content.
-- State storage: Use `localStorage` key `board_sidebar_open` to save collapse/expand settings.
-- Avoid using placeholders and implement all code logic cleanly.
+- Opening or closing the sidebar must NOT cause vertical layout shifts.
+- Persist toggle state using `localStorage` under `board_sidebar_open`.
+- Ensure all code changes are complete, fully typed, and verified with tests and lint check.
 
 ---
 
-### Task 1: Complete Cards Visual Highlights
-
-**Files:**
-- Modify: `src/components/BoardCard.tsx`
-- Create: `src/__tests__/BoardCard.test.tsx`
-
-**Interfaces:**
-- Consumes: `Card` item with `is_completed?: boolean`
-- Produces: Visual styled card with soft green borders and a smaller, dimmer "ĐÃ HOÀN THÀNH" label.
-
-- [ ] **Step 1: Write the failing test**
-  Create `src/__tests__/BoardCard.test.tsx` with:
-  ```tsx
-  import { expect, test, vi } from 'vitest';
-  import { render, screen } from '@testing-library/react';
-  import React from 'react';
-  import BoardCard from '../components/BoardCard';
-
-  const mockProps = {
-    isEditingCard: false,
-    editCardTitle: "",
-    setEditCardTitle: vi.fn(),
-    setEditingCardId: vi.fn(),
-    handleRenameCardSubmit: vi.fn(),
-    setCardToDelete: vi.fn(),
-    handleCardMouseEnter: vi.fn(),
-    handleCardMouseLeave: vi.fn(),
-    onDragStartCard: vi.fn(),
-    onDragEndCard: vi.fn(),
-    onCardDropOnCard: vi.fn(),
-    activeDragCardId: null,
-    dragOverCardId: null,
-    onDragOverCard: vi.fn(),
-    onDragLeaveCard: vi.fn(),
-    onCardClick: vi.fn(),
-  };
-
-  test('renders completed card with green borders and dim label styling', () => {
-    const completedCard = {
-      id: 'card-completed-1',
-      list_id: 'list-1',
-      title: 'Completed Task Title',
-      content: null,
-      position: 1,
-      due_date: null,
-      created_at: '2026-07-14T00:00:00.000Z',
-      is_completed: true,
-    };
-
-    render(<BoardCard {...mockProps} card={completedCard} />);
-    const badge = screen.getByText('ĐÃ HOÀN THÀNH');
-    expect(badge).toBeDefined();
-    
-    // Check if the badge has softer, dimmer style classes (e.g. text-emerald-600/60)
-    expect(badge.className).toContain('text-emerald-600/60');
-    expect(badge.className).toContain('text-[8px]');
-  });
-  ```
-
-- [ ] **Step 2: Run test to verify it fails**
-  Run: `npm run test`
-  Expected: FAIL (either `BoardCard.test.tsx` fails because the style classes are not yet matching or the file is missing styling)
-
-- [ ] **Step 3: Modify implementation in BoardCard.tsx**
-  Update the component in [BoardCard.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/BoardCard.tsx) to adjust completed card styles.
-  Modify the card wrapper class (lines 141-147) and the label class (lines 172-176):
-  ```tsx
-  // Replace around lines 141-147:
-  className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative cursor-pointer active:cursor-grabbing
-    ${isDragging 
-      ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
-      : card.is_completed
-        ? "border-emerald-500/30 bg-emerald-50/20 shadow-[0_2px_8px_rgba(16,185,129,0.02)] hover:border-emerald-500/50 hover:bg-emerald-50/30 hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-150"
-        : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
-    }
-    ${isDragOver ? "border-violet-400 bg-violet-50/20" : ""}
-  `}
-  ```
-  And replace around lines 172-176:
-  ```tsx
-  {card.is_completed && (
-    <span className="text-[8px] text-emerald-600/60 font-semibold bg-emerald-50/30 border border-emerald-100/30 px-1.5 py-0.5 rounded-full tracking-wider">
-      ĐÃ HOÀN THÀNH
-    </span>
-  )}
-  ```
-
-- [ ] **Step 4: Run test to verify it passes**
-  Run: `npm run test`
-  Expected: PASS
-
-- [ ] **Step 5: Run linter**
-  Run: `npm run lint`
-  Expected: PASS (with no new warnings or errors)
-
-- [ ] **Step 6: Commit**
-  ```bash
-  git add src/components/BoardCard.tsx src/__tests__/BoardCard.test.tsx
-  git commit -m "feat: design completed cards with green border and dimmer label"
-  ```
+### Task 1: Complete Cards Visual Highlights (Completed)
+This task is completed and verified.
 
 ---
 
-### Task 2: Layout Updates with Sidebar Toggle State
+### Task 2: Layout Updates with Zero Vertical Shift
 
 **Files:**
 - Modify: `src/app/board/layout.tsx`
 
 **Interfaces:**
 - Consumes: `children` views
-- Produces: Flex dashboard layout with a collapsible sidebar and toggle triggers.
+- Produces: Flex dashboard layout without vertical offsets. Listens for window event `toggle-board-sidebar` to toggle expansion state, and dispatches `board-sidebar-state-change` to sync page components.
 
-- [ ] **Step 1: Implement state and layout logic in layout.tsx**
-  Update [layout.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/app/board/layout.tsx):
+- [ ] **Step 1: Implement clean layout wrapper and event handlers in layout.tsx**
+  Update [layout.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/app/board/layout.tsx) with the following structure:
   ```tsx
   "use client";
 
@@ -147,11 +49,27 @@
     const boardId = pathname.split("/board/")[1];
 
     useEffect(() => {
-      // Check stored preference
       const saved = localStorage.getItem("board_sidebar_open");
       if (saved !== null) {
-        setIsSidebarOpen(saved === "true");
+        const isOpen = saved === "true";
+        const timer = setTimeout(() => {
+          setIsSidebarOpen(isOpen);
+        }, 0);
+        return () => clearTimeout(timer);
       }
+    }, []);
+
+    useEffect(() => {
+      const handleToggle = () => {
+        setIsSidebarOpen((prev) => {
+          const next = !prev;
+          localStorage.setItem("board_sidebar_open", next ? "true" : "false");
+          window.dispatchEvent(new Event("board-sidebar-state-change"));
+          return next;
+        });
+      };
+      window.addEventListener("toggle-board-sidebar", handleToggle);
+      return () => window.removeEventListener("toggle-board-sidebar", handleToggle);
     }, []);
 
     useEffect(() => {
@@ -205,10 +123,10 @@
               userEmail={user.email}
               onSignOut={handleSignOut}
               onBoardDeleted={() => router.push("/")}
-              isSidebarOpen={isSidebarOpen}
               onToggleSidebar={() => {
                 setIsSidebarOpen(false);
                 localStorage.setItem("board_sidebar_open", "false");
+                window.dispatchEvent(new Event("board-sidebar-state-change"));
               }}
             />
           )}
@@ -216,24 +134,8 @@
 
         {/* Main Content Area */}
         <div className="flex-1 h-full overflow-hidden relative z-10 flex flex-col">
-          {/* Top-Left Toggle Button (floating when sidebar is closed) */}
-          {!isSidebarOpen && (
-            <button
-              onClick={() => {
-                setIsSidebarOpen(true);
-                localStorage.setItem("board_sidebar_open", "true");
-              }}
-              className="absolute top-4 left-4 z-40 p-2 rounded-xl bg-white/70 backdrop-blur-md border border-slate-200/60 hover:bg-white hover:scale-105 transition duration-150 shadow-sm text-slate-500 hover:text-slate-700 cursor-pointer"
-              title="Mở menu bảng"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          )}
-
-          {/* Children Viewport */}
-          <div className={`flex-1 w-full overflow-hidden transition-all duration-300 ${!isSidebarOpen ? "pt-12 pl-14" : ""}`}>
+          {/* Children Viewport - Strict flex sizing, no padding shift */}
+          <div className="flex-1 w-full overflow-hidden">
             {children}
           </div>
         </div>
@@ -249,59 +151,42 @@
 - [ ] **Step 3: Commit**
   ```bash
   git add src/app/board/layout.tsx
-  git commit -m "feat: add sidebar state management and collapsible shell layout"
+  git commit -m "feat: align sidebar layout wrapper with zero vertical shift and global state triggers"
   ```
 
 ---
 
-### Task 3: Redesign BoardSwitcher to Vertical Layout
+### Task 3: Redesign BoardSwitcher to Vertical Sidebar with Logo Close Button
 
 **Files:**
 - Modify: `src/components/BoardSwitcher.tsx`
 
 **Interfaces:**
-- Consumes: `isSidebarOpen: boolean`, `onToggleSidebar: () => void` via `BoardSwitcherProps`.
-- Produces: Beautiful vertical navigation sidebar listing all boards, adding board controls, and user session details.
+- Consumes: `onToggleSidebar: () => void` via `BoardSwitcherProps`.
+- Produces: Sidebar list rendering where the "T" logo morphs into a close button.
 
-- [ ] **Step 1: Update BoardSwitcher.tsx interfaces and render return**
-  Edit [BoardSwitcher.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/BoardSwitcher.tsx):
-  Update `BoardSwitcherProps`:
-  ```tsx
-  interface BoardSwitcherProps {
-    activeBoardId: string;
-    userEmail: string | undefined;
-    onSignOut: () => void;
-    onBoardDeleted?: () => void;
-    onBoardRenamed?: () => void;
-    isSidebarOpen: boolean;
-    onToggleSidebar: () => void;
-  }
-  ```
-  Modify the returned JSX from line 193 to end of the file. Layout it vertically as a Sidebar:
+- [ ] **Step 1: Implement BoardSwitcher header and footer changes**
+  Modify [BoardSwitcher.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/components/BoardSwitcher.tsx) to remove the right collapse button and turn the "T" square icon into the toggle collapse icon.
+  Replace lines 193 to the end of the file with:
   ```tsx
     return (
       <div className="h-full w-full flex flex-col justify-between p-4 text-slate-700 select-none">
-        {/* Header Branding & Collapse button */}
+        {/* Header Branding & Morphing toggle button */}
         <div>
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/10">
-                T
-              </div>
-              <span className="text-sm font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                TaskApp Workspace
-              </span>
-            </div>
-            
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-200/50 mb-4">
             <button
               onClick={onToggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              className="h-8 w-8 rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer transition-colors duration-150 group shrink-0"
               title="Đóng sidebar"
             >
-              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <span className="block group-hover:hidden">T</span>
+              <svg className="h-4 w-4 text-white hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            <span className="text-sm font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent truncate">
+              TaskApp Workspace
+            </span>
           </div>
 
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">
@@ -503,31 +388,99 @@
 - [ ] **Step 3: Commit**
   ```bash
   git add src/components/BoardSwitcher.tsx
-  git commit -m "feat: restructure board switcher into collapsible vertical sidebar layout"
+  git commit -m "feat: turn sidebar header logo into a morphing collapse button"
   ```
 
 ---
 
-### Task 4: Walkthrough and Verification
+### Task 4: Integrate Workspace Header Toggle inside Workspace Page
+
+**Files:**
+- Modify: `src/app/board/[id]/page.tsx`
+
+**Interfaces:**
+- Consumes: Window event `board-sidebar-state-change`
+- Produces: Clicking the document/hamburger icon dispatches `toggle-board-sidebar` to layout shell.
+
+- [ ] **Step 1: Implement state syncer and button toggle markup in page.tsx**
+  Edit [page.tsx](file:///c:/WORKSPACE/TaskManagementWeb/my-task-app/src/app/board/[id]/page.tsx):
+  Add state and sync hook at the start of the component (e.g. line 68):
+  ```tsx
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+    useEffect(() => {
+      const saved = localStorage.getItem("board_sidebar_open");
+      if (saved !== null) {
+        setIsSidebarOpen(saved === "true");
+      }
+      
+      const handleSync = () => {
+        const current = localStorage.getItem("board_sidebar_open");
+        setIsSidebarOpen(current === "true");
+      };
+      
+      window.addEventListener("board-sidebar-state-change", handleSync);
+      return () => window.removeEventListener("board-sidebar-state-change", handleSync);
+    }, []);
+  ```
+  Locate the board title header markup (lines 565-569).
+  Replace this part:
+  ```tsx
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 shadow-md shadow-violet-600/10">
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+  ```
+  With this morphing toggle button block:
+  ```tsx
+            <button
+              onClick={() => window.dispatchEvent(new Event("toggle-board-sidebar"))}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 transition duration-150 shadow-md shadow-violet-600/10 cursor-pointer group shrink-0 ${
+                !isSidebarOpen ? "animate-pulse" : ""
+              }`}
+              title={isSidebarOpen ? "Đóng menu bảng" : "Mở menu bảng"}
+            >
+              {isSidebarOpen ? (
+                <>
+                  <svg className="h-5 w-5 text-white block group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <svg className="h-5 w-5 text-white hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </>
+              ) : (
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+  ```
+
+- [ ] **Step 2: Run linter and tests**
+  Run: `npm run lint; npm run test`
+  Expected: PASS
+
+- [ ] **Step 3: Commit**
+  ```bash
+  git add src/app/board/[id]/page.tsx
+  git commit -m "feat: integrate space-saving morphing toggle inside workspace header"
+  ```
+
+---
+
+### Task 5: Walkthrough and Verification
 
 - [ ] **Step 1: Build the app to verify compiler configuration**
   Run: `npm run build`
   Expected: BUILD SUCCESS (indicates no Next.js build errors)
 
 - [ ] **Step 2: Create Walkthrough documentation**
-  Create `docs/superpowers/plans/2026-07-14-completed-cards-styling-and-sidebar-board-switcher-walkthrough.md` with:
-  ```markdown
-  # Walkthrough: Completed Cards Green Highlight & Sidebar Switcher
-
-  Implemented the requested changes for completed tasks and moving the board switcher to a collapsible vertical left sidebar.
-
-  - **BoardCard.tsx**: Refactored cards with green outline borders and a smaller, dimmer 'ĐÃ HOÀN THÀNH' indicator when completed. Added new unit tests verifying the correctness of classes.
-  - **layout.tsx**: Positioned the switcher as a collapsible sidebar pushing layout content, including transitions, local storage persistence, and top-left floating toggles.
-  - **BoardSwitcher.tsx**: Transformed list structure to list boards vertically with dashboard icons, profile info, and bottom actions.
-  ```
+  Create `docs/superpowers/plans/2026-07-14-completed-cards-styling-and-sidebar-board-switcher-walkthrough.md` (overwrite existing).
 
 - [ ] **Step 3: Commit and end task**
   ```bash
   git add docs/superpowers/plans/2026-07-14-completed-cards-styling-and-sidebar-board-switcher-walkthrough.md
-  git commit -m "docs: add completed tasks and vertical sidebar implementation walkthrough"
+  git commit -m "docs: add final completed tasks and vertical sidebar implementation walkthrough"
   ```
