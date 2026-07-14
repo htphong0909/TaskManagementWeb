@@ -26,6 +26,7 @@ interface Card {
   key_info: string | null;
   stakeholders: Stakeholder[];
   is_completed?: boolean;
+  is_in_progress?: boolean;
 }
 
 interface Attachment {
@@ -158,6 +159,7 @@ export default function CardDetailModal({
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
 
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isInProgress, setIsInProgress] = useState(false);
   const [hasDeadline, setHasDeadline] = useState(false);
   const [dueDate, setDueDate] = useState("");
 
@@ -309,6 +311,7 @@ export default function CardDetailModal({
       setKeyInfo(data.key_info || "");
       setStakeholders(data.stakeholders || []);
       setIsCompleted(data.is_completed || false);
+      setIsInProgress(data.is_in_progress || false);
       setHasDeadline(!!data.due_date);
       setDueDate(formatForInput(data.due_date));
     }
@@ -446,7 +449,40 @@ export default function CardDetailModal({
 
   const handleToggleCompletedInModal = async (completed: boolean) => {
     setIsCompleted(completed);
-    await saveField("is_completed", completed);
+    if (completed) {
+      setIsInProgress(false);
+      try {
+        const { error } = await supabase
+          .from("cards")
+          .update({ is_completed: true, is_in_progress: false })
+          .eq("id", cardId);
+        if (error) throw error;
+        onCardUpdated();
+      } catch (err) {
+        console.error("Lỗi cập nhật trạng thái:", err);
+      }
+    } else {
+      await saveField("is_completed", false);
+    }
+  };
+
+  const handleToggleInProgressInModal = async (inProgress: boolean) => {
+    setIsInProgress(inProgress);
+    if (inProgress) {
+      setIsCompleted(false);
+      try {
+        const { error } = await supabase
+          .from("cards")
+          .update({ is_in_progress: true, is_completed: false })
+          .eq("id", cardId);
+        if (error) throw error;
+        onCardUpdated();
+      } catch (err) {
+        console.error("Lỗi cập nhật trạng thái:", err);
+      }
+    } else {
+      await saveField("is_in_progress", false);
+    }
   };
 
   const handleToggleDeadlineEnable = async (enabled: boolean) => {
@@ -632,7 +668,7 @@ export default function CardDetailModal({
           card_id: cardId,
           name: fileData.name,
           url: directUrl,
-          file_id: fileData.fileId,
+          file_id: fileId,
           mime_type: fileData.mimeType,
           position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
         }]);
@@ -695,13 +731,13 @@ export default function CardDetailModal({
               // 1. Lưu metadata vào bảng attachments
               const { error: dbError } = await supabase
                 .from("attachments").insert([{
-          card_id: cardId,
-          name: fileData.name,
-          url: directUrl,
-          file_id: fileData.fileId,
-          mime_type: fileData.mimeType,
-          position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
-        }]);
+                  card_id: cardId,
+                  name: fileData.name,
+                  url: directUrl,
+                  file_id: fileId,
+                  mime_type: fileData.mimeType,
+                  position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
+                }]);
               if (dbError) throw dbError;
 
               const el = targetRef.current;
@@ -1387,6 +1423,20 @@ export default function CardDetailModal({
                   />
                   <label htmlFor="completed-modal-checkbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
                     Đã hoàn thành công việc
+                  </label>
+                </div>
+
+                {/* Checkbox Trạng thái Đang diễn ra */}
+                <div className="flex items-center gap-2 select-none mt-1">
+                  <input
+                    type="checkbox"
+                    id="inprogress-modal-checkbox"
+                    checked={isInProgress}
+                    onChange={(e) => handleToggleInProgressInModal(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                  />
+                  <label htmlFor="inprogress-modal-checkbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                    Đang thực hiện công việc
                   </label>
                 </div>
 

@@ -9,6 +9,7 @@ interface Card {
   due_date: string | null;
   created_at: string;
   is_completed?: boolean;
+  is_in_progress?: boolean;
 }
 
 interface BoardCardProps {
@@ -143,7 +144,9 @@ export default function BoardCard({
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
           : card.is_completed
             ? "border-emerald-500/30 bg-emerald-50/20 shadow-[0_2px_8px_rgba(16,185,129,0.02)] hover:border-emerald-500/50 hover:bg-emerald-50/30 hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-150"
-            : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
+            : card.is_in_progress
+              ? "border-orange-500/30 bg-orange-50/20 shadow-[0_2px_8px_rgba(249,115,22,0.02)] hover:border-orange-500/50 hover:bg-orange-50/30 hover:shadow-[0_8px_20px_rgba(249,115,22,0.06)] hover:-translate-y-0.5 transition-all duration-150"
+              : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
         }
         ${isDragOver ? "border-violet-400 bg-violet-50/20" : ""}
       `}
@@ -174,6 +177,11 @@ export default function BoardCard({
             {card.is_completed && (
               <span className="text-[8px] text-emerald-600/60 font-semibold bg-emerald-50/30 border border-emerald-100/30 px-1.5 py-0.5 rounded-full tracking-wider">
                 ĐÃ HOÀN THÀNH
+              </span>
+            )}
+            {card.is_in_progress && (
+              <span className="text-[8px] text-orange-600/60 font-semibold bg-orange-50/30 border border-orange-100/30 px-1.5 py-0.5 rounded-full tracking-wider">
+                ĐANG DIỄN RA
               </span>
             )}
           </div>

@@ -14,6 +14,7 @@ interface Board {
   title: string;
   position?: number;
   folder_id?: string | null;
+  created_at?: string;
 }
 
 interface BoardSwitcherProps {
@@ -70,7 +71,7 @@ export default function BoardSwitcher({
     // 2. Fetch boards
     const { data: boardData } = await supabase
       .from("boards")
-      .select("id, title, position, folder_id")
+      .select("id, title, position, folder_id, created_at")
       .order("position", { ascending: true });
     setBoards(boardData || []);
   }, []);
@@ -475,30 +476,43 @@ export default function BoardSwitcher({
           if (!isActive && !isEditing) router.push(`/board/${b.id}`);
         }}
       >
-        <div className="flex items-start gap-2 overflow-hidden flex-1 pt-0.5">
-          {/* Board icon */}
-          <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-
-          {isEditing ? (
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={() => handleRenameSubmit(b.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRenameSubmit(b.id);
-                if (e.key === "Escape") setEditingBoardId(null);
-              }}
-              className="bg-transparent border-b border-violet-500 outline-none text-violet-600 font-bold px-0.5 w-full text-xs"
-              autoFocus
-            />
-          ) : (
-            <span className="line-clamp-2 break-words flex-1" title={b.title}>
-              {b.title}
+        <div className="flex flex-col flex-1 min-w-0">
+          {b.created_at && (
+            <span className="text-[9px] text-slate-400 font-normal select-none -mt-1 mb-0.5 text-left">
+              {new Date(b.created_at).toLocaleDateString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           )}
+          <div className="flex items-start gap-2 overflow-hidden flex-1 pt-0.5">
+            {/* Board icon */}
+            <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+
+            {isEditing ? (
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={() => handleRenameSubmit(b.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRenameSubmit(b.id);
+                  if (e.key === "Escape") setEditingBoardId(null);
+                }}
+                className="bg-transparent border-b border-violet-500 outline-none text-violet-600 font-bold px-0.5 w-full text-xs"
+                autoFocus
+              />
+            ) : (
+              <span className="line-clamp-2 break-words flex-1 text-left" title={b.title}>
+                {b.title}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Delete Board Button */}
