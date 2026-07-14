@@ -668,7 +668,7 @@ export default function CardDetailModal({
           card_id: cardId,
           name: fileData.name,
           url: directUrl,
-          file_id: fileData.fileId,
+          file_id: fileId,
           mime_type: fileData.mimeType,
           position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
         }]);
@@ -731,13 +731,13 @@ export default function CardDetailModal({
               // 1. Lưu metadata vào bảng attachments
               const { error: dbError } = await supabase
                 .from("attachments").insert([{
-          card_id: cardId,
-          name: fileData.name,
-          url: directUrl,
-          file_id: fileData.fileId,
-          mime_type: fileData.mimeType,
-          position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
-        }]);
+                  card_id: cardId,
+                  name: fileData.name,
+                  url: directUrl,
+                  file_id: fileId,
+                  mime_type: fileData.mimeType,
+                  position: merged.length > 0 ? merged[merged.length - 1].position + 1.0 : 1.0,
+                }]);
               if (dbError) throw dbError;
 
               const el = targetRef.current;
