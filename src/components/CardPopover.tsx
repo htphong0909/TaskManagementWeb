@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { marked } from "marked";
+import { uploadFileToDrive } from "@/lib/upload";
 
 interface CardPopoverProps {
   card: {
@@ -457,92 +458,9 @@ export default function CardPopover({
     });
 
     try {
-      // 1. Khởi tạo session upload
-      const initRes = await fetch("/api/attachments/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: file.name,
-          mimeType: file.type || "application/octet-stream",
-          size: file.size,
-        }),
+      const finalFileData = await uploadFileToDrive(file, (percent) => {
+        setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
       });
-
-      if (!initRes.ok) {
-        const errText = await initRes.text();
-        throw new Error(errText || "Không thể khởi tạo phiên tải lên");
-      }
-
-      const initData = await initRes.json();
-
-      let finalFileData;
-
-      if (initData.mock) {
-        // Chế độ mô phỏng (Mock Mode)
-        for (let percent = 10; percent <= 100; percent += 30) {
-          setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-        finalFileData = {
-          name: file.name,
-          url: "https://drive.google.com/file/d/mock-server-" + Date.now(),
-          fileId: "mock-server-" + Date.now(),
-          mimeType: file.type || "application/octet-stream"
-        };
-      } else {
-        // 2. Thực hiện tải tệp theo từng chunk
-        const totalSize = file.size;
-        let offset = 0;
-        let completedData = null;
-        const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
-
-        while (offset < totalSize) {
-          const end = Math.min(offset + CHUNK_SIZE, totalSize);
-          const chunk = file.slice(offset, end);
-          
-          const res = await fetch("/api/attachments/upload?action=chunk", {
-            method: "PUT",
-            headers: {
-              "x-upload-url": initData.uploadUrl,
-              "x-content-range": `bytes ${offset}-${end - 1}/${totalSize}`,
-              "content-type": file.type || "application/octet-stream",
-            },
-            body: chunk,
-          });
-
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Tải phần tệp tại ${offset} thất bại: ${errText}`);
-          }
-
-          const result = await res.json();
-          offset = end;
-
-          const percent = Math.round((offset / totalSize) * 100);
-          setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
-
-          if (result.completed) {
-            completedData = result.data;
-          }
-        }
-
-        if (!completedData) {
-          throw new Error("Không nhận được phản hồi hoàn tất từ Google Drive");
-        }
-
-        finalFileData = completedData;
-
-        // 3. Cập nhật quyền xem tệp thành công khai
-        const completeRes = await fetch("/api/attachments/upload?action=complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: finalFileData.id }),
-        });
-
-        if (!completeRes.ok) {
-          console.warn("Không thể tự động chia sẻ tệp công khai");
-        }
-      }
 
       setUploadingFile(prev => prev ? { ...prev, progress: 100, stage: "saving" } : null);
       
