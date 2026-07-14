@@ -457,49 +457,90 @@ export default function CardPopover({
     });
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const fileData = await new Promise<{
-        name: string;
-        url: string;
-        fileId: string;
-        mimeType: string;
-        error?: string;
-      }>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch {
-              reject(new Error("Lỗi phân tích phản hồi máy chủ"));
-            }
-          } else {
-            reject(new Error(xhr.statusText || "Lỗi tải tệp lên máy chủ"));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error("Lỗi mạng kết nối"));
-        
-        xhr.open("POST", "/api/attachments/upload");
-        xhr.send(formData);
+      // 1. Khởi tạo session upload
+      const initRes = await fetch("/api/attachments/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          size: file.size,
+        }),
       });
 
-      if (fileData.error) {
-        throw new Error(fileData.error);
+      if (!initRes.ok) {
+        const errText = await initRes.text();
+        throw new Error(errText || "Không thể khởi tạo phiên tải lên");
+      }
+
+      const initData = await initRes.json();
+
+      let finalFileData;
+
+      if (initData.mock) {
+        // Chế độ mô phỏng (Mock Mode)
+        for (let percent = 10; percent <= 100; percent += 30) {
+          setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        finalFileData = {
+          name: file.name,
+          url: "https://drive.google.com/file/d/mock-server-" + Date.now(),
+          fileId: "mock-server-" + Date.now(),
+          mimeType: file.type || "application/octet-stream"
+        };
+      } else {
+        // 2. Thực hiện tải tệp trực tiếp lên Google Drive qua PUT
+        finalFileData = await new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadingFile(prev => prev ? { ...prev, progress: percent } : null);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                resolve(JSON.parse(xhr.responseText));
+              } catch {
+                reject(new Error("Lỗi phân tích phản hồi máy chủ Google"));
+              }
+            } else {
+              reject(new Error(xhr.statusText || "Lỗi tải tệp lên Google Drive"));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error("Lỗi mạng kết nối đến Google"));
+          
+          xhr.open("PUT", initData.uploadUrl);
+          xhr.send(file);
+        });
+
+        // 3. Cập nhật quyền xem tệp thành công khai
+        const completeRes = await fetch("/api/attachments/upload?action=complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId: finalFileData.id }),
+        });
+
+        if (!completeRes.ok) {
+          console.warn("Không thể tự động chia sẻ tệp công khai");
+        }
       }
 
       setUploadingFile(prev => prev ? { ...prev, progress: 100, stage: "saving" } : null);
-      await handleAddAttachment(fileData);
+      
+      const attachmentData = {
+        name: finalFileData.name,
+        url: finalFileData.webViewLink || finalFileData.url || "",
+        fileId: finalFileData.id || finalFileData.fileId || "",
+        mimeType: finalFileData.mimeType,
+      };
+
+      await handleAddAttachment(attachmentData);
     } catch (err: unknown) {
       console.error("Lỗi đính kèm tệp:", err);
       const message = err instanceof Error ? err.message : String(err);
