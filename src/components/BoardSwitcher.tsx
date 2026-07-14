@@ -152,6 +152,11 @@ export default function BoardSwitcher({
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData("text/board-id") || activeDragBoardId;
+    
+    // Reset dragging states immediately
+    setActiveDragBoardId(null);
+    setDragOverBoardId(null);
+
     if (!draggedId) return;
 
     const draggedBoard = boards.find((b) => b.id === draggedId);
@@ -203,6 +208,11 @@ export default function BoardSwitcher({
     e.preventDefault();
     setDragOverFolderId(null);
     const draggedId = e.dataTransfer.getData("text/board-id") || activeDragBoardId;
+    
+    // Reset dragging states immediately
+    setActiveDragBoardId(null);
+    setDragOverBoardId(null);
+
     if (!draggedId) return;
 
     const draggedBoard = boards.find((b) => b.id === draggedId);
@@ -242,6 +252,11 @@ export default function BoardSwitcher({
     e.preventDefault();
     setDragOverUngrouped(false);
     const draggedId = e.dataTransfer.getData("text/board-id") || activeDragBoardId;
+    
+    // Reset dragging states immediately
+    setActiveDragBoardId(null);
+    setDragOverBoardId(null);
+
     if (!draggedId) return;
 
     const draggedBoard = boards.find((b) => b.id === draggedId);
@@ -545,7 +560,7 @@ export default function BoardSwitcher({
                 onDragLeave={() => setDragOverFolderId(null)}
                 onDrop={(e) => handleDropOnFolderHeader(e, folder.id)}
                 className={`flex flex-col gap-1 rounded-xl p-1 transition-all duration-150 ${
-                  isDragOverFolder ? "bg-violet-500/10 ring-2 ring-violet-500/50" : "bg-transparent"
+                  isDragOverFolder ? "bg-violet-500/10 ring-2 ring-violet-500/50 ring-inset" : "bg-transparent"
                 }`}
               >
                 {/* Folder Header */}
@@ -638,7 +653,7 @@ export default function BoardSwitcher({
             onDragLeave={() => setDragOverUngrouped(false)}
             onDrop={handleDropOnUngrouped}
             className={`flex flex-col gap-1 rounded-xl p-1 transition-all duration-150 mt-2 border-t border-slate-200/40 pt-2 ${
-              dragOverUngrouped ? "bg-violet-500/10 ring-2 ring-violet-500/50" : "bg-transparent"
+              dragOverUngrouped ? "bg-violet-500/10 ring-2 ring-violet-500/50 ring-inset" : "bg-transparent"
             }`}
           >
             <div className="text-[10px] font-bold text-slate-400 px-2 mb-1">Bảng tự do</div>
