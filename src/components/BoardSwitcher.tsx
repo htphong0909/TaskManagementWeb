@@ -194,27 +194,22 @@ export default function BoardSwitcher({
 
   return (
     <div className="h-full w-full flex flex-col justify-between p-4 text-slate-700 select-none">
-      {/* Header Branding & Collapse button */}
+      {/* Header Branding & Morphing toggle button */}
       <div>
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/10">
-              T
-            </div>
-            <span className="text-sm font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              TaskApp Workspace
-            </span>
-          </div>
-          
+        <div className="flex items-center gap-2 pb-4 border-b border-slate-200/50 mb-4">
           <button
             onClick={onToggleSidebar}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+            className="h-8 w-8 rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer transition-colors duration-150 group shrink-0"
             title="Đóng sidebar"
           >
-            <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <span className="block group-hover:hidden">T</span>
+            <svg className="h-4 w-4 text-white hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
+          <span className="text-sm font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent truncate">
+            TaskApp Workspace
+          </span>
         </div>
 
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">
