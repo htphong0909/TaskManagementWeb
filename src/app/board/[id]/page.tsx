@@ -80,13 +80,20 @@ export default function BoardPage() {
   }, []);
 
   useEffect(() => {
+    let timerId: NodeJS.Timeout | null = null;
     const handleSync = () => {
       const current = localStorage.getItem("board_sidebar_open");
-      setIsSidebarOpen(current === "true");
+      const isOpen = current === "true";
+      timerId = setTimeout(() => {
+        setIsSidebarOpen(isOpen);
+      }, 0);
     };
     
     window.addEventListener("board-sidebar-state-change", handleSync);
-    return () => window.removeEventListener("board-sidebar-state-change", handleSync);
+    return () => {
+      window.removeEventListener("board-sidebar-state-change", handleSync);
+      if (timerId) clearTimeout(timerId);
+    };
   }, []);
 
   // Đồng bộ hoveredCard với dữ liệu cards mới nhất khi cards thay đổi

@@ -30,9 +30,11 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
       setIsSidebarOpen((prev) => {
         const next = !prev;
         localStorage.setItem("board_sidebar_open", next ? "true" : "false");
-        window.dispatchEvent(new Event("board-sidebar-state-change"));
         return next;
       });
+      setTimeout(() => {
+        window.dispatchEvent(new Event("board-sidebar-state-change"));
+      }, 0);
     };
     window.addEventListener("toggle-board-sidebar", handleToggle);
     return () => window.removeEventListener("toggle-board-sidebar", handleToggle);
@@ -92,7 +94,9 @@ export default function BoardLayout({ children }: { children: React.ReactNode })
             onToggleSidebar={() => {
               setIsSidebarOpen(false);
               localStorage.setItem("board_sidebar_open", "false");
-              window.dispatchEvent(new Event("board-sidebar-state-change"));
+              setTimeout(() => {
+                window.dispatchEvent(new Event("board-sidebar-state-change"));
+              }, 0);
             }}
           />
         )}
