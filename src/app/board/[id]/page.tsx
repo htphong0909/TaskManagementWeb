@@ -24,12 +24,14 @@ interface Card {
   due_date: string | null;
   created_at: string;
   is_completed?: boolean;
+  is_in_progress?: boolean;
 }
 
 export default function BoardPage() {
   const [lists, setLists] = useState<List[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [boardTitle, setBoardTitle] = useState("");
+  const [boardCreatedAt, setBoardCreatedAt] = useState("");
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -115,10 +117,13 @@ export default function BoardPage() {
       // 1. Tải thông tin Board
       const { data: boardData } = await supabase
         .from("boards")
-        .select("title")
+        .select("title, created_at")
         .eq("id", boardId)
         .single();
-      if (boardData) setBoardTitle(boardData.title);
+      if (boardData) {
+        setBoardTitle(boardData.title);
+        setBoardCreatedAt(boardData.created_at || "");
+      }
 
       // 2. Tải danh sách Lists
       const { data: listData } = await supabase
@@ -135,7 +140,7 @@ export default function BoardPage() {
         const listIds = currentLists.map((l) => l.id);
         const { data: cardData } = await supabase
           .from("cards")
-          .select("id, list_id, title, content, position, due_date, created_at, is_completed")
+          .select("id, list_id, title, content, position, due_date, created_at, is_completed, is_in_progress")
           .in("list_id", listIds)
           .order("position", { ascending: true });
         setCards(cardData || []);
@@ -634,7 +639,20 @@ export default function BoardPage() {
             )}
           </button>
           <div>
-            <h1 className="text-[10px] font-bold tracking-wider text-violet-700 uppercase leading-none">Workspace</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-[10px] font-bold tracking-wider text-violet-700 uppercase leading-none">Workspace</h1>
+              {boardCreatedAt && (
+                <span className="text-[9px] text-slate-400 font-normal select-none leading-none">
+                  (Tạo lúc: {new Date(boardCreatedAt).toLocaleDateString("vi-VN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })})
+                </span>
+              )}
+            </div>
             <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
           </div>
         </div>
