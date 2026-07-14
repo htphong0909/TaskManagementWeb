@@ -141,7 +141,9 @@ export default function BoardCard({
       className={`group/card bg-white border rounded-xl p-4 flex flex-col gap-2 relative cursor-pointer active:cursor-grabbing
         ${isDragging 
           ? "opacity-30 border-dashed border-violet-400 bg-violet-50/30 scale-[0.97]" 
-          : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
+          : card.is_completed
+            ? "border-emerald-500/30 bg-emerald-50/20 shadow-[0_2px_8px_rgba(16,185,129,0.02)] hover:border-emerald-500/50 hover:bg-emerald-50/30 hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-150"
+            : "border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(139,92,246,0.05)] hover:border-violet-200/80 transition-all duration-150"
         }
         ${isDragOver ? "border-violet-400 bg-violet-50/20" : ""}
       `}
@@ -170,7 +172,7 @@ export default function BoardCard({
               {formatCreatedAt(card.created_at)}
             </span>
             {card.is_completed && (
-              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full tracking-wider">
+              <span className="text-[8px] text-emerald-600/60 font-semibold bg-emerald-50/30 border border-emerald-100/30 px-1.5 py-0.5 rounded-full tracking-wider">
                 ĐÃ HOÀN THÀNH
               </span>
             )}
