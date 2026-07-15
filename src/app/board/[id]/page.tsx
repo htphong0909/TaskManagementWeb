@@ -31,7 +31,9 @@ export default function BoardPage() {
   const [lists, setLists] = useState<List[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [boardTitle, setBoardTitle] = useState("");
-  const [boardCreatedAt, setBoardCreatedAt] = useState("");
+  const [boardDate, setBoardDate] = useState("");
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editDateVal, setEditDateVal] = useState("");
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -117,12 +119,12 @@ export default function BoardPage() {
       // 1. Tải thông tin Board
       const { data: boardData } = await supabase
         .from("boards")
-        .select("title, created_at")
+        .select("title, board_date")
         .eq("id", boardId)
         .single();
       if (boardData) {
         setBoardTitle(boardData.title);
-        setBoardCreatedAt(boardData.created_at || "");
+        setBoardDate(boardData.board_date || "");
       }
 
       // 2. Tải danh sách Lists
@@ -166,6 +168,35 @@ export default function BoardPage() {
       };
     }
   }, [boardId, fetchBoardData]);
+
+  const formatForInput = (isoStr: string | null) => {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const handleUpdateBoardDate = async (newVal: string) => {
+    if (!newVal) {
+      setIsEditingDate(false);
+      return;
+    }
+    try {
+      const isoVal = new Date(newVal).toISOString();
+      const { error } = await supabase
+        .from("boards")
+        .update({ board_date: isoVal })
+        .eq("id", boardId);
+
+      if (error) throw error;
+      setBoardDate(isoVal);
+      window.dispatchEvent(new Event("reload-folders-and-boards"));
+    } catch (err) {
+      console.error("Lỗi cập nhật ngày của bảng:", err);
+    } finally {
+      setIsEditingDate(false);
+    }
+  };
 
   // Thêm danh sách cột mới
   const handleAddListSubmit = async (e: React.FormEvent) => {
@@ -641,16 +672,38 @@ export default function BoardPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-[10px] font-bold tracking-wider text-violet-700 uppercase leading-none">Workspace</h1>
-              {boardCreatedAt && (
-                <span className="text-[9px] text-slate-400 font-normal select-none leading-none">
-                  (Tạo lúc: {new Date(boardCreatedAt).toLocaleDateString("vi-VN", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })})
-                </span>
+              {isEditingDate ? (
+                <input
+                  type="datetime-local"
+                  value={editDateVal}
+                  onChange={(e) => setEditDateVal(e.target.value)}
+                  onBlur={() => handleUpdateBoardDate(editDateVal)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleUpdateBoardDate(editDateVal);
+                    if (e.key === "Escape") setIsEditingDate(false);
+                  }}
+                  className="bg-white/90 backdrop-blur-md rounded-lg border border-violet-300 text-[10px] text-slate-800 outline-none px-1.5 py-0.5 focus:ring-2 focus:ring-violet-200/50 leading-none h-5"
+                  autoFocus
+                />
+              ) : (
+                boardDate && (
+                  <span
+                    className="text-[9px] text-slate-400 font-normal select-none leading-none cursor-pointer border-b border-dashed border-slate-300 hover:border-slate-500 hover:text-slate-600 transition-all duration-150"
+                    onDoubleClick={() => {
+                      setIsEditingDate(true);
+                      setEditDateVal(formatForInput(boardDate));
+                    }}
+                    title="Nhấp đúp để chỉnh sửa ngày bảng"
+                  >
+                    (Ngày: {new Date(boardDate).toLocaleDateString("vi-VN", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })})
+                  </span>
+                )
               )}
             </div>
             <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
