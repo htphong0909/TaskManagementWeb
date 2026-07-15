@@ -94,3 +94,65 @@ test('renders boards list with formatted date MM/YYYY and counts', async () => {
   expect(completedCount).toBeDefined();
   expect(inProgressCount).toBeDefined();
 });
+
+test('hides board switcher status count if it is equal to 0', async () => {
+  const mockFolders = [
+    { id: 'folder-1', title: 'Work Folder', position: 1 }
+  ];
+  const mockBoards = [
+    { id: 'board-2', title: 'Second Board', folder_id: 'folder-1', board_date: '2026-07-15T00:00:00.000Z', position: 2 }
+  ];
+  const mockCards = [
+    { is_completed: false, is_in_progress: true, lists: { board_id: 'board-2' } },
+  ];
+
+  const foldersBuilder = {} as any;
+  foldersBuilder.select = vi.fn().mockReturnValue(foldersBuilder);
+  foldersBuilder.order = vi.fn().mockImplementation(() => {
+    return Promise.resolve({ data: mockFolders, error: null });
+  });
+
+  const boardsBuilder = {} as any;
+  boardsBuilder.select = vi.fn().mockReturnValue(boardsBuilder);
+  boardsBuilder.order = vi.fn().mockImplementation(() => {
+    return Promise.resolve({ data: mockBoards, error: null });
+  });
+
+  const cardsBuilder = {} as any;
+  cardsBuilder.select = vi.fn().mockImplementation(() => {
+    return Promise.resolve({ data: mockCards, error: null });
+  });
+
+  vi.mocked(supabase.from).mockImplementation((table: string) => {
+    if (table === 'folders') return foldersBuilder;
+    if (table === 'boards') return boardsBuilder;
+    if (table === 'cards') return cardsBuilder;
+    return {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+  });
+
+  await act(async () => {
+    render(
+      <BoardSwitcher
+        activeBoardId="board-2"
+        userEmail="test@example.com"
+        onSignOut={() => {}}
+      />
+    );
+  });
+
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  });
+
+  // Verify the in-progress count '1' is rendered
+  const inProgressCount = screen.getByText('1');
+  expect(inProgressCount).toBeDefined();
+
+  // Verify that there is no completed count '0' rendered
+  const zeroElements = screen.queryAllByText('0');
+  expect(zeroElements.length).toBe(0);
+});
+

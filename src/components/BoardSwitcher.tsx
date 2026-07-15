@@ -558,20 +558,25 @@ export default function BoardSwitcher({
                 </span>
                 {(() => {
                   const counts = boardCardCounts[b.id] || { completed: 0, inProgress: 0 };
+                  if (counts.completed === 0 && counts.inProgress === 0) return null;
                   return (
                     <div className="flex items-center gap-1.5 shrink-0 ml-2 select-none">
-                      <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 font-bold" title="Đã hoàn thành">
-                        {counts.completed}
-                        <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </span>
-                      <span className="flex items-center gap-0.5 text-[10px] text-orange-600 font-bold" title="Đang thực hiện">
-                        {counts.inProgress}
-                        <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </span>
+                      {counts.completed > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 font-bold" title="Đã hoàn thành">
+                          {counts.completed}
+                          <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                      )}
+                      {counts.inProgress > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-orange-600 font-bold" title="Đang thực hiện">
+                          {counts.inProgress}
+                          <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </span>
+                      )}
                     </div>
                   );
                 })()}
