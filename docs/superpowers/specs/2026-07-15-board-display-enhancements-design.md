@@ -18,6 +18,7 @@ We will modify the board date presentation and implement card status counters (c
   We will format the timestamp using custom JavaScript instead of locale strings to guarantee an exact `MM/YYYY` display layout in the sidebar.
 - **Visual Design**: 
   Render the counts dynamically next to the board title inside `renderBoardItem(b)` using flexbox. The completed count has a solid green checkmark icon (`text-emerald-600`), and the in-progress count has a solid orange clock icon (`text-orange-600`).
+  **Conditional Rendering**: Card status counts are only displayed if the count is greater than 0 (`count > 0`). If a count is 0, its respective icon and number are hidden.
 
 ### 2. Main Board Header (`src/app/board/[id]/page.tsx`)
 
@@ -25,6 +26,7 @@ We will modify the board date presentation and implement card status counters (c
   The main board page already holds the `cards` state. We will compute the completed and in-progress counts in-memory at render time.
 - **Visual Design**: 
   Render counts next to the board title in the header on the same line, styled with appropriate margins, layout spacing, and SVG status icons matching the sidebar.
+  **Conditional Rendering**: Card status counts are only displayed if the count is greater than 0 (`count > 0`).
 
 ## Verification & Testing
 
