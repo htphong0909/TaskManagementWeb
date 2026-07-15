@@ -706,7 +706,29 @@ export default function BoardPage() {
                 )
               )}
             </div>
-            <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
+              {(() => {
+                const completedCount = cards.filter((c) => c.is_completed).length;
+                const inProgressCount = cards.filter((c) => c.is_in_progress).length;
+                return (
+                  <div className="flex items-center gap-2 select-none mt-1">
+                    <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-600" title="Đã hoàn thành">
+                      {completedCount}
+                      <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                    <span className="flex items-center gap-0.5 text-xs font-bold text-orange-600" title="Đang thực hiện">
+                      {inProgressCount}
+                      <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
         <div className="text-xs font-bold text-violet-700 uppercase tracking-widest bg-violet-50 border border-violet-100 px-3 py-1.5 rounded-full select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">

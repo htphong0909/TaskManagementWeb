@@ -50,6 +50,7 @@ export default function BoardSwitcher({
   const [newFolderTitle, setNewFolderTitle] = useState("");
   const [folderToDelete, setFolderToDelete] = useState<Folder | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [boardCardCounts, setBoardCardCounts] = useState<Record<string, { completed: number; inProgress: number }>>({});
 
   // Kéo thả board state
   const [activeDragBoardId, setActiveDragBoardId] = useState<string | null>(null);
@@ -74,6 +75,36 @@ export default function BoardSwitcher({
       .select("id, title, position, folder_id, board_date")
       .order("position", { ascending: true });
     setBoards(boardData || []);
+
+    // 3. Fetch card counts per board
+    const { data: cardsData, error: cardsError } = await supabase
+      .from("cards")
+      .select("is_completed, is_in_progress, lists!inner(board_id)");
+
+    if (!cardsError && cardsData) {
+      const counts: Record<string, { completed: number; inProgress: number }> = {};
+      const typedCards = cardsData as unknown as Array<{
+        is_completed: boolean;
+        is_in_progress: boolean;
+        lists: { board_id: string } | null;
+      }>;
+      typedCards.forEach((c) => {
+        const boardId = c.lists?.board_id;
+        if (boardId) {
+          if (!counts[boardId]) {
+            counts[boardId] = { completed: 0, inProgress: 0 };
+          }
+          if (c.is_completed) {
+            counts[boardId].completed++;
+          } else if (c.is_in_progress) {
+            counts[boardId].inProgress++;
+          }
+        }
+      });
+      setBoardCardCounts(counts);
+    } else {
+      setBoardCardCounts({});
+    }
   }, [supabase]);
 
   useEffect(() => {
@@ -491,17 +522,16 @@ export default function BoardSwitcher({
         }}
       >
         <div className="flex flex-col flex-1 min-w-0">
-          {b.board_date && (
-            <span className="text-[9px] text-slate-400 font-normal select-none -mt-1 mb-0.5 text-left">
-              {new Date(b.board_date).toLocaleDateString("vi-VN", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          )}
+          {b.board_date && (() => {
+            const d = new Date(b.board_date);
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            return (
+              <span className="text-[9px] text-slate-400 font-normal select-none -mt-1 mb-0.5 text-left">
+                {mm}/{yyyy}
+              </span>
+            );
+          })()}
           <div className="flex items-start gap-2 overflow-hidden flex-1 pt-0.5">
             {/* Board icon */}
             <svg className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-violet-500 transition-colors mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -522,9 +552,30 @@ export default function BoardSwitcher({
                 autoFocus
               />
             ) : (
-              <span className="line-clamp-2 break-words flex-1 text-left" title={b.title}>
-                {b.title}
-              </span>
+              <div className="flex items-center justify-between flex-1 min-w-0">
+                <span className="line-clamp-2 break-words text-left" title={b.title}>
+                  {b.title}
+                </span>
+                {(() => {
+                  const counts = boardCardCounts[b.id] || { completed: 0, inProgress: 0 };
+                  return (
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2 select-none">
+                      <span className="flex items-center gap-0.5 text-[10px] text-emerald-600 font-bold" title="Đã hoàn thành">
+                        {counts.completed}
+                        <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[10px] text-orange-600 font-bold" title="Đang thực hiện">
+                        {counts.inProgress}
+                        <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
             )}
           </div>
         </div>
