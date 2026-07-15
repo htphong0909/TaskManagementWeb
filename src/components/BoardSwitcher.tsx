@@ -14,7 +14,7 @@ interface Board {
   title: string;
   position?: number;
   folder_id?: string | null;
-  created_at?: string;
+  board_date?: string;
 }
 
 interface BoardSwitcherProps {
@@ -71,10 +71,10 @@ export default function BoardSwitcher({
     // 2. Fetch boards
     const { data: boardData } = await supabase
       .from("boards")
-      .select("id, title, position, folder_id, created_at")
+      .select("id, title, position, folder_id, board_date")
       .order("position", { ascending: true });
     setBoards(boardData || []);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -84,6 +84,16 @@ export default function BoardSwitcher({
     return () => {
       clearTimeout(timer);
       setMounted(false);
+    };
+  }, [fetchFoldersAndBoards]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      fetchFoldersAndBoards();
+    };
+    window.addEventListener("reload-folders-and-boards", handleReload);
+    return () => {
+      window.removeEventListener("reload-folders-and-boards", handleReload);
     };
   }, [fetchFoldersAndBoards]);
 
@@ -477,9 +487,9 @@ export default function BoardSwitcher({
         }}
       >
         <div className="flex flex-col flex-1 min-w-0">
-          {b.created_at && (
+          {b.board_date && (
             <span className="text-[9px] text-slate-400 font-normal select-none -mt-1 mb-0.5 text-left">
-              {new Date(b.created_at).toLocaleDateString("vi-VN", {
+              {new Date(b.board_date).toLocaleDateString("vi-VN", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
