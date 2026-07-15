@@ -342,7 +342,11 @@ export default function BoardSwitcher({
     try {
       const stored = localStorage.getItem("collapsedFolderIds");
       if (stored) {
-        setCollapsedFolderIds(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const timer = setTimeout(() => {
+          setCollapsedFolderIds(parsed);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     } catch (e) {
       console.error("Failed to parse collapsedFolderIds from localStorage", e);
