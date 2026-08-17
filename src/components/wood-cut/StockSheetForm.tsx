@@ -11,10 +11,15 @@ interface Props {
 }
 
 export default function StockSheetForm({ stockSheets, setStockSheets, config, setConfig }: Props) {
-  const addPreset = (length: number, width: number, name: string) => {
+  const handleAddStockSheet = () => {
     setStockSheets([
       ...stockSheets,
-      { id: `s-${Date.now()}`, name, length, width }
+      {
+        id: `s-${Date.now()}`,
+        name: `Ván gốc ${stockSheets.length + 1}`,
+        length: 1200,
+        width: 600,
+      },
     ]);
   };
 
@@ -42,30 +47,11 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               max="20"
               value={config.kerf}
               onChange={(e) => setConfig({ ...config, kerf: parseFloat(e.target.value) || 0 })}
-              className="w-14 px-1.5 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400"
+              className="w-14 px-1.5 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
             />
             mm
           </label>
         </div>
-      </div>
-
-      {/* Preset Buttons */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="text-[11px] text-slate-400 self-center">Chọn nhanh:</span>
-        <button
-          type="button"
-          onClick={() => addPreset(1200, 600, "Ván 1200x600")}
-          className="text-xs px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg border border-violet-200 transition-all font-medium"
-        >
-          + 1200 × 600
-        </button>
-        <button
-          type="button"
-          onClick={() => addPreset(2440, 1220, "Ván chuẩn 2440x1220")}
-          className="text-xs px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg border border-violet-200 transition-all font-medium"
-        >
-          + 2440 × 1220
-        </button>
       </div>
 
       {/* Bảng danh sách ván gốc */}
@@ -102,7 +88,7 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               <button
                 type="button"
                 onClick={() => handleRemove(s.id)}
-                className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors cursor-pointer"
                 title="Xóa ván gốc này"
               >
                 ✕
@@ -110,6 +96,17 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
             )}
           </div>
         ))}
+      </div>
+
+      {/* Nút thêm ván gốc */}
+      <div className="mt-3 pt-2 border-t border-slate-100 flex justify-start">
+        <button
+          type="button"
+          onClick={handleAddStockSheet}
+          className="text-xs font-semibold text-violet-700 hover:text-violet-900 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-all flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>+</span> Thêm ván gốc
+        </button>
       </div>
     </div>
   );

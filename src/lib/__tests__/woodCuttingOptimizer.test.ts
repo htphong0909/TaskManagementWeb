@@ -27,7 +27,7 @@ describe("woodCuttingOptimizer", () => {
 
     const result = calculateWoodCut(stockSheets, requiredPieces, { kerf: 3 });
     expect(result.stockSheetsUsed.length).toBeGreaterThanOrEqual(3);
-    expect(result.joinedPieces.length).toBe(1);
+    expect(result.joinedPieces.length).toBe(2);
     expect(result.summary.totalStockSheets).toBe(result.stockSheetsUsed.length);
   });
 

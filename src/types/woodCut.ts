@@ -30,6 +30,7 @@ export interface SubPiece {
   length: number;
   width: number;
   allowRotation: boolean;
+  stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (Ván #1, Ván #2...)
 }
 
 export interface PlacedPiece {

@@ -134,7 +134,7 @@ Giao diện tuân thủ chuẩn thiết kế **Glass-Pastel** (Tailwind CSS v4):
 2. **Khu vực Trái (Input Panel - 40% màn hình desktop):**
    - **Thẻ Cài đặt & Ván Gốc (Stock Sheets):**
      - Ô nhập Mạch cưa (Kerf) mm.
-     - Bảng kích thước ván gốc có sẵn/cần mua. Nút thêm nhanh các kích thước chuẩn (`1200x600`, `2440x1220`, `2440x1830`).
+     - Bảng danh sách ván gốc với các nút: Nút `+ Thêm ván gốc` trực quan để người dùng thêm tự do bất kỳ kích thước ván gốc nào (đã bỏ phần chọn nhanh preset).
    - **Thẻ Danh Sách Mặt Gỗ Cần Làm (Required Pieces):**
      - Tabs chuyển đổi: **Chế độ Bảng** (Table Input) và **Chế độ Nhập Nhanh** (Batch Text Paste).
      - Hỗ trợ phân tích chuỗi text linh hoạt: `1110, 1230` hoặc `1110x1230 x2` hoặc `1110 1230`.
@@ -142,6 +142,18 @@ Giao diện tuân thủ chuẩn thiết kế **Glass-Pastel** (Tailwind CSS v4):
    - Nút hành động chính: **`[ ⚡ Bắt đầu tính toán ]`** (Gradient tím-hồng nổi bật, phím tắt Enter).
 3. **Khu vực Phải (Result & Diagram Panel - 60% màn hình desktop):**
    - **Thẻ Tổng quan Thống kê (Metrics Overview):**
+     - Thẻ số lượng ván gốc cần mua (phân loại rõ từng kích thước).
+     - Tỷ lệ tận dụng gỗ (Efficiency %).
+     - Tổng diện tích gỗ và số đường cắt.
+   - **Sơ đồ ghép cho từng kích thước gỗ cần tạo (Assembly & Joining Diagrams):**
+     - Hiển thị bản vẽ ghép cho từng mặt gỗ cần tạo (cả tấm nguyên và tấm lớn cần ghép).
+     - Trên từng mảng ván ghép, hiển thị rõ vệt nối (seam lines), số thứ tự tấm ván gốc chứa nó (**`Ván #1`**, **`Ván #2`**...) và kích thước thực tế của từng mảng (`DxR mm`).
+   - **Sơ đồ cắt trực quan SVG từng tấm ván (Interactive Stock Cutting Layout):**
+     - Vẽ từng tấm ván gốc theo tỷ lệ chuẩn.
+     - Các chi tiết cắt có mã màu pastel phân biệt, nhãn tên, kích thước `DxR`.
+     - Vùng thừa (Scrap) hiển thị màu xám mờ và kích thước mẩu thừa.
+     - Hiển thị đường nét cưa guillotine.
+   - **Nút tiện ích:** Tải ảnh sơ đồ / In kết quả / Sao chép danh sách mua vật tư (BOM).
      - Thẻ số lượng ván gốc cần mua (phân loại rõ từng kích thước).
      - Tỷ lệ tận dụng gỗ (Efficiency %).
      - Tổng diện tích gỗ và số đường cắt.

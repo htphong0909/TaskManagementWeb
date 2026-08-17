@@ -125,11 +125,11 @@ export default function WoodCutPage() {
         <div className="lg:col-span-7 space-y-4">
           <WoodCutSummary result={result} />
 
-          {/* Sơ đồ ghép tấm lớn nếu có */}
+          {/* Sơ đồ cấu trúc & ghép từng mặt gỗ cần làm */}
           {result && result.joinedPieces.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span>🧩</span> Sơ Đồ Ghép Các Mặt Gỗ Vượt Khổ ({result.joinedPieces.length})
+              <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🧩</span> Sơ Đồ Cấu Trúc & Ghép Từng Mặt Gỗ ({result.joinedPieces.length})
               </h3>
               {result.joinedPieces.map((diagram) => (
                 <JoinedPieceDiagramView key={diagram.parentId} diagram={diagram} />

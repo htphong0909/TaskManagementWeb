@@ -24,7 +24,10 @@ describe("Wood Cut System Integration", () => {
 
     // 4. Assertions
     expect(result.stockSheetsUsed.length).toBeGreaterThanOrEqual(3);
-    expect(result.joinedPieces.length).toBe(1); // 1110x1230 cần ghép
+    expect(result.joinedPieces.length).toBe(2); // Cả 2 mặt gỗ đều có sơ đồ cấu trúc
+    expect(result.joinedPieces[0].seamCount).toBeGreaterThan(0); // 1110x1230 cần ghép
+    expect(result.joinedPieces[1].seamCount).toBe(0); // 234x234 là tấm nguyên
+    expect(result.joinedPieces[0].subPieces[0].stockSheetIndex).toBeDefined();
     expect(result.summary.totalStockSheets).toBe(result.stockSheetsUsed.length);
     expect(result.summary.efficiencyPercent).toBeGreaterThan(50);
   });

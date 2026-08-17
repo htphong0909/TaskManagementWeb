@@ -8,12 +8,13 @@ describe("woodDecomposer", () => {
   ];
   const config = { kerf: 3, minSubPieceSize: 50 };
 
-  it("leaves normal sized pieces intact", () => {
+  it("creates single-piece diagram with 0 seams for normal sized pieces", () => {
     const pieces: RequiredPieceInput[] = [
       { id: "p1", name: "Tấm nhỏ", length: 234, width: 234, quantity: 1, allowRotation: true }
     ];
     const result = decomposeOversizedPieces(pieces, stockSheets, config);
-    expect(result.joinedDiagrams).toHaveLength(0);
+    expect(result.joinedDiagrams).toHaveLength(1);
+    expect(result.joinedDiagrams[0].seamCount).toBe(0);
     expect(result.flatCutItems).toHaveLength(1);
     expect(result.flatCutItems[0].length).toBe(234);
   });

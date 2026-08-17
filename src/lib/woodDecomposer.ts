@@ -36,10 +36,28 @@ export function decomposeOversizedPieces(
 
     if (fitsDirectly) {
       for (let q = 0; q < piece.quantity; q++) {
-        flatCutItems.push({
-          ...piece,
-          id: q === 0 ? piece.id : `${piece.id}-${q + 1}`,
-          quantity: 1,
+        const instanceId = q === 0 ? piece.id : `${piece.id}-${q + 1}`;
+        const instanceName = piece.quantity > 1 ? `${piece.name} (#${q + 1})` : piece.name;
+
+        const subPiece: SubPiece = {
+          id: instanceId,
+          parentId: instanceId,
+          parentName: instanceName,
+          relX: 0,
+          relY: 0,
+          length: pL,
+          width: pW,
+          allowRotation: piece.allowRotation,
+        };
+
+        flatCutItems.push(subPiece);
+        joinedDiagrams.push({
+          parentId: instanceId,
+          parentName: instanceName,
+          targetLength: pL,
+          targetWidth: pW,
+          subPieces: [subPiece],
+          seamCount: 0,
         });
       }
       continue;

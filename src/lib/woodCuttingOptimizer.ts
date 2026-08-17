@@ -258,6 +258,20 @@ export function calculateWoodCut(
     };
   });
 
+  // Map stockSheetIndex cho từng SubPiece trong joinedDiagrams
+  const pieceSheetMap = new Map<string, number>();
+  stockSheetsUsed.forEach((sheet) => {
+    sheet.placedPieces.forEach((p) => {
+      pieceSheetMap.set(p.id, sheet.sheetIndex);
+    });
+  });
+
+  joinedDiagrams.forEach((diagram) => {
+    diagram.subPieces.forEach((sp) => {
+      sp.stockSheetIndex = pieceSheetMap.get(sp.id);
+    });
+  });
+
   const totalRequiredArea = requiredPieces.reduce(
     (acc, p) => acc + (p.length * p.width * p.quantity) / 1_000_000,
     0
