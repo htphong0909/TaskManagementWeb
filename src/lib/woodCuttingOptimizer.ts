@@ -164,8 +164,16 @@ export function calculateWoodCut(
       bestRectIdx = 0;
       const rect = newSheet.freeRects[0];
 
-      if (allowRotation && item.width <= rect.width && item.length <= rect.height && item.length > rect.width) {
+      const fitNormal = item.length <= rect.width && item.width <= rect.height;
+      const fitRotated = allowRotation && item.width <= rect.width && item.length <= rect.height;
+
+      if (!fitNormal && fitRotated) {
         bestRotated = true;
+      } else if (fitNormal && fitRotated) {
+        // Ưu tiên hướng có độ vừa khít cao hơn (tối thiểu khoảng trống thừa cạnh ngắn)
+        const wasteNormal = Math.min(rect.width - item.length, rect.height - item.width);
+        const wasteRotated = Math.min(rect.width - item.width, rect.height - item.length);
+        bestRotated = wasteRotated < wasteNormal;
       } else {
         bestRotated = false;
       }
@@ -196,31 +204,53 @@ export function calculateWoodCut(
 
     // 4. Guillotine Split khoảng trống còn lại (Shorter Axis Split có tính mạch cưa kerf)
     const k = config.kerf;
-    const remRightW = targetRect.width - placedW - k;
-    const remBottomH = targetRect.height - placedH - k;
+    const remW = targetRect.width - placedW - k;
+    const remH = targetRect.height - placedH - k;
 
-    if (remRightW > 0 && placedH > 0) {
-      targetSheet.freeRects.push({
-        x: targetRect.x + placedW + k,
-        y: targetRect.y,
-        width: remRightW,
-        height: placedH,
-      });
+    // Chọn phương chia cưa thẳng theo cạnh thừa ngắn hơn để giữ mảng ván thừa to nhất
+    if (remW > 0 || remH > 0) {
+      if (remW <= remH) {
+        // Chia ngang trước:
+        // Mảnh bên phải (theo chiều cao của chi tiết vừa đặt)
+        if (remW >= 10 && placedH >= 10) {
+          targetSheet.freeRects.push({
+            x: targetRect.x + placedW + k,
+            y: targetRect.y,
+            width: remW,
+            height: placedH,
+          });
+        }
+        // Mảnh phía dưới (toàn bộ chiều ngang targetRect)
+        if (remH >= 10 && targetRect.width >= 10) {
+          targetSheet.freeRects.push({
+            x: targetRect.x,
+            y: targetRect.y + placedH + k,
+            width: targetRect.width,
+            height: remH,
+          });
+        }
+      } else {
+        // Chia dọc trước:
+        // Mảnh bên phải (toàn bộ chiều cao targetRect)
+        if (remW >= 10 && targetRect.height >= 10) {
+          targetSheet.freeRects.push({
+            x: targetRect.x + placedW + k,
+            y: targetRect.y,
+            width: remW,
+            height: targetRect.height,
+          });
+        }
+        // Mảnh phía dưới (theo chiều rộng của chi tiết vừa đặt)
+        if (remH >= 10 && placedW >= 10) {
+          targetSheet.freeRects.push({
+            x: targetRect.x,
+            y: targetRect.y + placedH + k,
+            width: placedW,
+            height: remH,
+          });
+        }
+      }
     }
-
-    if (remBottomH > 0 && targetRect.width > 0) {
-      targetSheet.freeRects.push({
-        x: targetRect.x,
-        y: targetRect.y + placedH + k,
-        width: targetRect.width,
-        height: remBottomH,
-      });
-    }
-
-    // Lọc bỏ các khoảng trống quá nhỏ
-    targetSheet.freeRects = targetSheet.freeRects.filter(
-      (r) => r.width >= 10 && r.height >= 10
-    );
   }
 
   // 5. Tổng hợp kết quả đầu ra
