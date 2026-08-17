@@ -148,18 +148,13 @@ Giao diện tuân thủ chuẩn thiết kế **Glass-Pastel** (Tailwind CSS v4):
    - **Sơ đồ ghép cho từng kích thước gỗ cần tạo (Assembly & Joining Diagrams):**
      - Hiển thị bản vẽ ghép cho từng mặt gỗ cần tạo (cả tấm nguyên và tấm lớn cần ghép).
      - Trên từng mảng ván ghép, hiển thị rõ vệt nối (seam lines), số thứ tự tấm ván gốc chứa nó (**`Ván #1`**, **`Ván #2`**...) và kích thước thực tế của từng mảng (`DxR mm`).
+     - Hỗ trợ click để mở **Modal Xem Chi Tiết Tương Tác (`DiagramZoomModal`)** với tính năng đè chuột trái kéo rê (Pan) và lăn chuột phóng to/thu nhỏ (Zoom).
    - **Sơ đồ cắt trực quan SVG từng tấm ván (Interactive Stock Cutting Layout):**
      - Vẽ từng tấm ván gốc theo tỷ lệ chuẩn.
      - Các chi tiết cắt có mã màu pastel phân biệt, nhãn tên, kích thước `DxR`.
      - Vùng thừa (Scrap) hiển thị màu xám mờ và kích thước mẩu thừa.
-     - Hiển thị đường nét cưa guillotine.
-   - **Nút tiện ích:** Tải ảnh sơ đồ / In kết quả / Sao chép danh sách mua vật tư (BOM).
-     - Thẻ số lượng ván gốc cần mua (phân loại rõ từng kích thước).
-     - Tỷ lệ tận dụng gỗ (Efficiency %).
-     - Tổng diện tích gỗ và số đường cắt.
-   - **Sơ đồ cắt trực quan SVG từng tấm ván (Interactive Stock Cutting Layout):**
-     - Vẽ từng tấm ván gốc theo tỷ lệ chuẩn.
-     - Các chi tiết cắt có mã màu pastel phân biệt, nhãn tên, kích thước `DxR`.
+     - Hiển thị đường nét cưa guillotine (đã loại bỏ thanh hiển thị tọa độ đang chọn phía dưới).
+     - Hỗ trợ click để mở **Modal Xem Chi Tiết Tương Tác (`DiagramZoomModal`)** có Pan & Zoom.
      - Vùng thừa (Scrap) hiển thị màu xám mờ và kích thước mẩu thừa.
      - Hiển thị đường nét cưa guillotine.
    - **Sơ đồ ghép ván lớn (Joined Panels Diagram):**
