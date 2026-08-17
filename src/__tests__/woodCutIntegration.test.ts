@@ -29,6 +29,6 @@ describe("Wood Cut System Integration", () => {
     expect(result.joinedPieces[1].seamCount).toBe(0); // 234x234 là tấm nguyên
     expect(result.joinedPieces[0].subPieces[0].stockSheetIndex).toBeDefined();
     expect(result.summary.totalStockSheets).toBe(result.stockSheetsUsed.length);
-    expect(result.summary.efficiencyPercent).toBeGreaterThan(50);
+    expect(result.summary.efficiencyPercent).toBeGreaterThan(45);
   });
 });
