@@ -10,11 +10,11 @@ interface Props {
 export default function WoodCutSummary({ result }: Props) {
   if (!result || result.stockSheetsUsed.length === 0) {
     return (
-      <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+      <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
         <span className="text-3xl block mb-2">🪚</span>
-        <p className="text-sm font-semibold">Chưa có kết quả tính toán</p>
+        <p className="text-sm font-bold text-slate-700">Chưa có kết quả tính toán</p>
         <p className="text-xs text-slate-400 mt-1">
-          Nhập kích thước ván gốc và các mặt gỗ cần làm ở bên trái, sau đó nhấn <strong>"Tính Toán Cắt Ván"</strong>.
+          Nhập kích thước ván gốc và các mặt gỗ cần làm ở phần thiết lập phía trên, sau đó nhấn <strong>"⚡ Tính Toán Cắt Ván"</strong>.
         </p>
       </div>
     );
@@ -23,55 +23,80 @@ export default function WoodCutSummary({ result }: Props) {
   const { summary } = result;
 
   return (
-    <div className="bg-white/80 backdrop-blur-lg rounded-2xl border border-white/60 shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <span>📊</span> Tổng Hợp Vật Tư Cần Mua (BOM)
-        </h3>
-        <span className="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-0.5 rounded-full">
-          Tổng cộng: {summary.totalStockSheets} tấm ván gốc
-        </span>
+    <div className="bg-white/90 backdrop-blur-lg rounded-3xl border border-white/80 shadow-sm p-6 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center font-black text-sm">
+            📊
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-800">
+              Tổng Hợp Vật Tư Cần Mua (BOM) & Hiệu Suất
+            </h3>
+            <p className="text-xs text-slate-500 font-medium">
+              Thống kê số lượng tấm ván gốc, tỷ lệ sử dụng và hao phí
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black text-violet-800 bg-violet-100/90 border border-violet-300 px-3 py-1.5 rounded-full shadow-xs">
+            Tổng cộng: {summary.totalStockSheets} tấm ván gốc cần mua
+          </span>
+        </div>
       </div>
 
-      {/* Grid thẻ chỉ số */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-1">
-        <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-2.5">
-          <div className="text-[11px] text-violet-600 font-semibold">Ván gốc cần mua</div>
-          <div className="text-lg font-extrabold text-violet-900 mt-0.5">
-            {summary.totalStockSheets} <span className="text-xs font-normal">tấm</span>
+      {/* Grid thẻ chỉ số trải rộng */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-violet-50 to-indigo-50/60 border border-violet-200/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-violet-700 font-bold uppercase tracking-wider">Ván gốc cần mua</span>
+            <span className="text-base">📦</span>
           </div>
-          <div className="text-[10px] text-violet-500 mt-0.5 truncate" title={Object.entries(summary.sheetBreakdown).map(([k, v]) => `${v} × ${k}`).join(", ")}>
-            {Object.entries(summary.sheetBreakdown).map(([k, v]) => `${v} × ${k}`).join(", ")}
+          <div className="text-2xl font-black text-violet-950 mt-2">
+            {summary.totalStockSheets} <span className="text-xs font-bold text-violet-700">tấm</span>
+          </div>
+          <div className="text-xs font-semibold text-violet-600 mt-1 pt-2 border-t border-violet-200/50">
+            {Object.entries(summary.sheetBreakdown).map(([k, v]) => `${v} × ${k} mm`).join(", ")}
           </div>
         </div>
 
-        <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-2.5">
-          <div className="text-[11px] text-emerald-600 font-semibold">Hiệu suất sử dụng</div>
-          <div className="text-lg font-extrabold text-emerald-900 mt-0.5">
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 border border-emerald-200/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Hiệu suất sử dụng</span>
+            <span className="text-base">🎯</span>
+          </div>
+          <div className="text-2xl font-black text-emerald-950 mt-2">
             {summary.efficiencyPercent}%
           </div>
-          <div className="text-[10px] text-emerald-600 mt-0.5">
-            Dùng: {summary.totalUsedArea} m² / {summary.totalStockArea} m²
+          <div className="text-xs font-semibold text-emerald-700 mt-1 pt-2 border-t border-emerald-200/50">
+            Đã dùng: {summary.totalUsedArea} m² / {summary.totalStockArea} m²
           </div>
         </div>
 
-        <div className="bg-orange-50/70 border border-orange-100 rounded-xl p-2.5">
-          <div className="text-[11px] text-orange-600 font-semibold">Hao phí / Gỗ thừa</div>
-          <div className="text-lg font-extrabold text-orange-900 mt-0.5">
-            {summary.totalWasteArea} <span className="text-xs font-normal">m²</span>
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-amber-800 font-bold uppercase tracking-wider">Hao phí / Gỗ thừa</span>
+            <span className="text-base">🪵</span>
           </div>
-          <div className="text-[10px] text-orange-500 mt-0.5">
-            Tận dụng làm mẩu nhỏ
+          <div className="text-2xl font-black text-amber-950 mt-2">
+            {summary.totalWasteArea} <span className="text-xs font-bold text-amber-700">m²</span>
+          </div>
+          <div className="text-xs font-semibold text-amber-700 mt-1 pt-2 border-t border-amber-200/50">
+            Được tận dụng làm các mẩu nhỏ
           </div>
         </div>
 
-        <div className="bg-sky-50/70 border border-sky-100 rounded-xl p-2.5">
-          <div className="text-[11px] text-sky-600 font-semibold">Số đường cắt & Ghép</div>
-          <div className="text-lg font-extrabold text-sky-900 mt-0.5">
-            {summary.totalCutsCount} <span className="text-xs font-normal">nhát cắt</span>
+        <div className="bg-gradient-to-br from-sky-50 to-blue-50/60 border border-sky-200/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-sky-700 font-bold uppercase tracking-wider">Số nhát cắt & Ghép</span>
+            <span className="text-base">🪚</span>
           </div>
-          <div className="text-[10px] text-sky-600 mt-0.5">
-            {summary.totalSeamsCount > 0 ? `${summary.totalSeamsCount} mối nối tấm lớn` : "Không cần ghép"}
+          <div className="text-2xl font-black text-sky-950 mt-2">
+            {summary.totalCutsCount} <span className="text-xs font-bold text-sky-700">đường cưa</span>
+          </div>
+          <div className="text-xs font-semibold text-sky-700 mt-1 pt-2 border-t border-sky-200/50">
+            {summary.totalSeamsCount > 0 ? `${summary.totalSeamsCount} mối nối ghép tấm lớn` : "100% tấm nguyên bản"}
           </div>
         </div>
       </div>

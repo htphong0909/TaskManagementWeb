@@ -31,8 +31,8 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
         width={diagram.targetLength}
         height={diagram.targetWidth}
         fill={isJoined ? "#fef3c7" : "#e0e7ff"}
-        stroke={isJoined ? "#d97706" : "#6366f1"}
-        strokeWidth={2}
+        stroke={isJoined ? "#d97706" : "#4f46e5"}
+        strokeWidth={2.5}
         rx={4}
       />
 
@@ -50,9 +50,9 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
               width={sp.length}
               height={sp.width}
               fill={isJoined ? "#fde68a" : "#c7d2fe"}
-              fillOpacity={0.85}
-              stroke={isJoined ? "#b45309" : "#4f46e5"}
-              strokeWidth={1.5}
+              fillOpacity={0.88}
+              stroke={isJoined ? "#b45309" : "#4338ca"}
+              strokeWidth={1.8}
               strokeDasharray={isJoined ? "5 3" : undefined}
             />
 
@@ -78,7 +78,7 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
                 dominantBaseline="middle"
                 fill={isJoined ? "#92400e" : "#3730a3"}
                 fontSize={Math.min(15, Math.max(9, sp.width / 7.5))}
-                fontWeight="600"
+                fontWeight="700"
               >
                 {sp.length} × {sp.width} mm
               </text>
@@ -93,38 +93,45 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
     <>
       <div
         onClick={() => setIsModalOpen(true)}
-        className={`backdrop-blur-md rounded-2xl border shadow-sm p-4 transition-all cursor-pointer group hover:shadow-md hover:scale-[1.005] ${
-          isJoined ? "bg-amber-50/70 border-amber-200/90 hover:border-amber-300" : "bg-indigo-50/50 border-indigo-200/70 hover:border-indigo-300"
+        className={`backdrop-blur-md rounded-2xl border shadow-sm p-4 transition-all cursor-pointer group hover:shadow-lg hover:scale-[1.01] flex flex-col justify-between ${
+          isJoined
+            ? "bg-amber-50/80 border-amber-200/90 hover:border-amber-400"
+            : "bg-indigo-50/60 border-indigo-200/80 hover:border-indigo-400"
         }`}
       >
-        <div className={`flex items-center justify-between mb-3 border-b pb-2 ${
-          isJoined ? "border-amber-200/60" : "border-indigo-100"
+        <div className={`flex items-center justify-between mb-3 border-b pb-2.5 ${
+          isJoined ? "border-amber-200/70" : "border-indigo-100"
         }`}>
-          <div className="flex items-center gap-2">
-            <span className="text-base">{isJoined ? "🧩" : "🪵"}</span>
-            <h4 className={`text-sm font-bold transition-colors ${
-              isJoined ? "text-amber-900 group-hover:text-amber-700" : "text-indigo-900 group-hover:text-indigo-700"
-            }`}>
-              {diagram.parentName} ({diagram.targetLength} × {diagram.targetWidth} mm)
-            </h4>
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">{isJoined ? "🧩" : "🪵"}</span>
+            <div>
+              <h4 className={`text-sm font-extrabold transition-colors ${
+                isJoined ? "text-amber-950 group-hover:text-amber-700" : "text-indigo-950 group-hover:text-indigo-700"
+              }`}>
+                {diagram.parentName}
+              </h4>
+              <span className="text-[11px] font-bold text-slate-600">
+                Kích thước: {diagram.targetLength} × {diagram.targetWidth} mm
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border shadow-xs ${
               isJoined
-                ? "text-amber-800 bg-amber-100/80 border-amber-300/80"
-                : "text-indigo-700 bg-indigo-100/60 border-indigo-200"
+                ? "text-amber-900 bg-amber-100/90 border-amber-300"
+                : "text-indigo-800 bg-indigo-100/80 border-indigo-200"
             }`}>
               {isJoined
-                ? `Ghép ${diagram.subPieces.length} mẩu (${diagram.seamCount} đường nối)`
-                : "Tấm nguyên (Không nối)"}
+                ? `Ghép ${diagram.subPieces.length} mẩu`
+                : "Tấm nguyên"}
             </span>
-            <span className="text-xs font-semibold text-slate-500 group-hover:text-violet-700 bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 shadow-xs">
+            <span className="text-xs font-bold text-slate-600 group-hover:text-violet-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs">
               🔍 Xem lớn
             </span>
           </div>
         </div>
 
-        <div className="w-full bg-white/90 rounded-xl border border-slate-200/80 p-2 flex items-center justify-center">
+        <div className="w-full bg-white/95 rounded-xl border border-slate-200/80 p-3 flex items-center justify-center">
           {renderSvg(false)}
         </div>
       </div>
@@ -139,7 +146,7 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
             ? `Cấu trúc ghép từ ${diagram.subPieces.length} mẩu ván con (${diagram.seamCount} đường nối ghép)`
             : "Mặt gỗ nguyên bản cắt trực tiếp từ ván gốc"
         }
-        badge={isJoined ? "Ghép tấm lớn" : "Tấm nguyên"}
+        badge={isJoined ? `Ghép ${diagram.subPieces.length} mẩu` : "Tấm nguyên"}
       >
         <div className="w-full bg-white/95 rounded-2xl border border-slate-300/80 p-6 shadow-2xl">
           {renderSvg(true)}

@@ -127,34 +127,27 @@ export interface CalculationResult {
 ```
 
 ### 3.2 Bố Cục Trang `/wood-cut`
-Giao diện tuân thủ chuẩn thiết kế **Glass-Pastel** (Tailwind CSS v4):
-1. **Header:**
-   - Tiêu đề: `🪚 Tối Ưu Cắt & Ghép Ván Gỗ` + mô tả ngắn gọn.
+Giao diện tuân thủ chuẩn thiết kế **Glass-Pastel** (Tailwind CSS v4) với luồng bố cục phân tầng rõ rệt:
+
+1. **Header (Sticky Top):**
+   - Tiêu đề: `🪚 Tối Ưu Cắt & Ghép Ván Gỗ` + mô tả.
    - Nút `[ 📋 Quản lý công việc ]` ở góc phải.
-2. **Khu vực Trái (Input Panel - 40% màn hình desktop):**
-   - **Thẻ Cài đặt & Ván Gốc (Stock Sheets):**
-     - Ô nhập Mạch cưa (Kerf) mm.
-     - Bảng danh sách ván gốc với các nút: Nút `+ Thêm ván gốc` trực quan để người dùng thêm tự do bất kỳ kích thước ván gốc nào (đã bỏ phần chọn nhanh preset).
-   - **Thẻ Danh Sách Mặt Gỗ Cần Làm (Required Pieces):**
-     - Tabs chuyển đổi: **Chế độ Bảng** (Table Input) và **Chế độ Nhập Nhanh** (Batch Text Paste).
-     - Hỗ trợ phân tích chuỗi text linh hoạt: `1110, 1230` hoặc `1110x1230 x2` hoặc `1110 1230`.
-     - Nút Thêm dòng, Nhân đôi, Xoá dòng, Checkbox "Cho phép xoay".
-   - Nút hành động chính: **`[ ⚡ Bắt đầu tính toán ]`** (Gradient tím-hồng nổi bật, phím tắt Enter).
-3. **Khu vực Phải (Result & Diagram Panel - 60% màn hình desktop):**
-   - **Thẻ Tổng quan Thống kê (Metrics Overview):**
-     - Thẻ số lượng ván gốc cần mua (phân loại rõ từng kích thước).
-     - Tỷ lệ tận dụng gỗ (Efficiency %).
-     - Tổng diện tích gỗ và số đường cắt.
-   - **Sơ đồ ghép cho từng kích thước gỗ cần tạo (Assembly & Joining Diagrams):**
-     - Hiển thị bản vẽ ghép cho từng mặt gỗ cần tạo (cả tấm nguyên và tấm lớn cần ghép).
-     - Trên từng mảng ván ghép, hiển thị rõ vệt nối (seam lines), số thứ tự tấm ván gốc chứa nó (**`Ván #1`**, **`Ván #2`**...) và kích thước thực tế của từng mảng (`DxR mm`).
-     - Hỗ trợ click để mở **Modal Xem Chi Tiết Tương Tác (`DiagramZoomModal`)** với tính năng đè chuột trái kéo rê (Pan) và lăn chuột phóng to/thu nhỏ (Zoom).
-   - **Sơ đồ cắt trực quan SVG từng tấm ván (Interactive Stock Cutting Layout):**
-     - Vẽ từng tấm ván gốc theo tỷ lệ chuẩn.
-     - Các chi tiết cắt có mã màu pastel phân biệt, nhãn tên, kích thước `DxR`.
-     - Vùng thừa (Scrap) hiển thị màu xám mờ và kích thước mẩu thừa.
-     - Hiển thị đường nét cưa guillotine (đã loại bỏ thanh hiển thị tọa độ đang chọn phía dưới).
-     - Hỗ trợ click để mở **Modal Xem Chi Tiết Tương Tác (`DiagramZoomModal`)** có Pan & Zoom.
+
+2. **Khu Vực 1: THIẾT LẬP ĐẦU VÀO (INPUT - Nằm trên cùng):**
+   - Card lớn viền kính bo tròn `rounded-3xl` chứa 2 cột song song:
+     - Cột trái (5/12): **Ván Gỗ Gốc (Khổ mua/có sẵn)** kèm ô nhập mạch cưa (Kerf) và nút `+ Thêm ván gốc`.
+     - Cột phải (7/12): **Mặt Gỗ Cần Làm** với 2 chế độ Bảng và Nhập nhanh (Batch Paste), nút `⚡ Tính Toán Cắt Ván`.
+
+3. **Khu Vực 2: KẾT QUẢ TÍNH TOÁN & SƠ ĐỒ THI CÔNG (OUTPUT - Nằm phía dưới, chiếm 100% chiều rộng):**
+   - **Thẻ Tổng Hợp Vật Tư (BOM Overview):** 4 thẻ chỉ số lớn trải rộng toàn màn hình.
+   - **Sơ Đồ Cấu Trúc & Ghép Từng Mặt Gỗ:**
+     - Tiêu đề to, phân cấp rõ rệt với biểu tượng `🧩`, badge số lượng nổi bật tông vàng cam ấm (Amber).
+     - Bố trí dạng Lưới Grid 2-3 cột rộng rãi.
+   - **Sơ Đồ Cắt Từng Tấm Ván Gốc:**
+     - Tiêu đề to, phân cấp rõ rệt với biểu tượng `🪚`, badge số lượng nổi bật tông tím indigo (Violet).
+     - Nền tấm ván gốc đổi sang tông màu gỗ sáng ấm pastel (`#fcf9f2`, viền `#dfd5c3`) sang trọng, dễ phân biệt mẩu thừa và chi tiết cắt.
+     - Bố trí dạng Lưới Grid 2 cột rộng rãi.
+   - Mỗi sơ đồ đều hỗ trợ click để mở **Modal Xem Chi Tiết Tương Tác (`DiagramZoomModal`)** với tính năng Pan & Zoom.
      - Vùng thừa (Scrap) hiển thị màu xám mờ và kích thước mẩu thừa.
      - Hiển thị đường nét cưa guillotine.
    - **Sơ đồ ghép ván lớn (Joined Panels Diagram):**
