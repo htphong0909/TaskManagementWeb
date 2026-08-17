@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import CardPopover from "@/components/CardPopover";
@@ -736,8 +737,21 @@ export default function BoardPage() {
             </div>
           </div>
         </div>
-        <div className="text-xs font-bold text-violet-700 uppercase tracking-widest bg-violet-50 border border-violet-100 px-3 py-1.5 rounded-full select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          ✨ HTPhongNAThy
+        <div className="flex items-center gap-2">
+          <Link
+            href="/wood-cut"
+            onClick={() => {
+              if (typeof window !== "undefined" && boardId) {
+                localStorage.setItem("last_active_board_id", boardId as string);
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-violet-50/80 hover:bg-violet-100 text-violet-700 border border-violet-200/80 rounded-xl font-bold text-xs transition-all shadow-sm hover:scale-[1.02] cursor-pointer"
+          >
+            <span>🪚</span> Tính ván gỗ
+          </Link>
+          <div className="text-xs font-bold text-violet-700 uppercase tracking-widest bg-violet-50 border border-violet-100 px-3 py-1.5 rounded-full select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            ✨ HTPhongNAThy
+          </div>
         </div>
       </div>
 
