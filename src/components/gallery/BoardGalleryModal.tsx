@@ -125,21 +125,32 @@ export default function BoardGalleryModal({
           );
         });
 
+        const fileId = driveData.fileId || driveData.id || null;
+        const directUrl = fileId
+          ? `/api/attachments/proxy?fileId=${fileId}`
+          : (driveData.webViewLink || driveData.url || "");
+
         // Insert into Supabase
         const { data, error } = await supabase
           .from("board_images")
           .insert({
             board_id: boardId,
             name: file.name,
-            url: driveData.webViewLink || driveData.url || "",
-            file_id: driveData.fileId || driveData.id || null,
+            url: directUrl,
+            file_id: fileId,
             mime_type: file.type,
             size: file.size,
           })
           .select()
           .single();
 
-        if (!error && data) {
+        if (error) {
+          console.error("Lỗi Supabase insert board_images:", error);
+          alert(`Lỗi lưu ảnh vào Supabase: ${error.message}`);
+          throw error;
+        }
+
+        if (data) {
           setImages((prev) => [data as BoardImage, ...prev]);
           onImageCountChange?.(images.length + 1);
         }
