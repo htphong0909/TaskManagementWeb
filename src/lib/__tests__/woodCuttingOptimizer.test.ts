@@ -31,13 +31,31 @@ describe("woodCuttingOptimizer", () => {
     expect(result.summary.totalStockSheets).toBe(result.stockSheetsUsed.length);
   });
 
-  it("respects allowRotation = false for grain direction", () => {
-    const rigidStock: StockSheetInput[] = [{ id: "s1", length: 1000, width: 500 }];
-    const rigidPieces: RequiredPieceInput[] = [
-      { id: "p1", name: "Tấm dọc", length: 400, width: 800, quantity: 1, allowRotation: false }
+  it("automatically rotates pieces 90 degrees to fit stock sheet without error", () => {
+    const stockSheets: StockSheetInput[] = [
+      { id: "s1", length: 1200, width: 600 }
     ];
+    // A piece 500x800 cannot fit normal (800 > 600) but fits rotated (800 <= 1200 and 500 <= 600)
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Tấm ngang", length: 500, width: 800, quantity: 1, allowRotation: true }
+    ];
+    const result = calculateWoodCut(stockSheets, pieces, { kerf: 3 });
+    expect(result.stockSheetsUsed).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces[0].rotated).toBe(true);
+  });
 
-    const result = calculateWoodCut(rigidStock, rigidPieces, { kerf: 0 });
-    expect(result.stockSheetsUsed.length).toBeGreaterThan(0);
+  it("filters out invalid zero or negative dimensions safely without throwing", () => {
+    const stockSheets: StockSheetInput[] = [
+      { id: "s1", length: 1200, width: 600 }
+    ];
+    const pieces: RequiredPieceInput[] = [
+      { id: "p-invalid", name: "Tấm dở dang", length: 0, width: 0, quantity: 1, allowRotation: true },
+      { id: "p-valid", name: "Tấm hợp lệ", length: 300, width: 300, quantity: 1, allowRotation: true },
+    ];
+    const result = calculateWoodCut(stockSheets, pieces, { kerf: 3 });
+    expect(result.stockSheetsUsed).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces[0].name).toBe("Tấm hợp lệ");
   });
 });

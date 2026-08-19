@@ -43,7 +43,14 @@ export function calculateWoodCut(
 ): CalculationResult {
   const config: CalculationConfig = { ...DEFAULT_CONFIG, ...customConfig };
 
-  if (stockSheets.length === 0 || requiredPieces.length === 0) {
+  const validStock = (stockSheets || []).filter(
+    (s) => s && s.length > 0 && s.width > 0
+  );
+  const validPieces = (requiredPieces || [])
+    .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0)
+    .map((p) => ({ ...p, allowRotation: true }));
+
+  if (validStock.length === 0 || validPieces.length === 0) {
     return {
       stockSheetsUsed: [],
       joinedPieces: [],
@@ -63,8 +70,8 @@ export function calculateWoodCut(
 
   // 1. Phân rã các tấm vượt khổ
   const { flatCutItems, joinedDiagrams } = decomposeOversizedPieces(
-    requiredPieces,
-    stockSheets,
+    validPieces,
+    validStock,
     config
   );
 
@@ -91,7 +98,7 @@ export function calculateWoodCut(
 
   // Hàm mở 1 tấm ván gốc mới
   const openNewSheet = (preferredStock?: StockSheetInput): StockSheetState => {
-    const stock = preferredStock || stockSheets[0];
+    const stock = preferredStock || validStock[0];
     const newSheet: StockSheetState = {
       stockType: stock,
       length: stock.length,
@@ -106,10 +113,14 @@ export function calculateWoodCut(
 
   // 3. Xếp từng tấm vào khoảng trống tự do
   for (const item of itemsToPack) {
-    const isSub = "parentId" in item;
-    const itemName = "parentName" in item ? `${item.parentName} (Tấm con)` : (item as RequiredPieceInput).name;
-    const itemColor = colorMap.get(isSub ? (item as SubPiece).parentId : (item as RequiredPieceInput).name) || PASTEL_COLORS[0];
-    const allowRotation = item.allowRotation;
+    const isSub = Boolean("parentId" in item && item.id.startsWith("sub-"));
+    const itemName = "parentName" in item
+      ? isSub
+        ? `${item.parentName} (Tấm con)`
+        : item.parentName
+      : (item as RequiredPieceInput).name;
+    const itemColor = colorMap.get("parentId" in item ? (item as SubPiece).parentId : (item as RequiredPieceInput).name) || PASTEL_COLORS[0];
+    const allowRotation = true;
 
     let bestSheetIdx = -1;
     let bestRectIdx = -1;
@@ -153,11 +164,11 @@ export function calculateWoodCut(
     // Nếu không vừa trong bất kỳ tấm đã mở nào -> Mở tấm mới
     if (bestSheetIdx === -1) {
       // Tìm loại ván gốc phù hợp nhất
-      const suitableStock = stockSheets.find((s) => {
+      const suitableStock = validStock.find((s) => {
         const fitN = item.length <= s.length && item.width <= s.width;
         const fitR = allowRotation && item.width <= s.length && item.length <= s.width;
         return fitN || fitR;
-      }) || stockSheets[0];
+      }) || validStock[0];
 
       const newSheet = openNewSheet(suitableStock);
       bestSheetIdx = activeSheets.length - 1;
@@ -302,7 +313,7 @@ export function calculateWoodCut(
     });
   });
 
-  const totalRequiredArea = requiredPieces.reduce(
+  const totalRequiredArea = validPieces.reduce(
     (acc, p) => acc + (p.length * p.width * p.quantity) / 1_000_000,
     0
   );

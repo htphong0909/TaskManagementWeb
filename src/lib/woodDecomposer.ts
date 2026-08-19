@@ -359,7 +359,7 @@ export function decomposeOversizedPieces(
         piece.length,
         piece.width,
         stockSheets,
-        piece.allowRotation,
+        true,
         config
       );
 
@@ -371,7 +371,7 @@ export function decomposeOversizedPieces(
         relY: sp.relY,
         length: sp.length,
         width: sp.width,
-        allowRotation: piece.allowRotation,
+        allowRotation: true,
       }));
 
       subPieces.forEach((sp) => flatCutItems.push(sp));
