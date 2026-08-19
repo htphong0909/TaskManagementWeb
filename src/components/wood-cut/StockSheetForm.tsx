@@ -2,6 +2,7 @@
 
 import React from "react";
 import { StockSheetInput, CalculationConfig } from "@/types/woodCut";
+import NumericInput from "./NumericInput";
 
 interface Props {
   stockSheets: StockSheetInput[];
@@ -41,13 +42,14 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
         <div className="flex items-center gap-2">
           <label className="text-xs text-slate-600 font-semibold flex items-center gap-1">
             Lưỡi cưa (Kerf):
-            <input
-              type="number"
-              min="0"
-              max="20"
+            <NumericInput
               value={config.kerf}
-              onChange={(e) => setConfig({ ...config, kerf: parseFloat(e.target.value) || 0 })}
+              onChange={(val) => setConfig({ ...config, kerf: val })}
+              min={0}
+              max={20}
+              defaultValue={3}
               className="w-14 px-1.5 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
+              ariaLabel="Độ dày lưỡi cưa"
             />
             mm
           </label>
@@ -67,20 +69,24 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               className="flex-1 min-w-[100px] px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:border-violet-400"
             />
             <div className="flex items-center gap-1">
-              <input
-                type="number"
+              <NumericInput
                 value={s.length}
-                onChange={(e) => handleUpdate(s.id, "length", Math.max(1, parseInt(e.target.value) || 0))}
+                onChange={(val) => handleUpdate(s.id, "length", val)}
+                min={1}
+                defaultValue={1200}
                 className="w-18 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                 placeholder="Dài"
+                ariaLabel={`Chiều dài ${s.name || "ván gốc"}`}
               />
               <span className="text-slate-400 text-xs">×</span>
-              <input
-                type="number"
+              <NumericInput
                 value={s.width}
-                onChange={(e) => handleUpdate(s.id, "width", Math.max(1, parseInt(e.target.value) || 0))}
+                onChange={(val) => handleUpdate(s.id, "width", val)}
+                min={1}
+                defaultValue={600}
                 className="w-18 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                 placeholder="Rộng"
+                ariaLabel={`Chiều rộng ${s.name || "ván gốc"}`}
               />
               <span className="text-slate-400 text-[10px]">mm</span>
             </div>
