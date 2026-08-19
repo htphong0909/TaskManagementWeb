@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { RequiredPieceInput } from "@/types/woodCut";
 import { parseRequiredPiecesText, formatPiecesToText } from "@/lib/woodCutParser";
+import NumericInput from "./NumericInput";
 
 interface Props {
   pieces: RequiredPieceInput[];
@@ -134,41 +135,37 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                 className="flex-1 min-w-[90px] px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:border-violet-400"
               />
               <div className="flex items-center gap-1">
-                <input
-                  type="number"
+                <NumericInput
                   value={p.length}
-                  onChange={(e) => handleUpdate(p.id, "length", Math.max(1, parseInt(e.target.value) || 0))}
+                  onChange={(val) => handleUpdate(p.id, "length", val)}
+                  min={1}
+                  defaultValue={100}
                   className="w-16 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                   placeholder="Dài"
+                  ariaLabel={`Chiều dài ${p.name}`}
                 />
                 <span className="text-slate-400 text-xs">×</span>
-                <input
-                  type="number"
+                <NumericInput
                   value={p.width}
-                  onChange={(e) => handleUpdate(p.id, "width", Math.max(1, parseInt(e.target.value) || 0))}
+                  onChange={(val) => handleUpdate(p.id, "width", val)}
+                  min={1}
+                  defaultValue={100}
                   className="w-16 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                   placeholder="Rộng"
+                  ariaLabel={`Chiều rộng ${p.name}`}
                 />
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-slate-400 text-xs">SL:</span>
-                <input
-                  type="number"
-                  min="1"
+                <NumericInput
                   value={p.quantity}
-                  onChange={(e) => handleUpdate(p.id, "quantity", Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(val) => handleUpdate(p.id, "quantity", val)}
+                  min={1}
+                  defaultValue={1}
                   className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
+                  ariaLabel={`Số lượng ${p.name}`}
                 />
               </div>
-              <label className="flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer" title="Cho phép xoay 90° để tối ưu ván">
-                <input
-                  type="checkbox"
-                  checked={p.allowRotation}
-                  onChange={(e) => handleUpdate(p.id, "allowRotation", e.target.checked)}
-                  className="rounded text-violet-600 focus:ring-violet-400"
-                />
-                Xoay
-              </label>
               {pieces.length > 1 && (
                 <button
                   type="button"

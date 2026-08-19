@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import CardPopover from "@/components/CardPopover";
 import BoardColumn from "@/components/BoardColumn";
 import CardDetailModal from "@/components/CardDetailModal";
+import BoardGalleryModal from "@/components/gallery/BoardGalleryModal";
 
 interface List {
   id: string;
@@ -37,6 +38,10 @@ export default function BoardPage() {
   const [editDateVal, setEditDateVal] = useState("");
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  // States quản lý Thư viện ảnh (Gallery)
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryImageCount, setGalleryImageCount] = useState<number>(0);
 
   // States quản lý Cột (List)
   const [isAddingList, setIsAddingList] = useState(false);
@@ -149,6 +154,15 @@ export default function BoardPage() {
         setCards(cardData || []);
       } else {
         setCards([]);
+      }
+
+      // 4. Tải số lượng ảnh trong thư viện của Board
+      const { count: imageCount } = await supabase
+        .from("board_images")
+        .select("*", { count: "exact", head: true })
+        .eq("board_id", boardId);
+      if (imageCount !== null && imageCount !== undefined) {
+        setGalleryImageCount(imageCount);
       }
     } catch (err) {
       console.error("Lỗi tải dữ liệu Board:", err);
@@ -707,8 +721,21 @@ export default function BoardPage() {
                 )
               )}
             </div>
-            <div className="flex items-baseline gap-3">
+            <div className="flex items-center gap-3">
               <h2 className="text-base font-bold text-slate-800 select-none mt-1 leading-none">{boardTitle || "Bảng công việc"}</h2>
+              <button
+                type="button"
+                onClick={() => setIsGalleryOpen(true)}
+                className="mt-1 flex items-center gap-1.5 px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200/80 rounded-xl font-bold text-xs shadow-xs hover:shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
+                title="Mở thư viện ảnh của bảng này"
+              >
+                <span>🖼️</span> Thư viện ảnh
+                {galleryImageCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-violet-600 text-white rounded-full text-[10px] font-extrabold leading-none">
+                    {galleryImageCount}
+                  </span>
+                )}
+              </button>
               {(() => {
                 const completedCount = cards.filter((c) => c.is_completed).length;
                 const inProgressCount = cards.filter((c) => c.is_in_progress).length;
@@ -944,6 +971,17 @@ export default function BoardPage() {
           onCardUpdated={fetchBoardData}
         />,
         document.body
+      )}
+
+      {/* Thư viện ảnh của Board */}
+      {isGalleryOpen && mounted && (
+        <BoardGalleryModal
+          boardId={boardId}
+          boardTitle={boardTitle}
+          isOpen={isGalleryOpen}
+          onClose={() => setIsGalleryOpen(false)}
+          onImageCountChange={(count) => setGalleryImageCount(count)}
+        />
       )}
     </div>
   );
