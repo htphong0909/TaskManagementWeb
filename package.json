@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:cp": "npx tsx scripts/stress-test-cp.ts"
   },
+
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
     "marked": "^18.0.6",
