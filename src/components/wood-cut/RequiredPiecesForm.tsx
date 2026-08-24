@@ -54,6 +54,13 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
     setMode("batch");
   };
 
+  const allRotated = pieces.length > 0 && pieces.every((p) => p.allowRotation !== false);
+
+  const handleToggleAllRotation = () => {
+    const nextState = !allRotated;
+    setPieces(pieces.map((p) => ({ ...p, allowRotation: nextState })));
+  };
+
   return (
     <div className="bg-white/70 backdrop-blur-lg rounded-2xl border border-white/60 shadow-sm p-4">
       {/* Header Tabs */}
@@ -61,38 +68,50 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <span>📐</span> Mặt Gỗ Cần Làm ({pieces.length} loại)
         </h2>
-        <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60">
-          <button
-            type="button"
-            onClick={() => setMode("table")}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-              mode === "table" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            Bảng nhập
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenBatch}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-              mode === "batch" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            Nhập nhanh (Paste)
-          </button>
+        <div className="flex items-center gap-2">
+          {mode === "table" && pieces.length > 0 && (
+            <button
+              type="button"
+              onClick={handleToggleAllRotation}
+              className="text-[11px] font-semibold text-slate-600 hover:text-violet-700 bg-slate-100/90 hover:bg-slate-200/80 px-2 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-200/60"
+              title={allRotated ? "Khóa hướng vân gỗ cho tất cả (không xoay)" : "Cho phép xoay 90 độ tất cả để tối ưu ván"}
+            >
+              <span>🔄</span> {allRotated ? "Tắt xoay tất cả" : "Bật xoay tất cả"}
+            </button>
+          )}
+          <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60">
+            <button
+              type="button"
+              onClick={() => setMode("table")}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                mode === "table" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Bảng nhập
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenBatch}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                mode === "batch" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Nhập nhanh (Paste)
+            </button>
+          </div>
         </div>
       </div>
 
       {mode === "batch" ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">
-            Dán danh sách kích thước (mỗi dòng một tấm, định dạng <code>1110, 1230</code> hoặc <code>234x234 x2</code>):
+            Dán danh sách kích thước (mỗi dòng một tấm, định dạng <code>1110, 1230</code> hoặc <code>234x234 x2 !r</code> để khóa vân gỗ):
           </p>
           <textarea
             rows={7}
             value={batchText}
             onChange={(e) => setBatchText(e.target.value)}
-            placeholder="1110, 1230&#10;234, 234&#10;500x600 x2"
+            placeholder="1110, 1230&#10;234, 234&#10;500x600 x2 !r"
             className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200/50"
           />
           {batchErrors.length > 0 && (
@@ -124,7 +143,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
           {pieces.map((p, idx) => (
             <div
               key={p.id}
-              className="flex items-center gap-2 bg-slate-50/70 p-2 rounded-xl border border-slate-100 hover:border-violet-200 transition-all"
+              className="flex items-center gap-2 bg-slate-50/70 p-2 rounded-xl border border-slate-100 hover:border-violet-200 transition-all flex-wrap sm:flex-nowrap"
             >
               <span className="text-xs font-bold text-slate-400 w-4">{idx + 1}.</span>
               <input
@@ -166,6 +185,20 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                   ariaLabel={`Số lượng ${p.name}`}
                 />
               </div>
+              <label
+                className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-medium text-slate-600 hover:text-violet-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80"
+                title="Cho phép xoay 90° (bỏ tick để giữ đúng chiều vân gỗ)"
+              >
+                <input
+                  type="checkbox"
+                  checked={p.allowRotation !== false}
+                  onChange={(e) => handleUpdate(p.id, "allowRotation", e.target.checked)}
+                  aria-label={`Cho phép xoay 90° ${p.name}`}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-violet-600 focus:ring-violet-400 accent-violet-600 cursor-pointer"
+                />
+                <span>Xoay 🔄</span>
+              </label>
+
               {pieces.length > 1 && (
                 <button
                   type="button"
@@ -197,6 +230,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
           </div>
         </div>
       )}
+
     </div>
   );
 }
