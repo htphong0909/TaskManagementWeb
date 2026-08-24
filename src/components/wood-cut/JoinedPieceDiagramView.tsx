@@ -40,6 +40,18 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
       {diagram.subPieces.map((sp, idx) => {
         const px = padding + sp.relX;
         const py = padding + sp.relY;
+        const cx = px + sp.length / 2;
+        const cy = py + sp.width / 2;
+
+        const isRotated = sp.rotatedOnSheet === true;
+        const sheetLabel = sp.stockSheetName || (sp.stockSheetIndex ? `Ván ${sp.stockSheetIndex}` : `Ván ${idx + 1}`);
+
+        // Kích thước hiệu dụng theo hướng chữ
+        const effW = isRotated ? sp.width : sp.length;
+        const effH = isRotated ? sp.length : sp.width;
+
+        const titleFontSize = Math.min(20, Math.max(10, effH / 6, effW / 14));
+        const dimFontSize = Math.min(14, Math.max(9, effH / 8.5, effW / 18));
 
         return (
           <g key={sp.id}>
@@ -56,33 +68,36 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
               strokeDasharray={isJoined ? "5 3" : undefined}
             />
 
-            {/* Chữ hiển thị Số thứ tự ván gốc (Ván #X) */}
-            <text
-              x={px + sp.length / 2}
-              y={py + sp.width / 2 - (sp.width > 50 ? 9 : 0)}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill={isJoined ? "#78350f" : "#1e1b4b"}
-              fontSize={Math.min(20, Math.max(11, sp.width / 5.5))}
-              fontWeight="800"
-            >
-              {sp.stockSheetIndex ? `Ván #${sp.stockSheetIndex}` : `Mảnh #${idx + 1}`}
-            </text>
-
-            {/* Chữ hiển thị Kích thước từng mẩu */}
-            {sp.width > 45 && (
+            {/* Khối chữ hiển thị (tự động xoay theo chiều ván gốc nếu mẩu bị xoay 90 độ) */}
+            <g transform={isRotated ? `rotate(-90 ${cx} ${cy})` : undefined}>
+              {/* Tên ván gốc (ví dụ: Ván 1, Ván 2) kèm icon xoay ⟲ */}
               <text
-                x={px + sp.length / 2}
-                y={py + sp.width / 2 + 11}
+                x={cx}
+                y={cy - (effH > 48 ? 8 : 0)}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill={isJoined ? "#92400e" : "#3730a3"}
-                fontSize={Math.min(15, Math.max(9, sp.width / 7.5))}
-                fontWeight="700"
+                fill={isJoined ? "#78350f" : "#1e1b4b"}
+                fontSize={titleFontSize}
+                fontWeight="800"
               >
-                {sp.length} × {sp.width} mm
+                {sheetLabel} {isRotated ? "⟲" : ""}
               </text>
-            )}
+
+              {/* Kích thước mẩu */}
+              {effH > 40 && (
+                <text
+                  x={cx}
+                  y={cy + (effH > 48 ? 12 : 9)}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={isJoined ? "#92400e" : "#3730a3"}
+                  fontSize={dimFontSize}
+                  fontWeight="700"
+                >
+                  {sp.length} × {sp.width} mm {isRotated ? "(Xoay 90°)" : ""}
+                </text>
+              )}
+            </g>
           </g>
         );
       })}

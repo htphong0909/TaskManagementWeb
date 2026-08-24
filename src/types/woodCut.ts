@@ -35,7 +35,9 @@ export interface SubPiece {
   width: number;
   allowRotation: boolean;
   orientation?: PieceOrientation;
-  stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (Ván #1, Ván #2...)
+  stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (1, 2...)
+  stockSheetName?: string;  // Tên ván gốc (Ván 1, Ván 2...)
+  rotatedOnSheet?: boolean; // true nếu mẩu này khi cắt trên ván gốc bị xoay 90 độ
 }
 
 export interface PlacedPiece {

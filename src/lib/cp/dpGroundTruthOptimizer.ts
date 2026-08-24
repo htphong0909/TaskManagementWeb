@@ -384,6 +384,29 @@ export function solveGroundTruthDP(
     curMask = curMask ^ sub;
   }
 
+  // Map stockSheetIndex, stockSheetName, và rotated cho từng SubPiece trong joinedDiagrams
+  const pieceSheetMap = new Map<string, { sheetIndex: number; sheetName: string; rotated: boolean }>();
+  placedSheets.forEach((sheet) => {
+    sheet.placedPieces.forEach((p) => {
+      pieceSheetMap.set(p.id, {
+        sheetIndex: sheet.sheetIndex,
+        sheetName: sheet.stockType.name ? `${sheet.stockType.name} (Ván ${sheet.sheetIndex})` : `Ván ${sheet.sheetIndex}`,
+        rotated: p.rotated,
+      });
+    });
+  });
+
+  joinedDiagrams.forEach((diagram) => {
+    diagram.subPieces.forEach((sp) => {
+      const info = pieceSheetMap.get(sp.id);
+      if (info) {
+        sp.stockSheetIndex = info.sheetIndex;
+        sp.stockSheetName = info.sheetName;
+        sp.rotatedOnSheet = info.rotated;
+      }
+    });
+  });
+
   const totalRequiredArea = validPieces.reduce(
     (acc, p) => acc + (p.length * p.width * p.quantity) / 1_000_000,
     0

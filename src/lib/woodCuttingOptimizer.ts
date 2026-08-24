@@ -437,17 +437,26 @@ export function calculateWoodCut(
     };
   });
 
-  // Map stockSheetIndex cho từng SubPiece trong joinedDiagrams
-  const pieceSheetMap = new Map<string, number>();
+  // Map stockSheetIndex, stockSheetName, và rotated cho từng SubPiece trong joinedDiagrams
+  const pieceSheetMap = new Map<string, { sheetIndex: number; sheetName: string; rotated: boolean }>();
   stockSheetsUsed.forEach((sheet) => {
     sheet.placedPieces.forEach((p) => {
-      pieceSheetMap.set(p.id, sheet.sheetIndex);
+      pieceSheetMap.set(p.id, {
+        sheetIndex: sheet.sheetIndex,
+        sheetName: sheet.stockType.name ? `${sheet.stockType.name} (Ván ${sheet.sheetIndex})` : `Ván ${sheet.sheetIndex}`,
+        rotated: p.rotated,
+      });
     });
   });
 
   joinedDiagrams.forEach((diagram) => {
     diagram.subPieces.forEach((sp) => {
-      sp.stockSheetIndex = pieceSheetMap.get(sp.id);
+      const info = pieceSheetMap.get(sp.id);
+      if (info) {
+        sp.stockSheetIndex = info.sheetIndex;
+        sp.stockSheetName = info.sheetName;
+        sp.rotatedOnSheet = info.rotated;
+      }
     });
   });
 
