@@ -162,7 +162,7 @@ export function runDPStressBenchmark(
       pieces: testCase.pieces.map((p) => ({
         length: p.length,
         width: p.width,
-        allowRotation: p.allowRotation,
+        allowRotation: p.allowRotation !== false,
       })),
     };
 

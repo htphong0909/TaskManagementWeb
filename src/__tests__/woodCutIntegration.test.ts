@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseRequiredPiecesText } from "@/lib/woodCutParser";
 import { calculateWoodCut } from "@/lib/woodCuttingOptimizer";
+import { solveGroundTruthDP } from "@/lib/cp/dpGroundTruthOptimizer";
 import { StockSheetInput } from "@/types/woodCut";
 
 describe("Wood Cut System Integration", () => {
@@ -30,5 +31,36 @@ describe("Wood Cut System Integration", () => {
     expect(result.joinedPieces[0].subPieces[0].stockSheetIndex).toBeDefined();
     expect(result.summary.totalStockSheets).toBe(result.stockSheetsUsed.length);
     expect(result.summary.efficiencyPercent).toBeGreaterThan(45);
+  });
+
+  it("handles the user image test case with orientations using both Heuristic and Exact DP", () => {
+    const rawInput = `
+      1600, 2700
+      410, 2700 !doc
+      1250, 800 !ngang
+      60, 1700
+      400, 1830, 2 !doc
+      400, 1250
+    `;
+    const { pieces, errors } = parseRequiredPiecesText(rawInput);
+    expect(errors).toHaveLength(0);
+    expect(pieces).toHaveLength(6);
+
+    const stockSheets: StockSheetInput[] = [
+      { id: "s1", name: "Ván 2440x1220", length: 2440, width: 1220 }
+    ];
+
+    // 1. Heuristic
+    const heurResult = calculateWoodCut(stockSheets, pieces, { kerf: 3 });
+    expect(heurResult.stockSheetsUsed.length).toBeGreaterThan(0);
+    expect(heurResult.summary.totalStockSheets).toBe(4);
+
+    // 2. Exact DP
+    const dpResult = solveGroundTruthDP(stockSheets, pieces, { kerf: 3 });
+    expect(dpResult.stockSheetsUsed.length).toBeGreaterThan(0);
+    expect(dpResult.summary.totalStockSheets).toBe(4);
+
+    // Both match optimal sheets
+    expect(heurResult.summary.totalStockSheets).toBe(dpResult.summary.totalStockSheets);
   });
 });
