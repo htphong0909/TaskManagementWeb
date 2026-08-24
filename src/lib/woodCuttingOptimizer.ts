@@ -108,11 +108,12 @@ function scoreFit(
   }
 }
 
-function packCandidate(
+export function packCandidate(
   items: (RequiredPieceInput | SubPiece)[],
   validStock: StockSheetInput[],
   config: CalculationConfig,
   variant: HeuristicVariant,
+
   colorMap: Map<string, string>
 ): StockSheetState[] {
   const sortedItems = sortItems(items, variant.sort);

@@ -9,6 +9,8 @@ import {
   SubPiece,
 } from "@/types/woodCut";
 import { decomposeOversizedPieces } from "../woodDecomposer";
+import { packCandidate } from "../woodCuttingOptimizer";
+
 
 const DEFAULT_CONFIG: CalculationConfig = {
   kerf: 3,
@@ -77,81 +79,116 @@ function tryFitSingleSheetGuillotine(
   stock: StockSheetInput,
   kerf: number
 ): PlacedPiece[] | null {
-  // Sắp xếp các chi tiết trong tập con theo diện tích giảm dần
-  const sortedIdxs = [...pieceIndices].sort(
-    (a, b) => items[b].length * items[a].width - items[a].length * items[b].width
-  );
+  const subItems = pieceIndices.map((idx) => items[idx]);
 
+  // Bước 1: Thử nghiệm nhanh qua các bộ Multi-Heuristic
+  const sortVariants: ("AREA_DESC" | "MAX_DIM_DESC" | "PERIMETER_DESC" | "WIDTH_DESC")[] = [
+    "AREA_DESC",
+    "MAX_DIM_DESC",
+    "PERIMETER_DESC",
+    "WIDTH_DESC",
+  ];
+  const fitRules: ("BSSF" | "BLSF" | "BAF")[] = ["BSSF", "BLSF", "BAF"];
+  const splitRules: ("SAS" | "LAS")[] = ["SAS", "LAS"];
+
+  for (const s of sortVariants) {
+    for (const f of fitRules) {
+      for (const sp of splitRules) {
+        const simSheets = packCandidate(
+          subItems,
+          [stock],
+          { kerf, minSubPieceSize: 50 },
+          { sort: s, fit: f, split: sp },
+          new Map()
+        );
+        if (simSheets.length === 1 && simSheets[0].placedPieces.length === subItems.length) {
+          return simSheets[0].placedPieces.map((p) => ({ ...p }));
+        }
+      }
+    }
+  }
+
+  // Bước 2: Backtracking tìm kiếm chính xác nếu Heuristic chưa tìm ra
+  const unplacedMask = (1 << pieceIndices.length) - 1;
   const placed: PlacedPiece[] = [];
   const initialRect: FreeRectangle = { x: 0, y: 0, width: stock.length, height: stock.width };
   const freeRects: FreeRectangle[] = [initialRect];
 
-  function search(step: number): boolean {
-    if (step === sortedIdxs.length) {
+  function search(remMask: number): boolean {
+    if (remMask === 0) {
       return true;
     }
 
-    const itemIdx = sortedIdxs[step];
-    const item = items[itemIdx];
-    const isSub = Boolean("parentId" in item && item.id.startsWith("sub-"));
-    const itemName = "parentName" in item
-      ? isSub
-        ? `${item.parentName} (Tấm con)`
-        : item.parentName
-      : (item as RequiredPieceInput).name;
-    const allowRotation = item.allowRotation !== false;
+    // Chọn chi tiết chưa xếp
+    for (let i = 0; i < pieceIndices.length; i++) {
+      if ((remMask & (1 << i)) === 0) continue;
 
-    const orientations = [{ w: item.length, h: item.width, rotated: false }];
-    if (allowRotation && item.length !== item.width) {
-      orientations.push({ w: item.width, h: item.length, rotated: true });
-    }
+      const itemIdx = pieceIndices[i];
+      const item = items[itemIdx];
+      const isSub = Boolean("parentId" in item && item.id.startsWith("sub-"));
+      const itemName = "parentName" in item
+        ? isSub
+          ? `${item.parentName} (Tấm con)`
+          : item.parentName
+        : (item as RequiredPieceInput).name;
+      const allowRotation = item.allowRotation !== false;
 
-    for (let rIdx = 0; rIdx < freeRects.length; rIdx++) {
-      const rect = freeRects[rIdx];
+      const orientations = [{ w: item.length, h: item.width, rotated: false }];
+      if (allowRotation && item.length !== item.width) {
+        orientations.push({ w: item.width, h: item.length, rotated: true });
+      }
 
-      for (const orient of orientations) {
-        if (orient.w <= rect.width && orient.h <= rect.height) {
-          for (const hFirst of [true, false]) {
-            const placedPiece: PlacedPiece = {
-              id: item.id,
-              name: itemName,
-              isSubPiece: isSub,
-              parentId: isSub ? (item as SubPiece).parentId : undefined,
-              parentName: isSub ? (item as SubPiece).parentName : undefined,
-              x: rect.x,
-              y: rect.y,
-              length: orient.w,
-              width: orient.h,
-              rotated: orient.rotated,
-              color: "#a78bfa",
-            };
+      for (let rIdx = 0; rIdx < freeRects.length; rIdx++) {
+        const rect = freeRects[rIdx];
 
-            const newSplits = splitRect(rect, orient.w, orient.h, kerf, hFirst);
+        for (const orient of orientations) {
+          if (orient.w <= rect.width && orient.h <= rect.height) {
+            for (const hFirst of [true, false]) {
+              const placedPiece: PlacedPiece = {
+                id: item.id,
+                name: itemName,
+                isSubPiece: isSub,
+                parentId: isSub ? (item as SubPiece).parentId : undefined,
+                parentName: isSub ? (item as SubPiece).parentName : undefined,
+                x: rect.x,
+                y: rect.y,
+                length: orient.w,
+                width: orient.h,
+                rotated: orient.rotated,
+                color: "#a78bfa",
+              };
 
-            placed.push(placedPiece);
-            const remRect = freeRects.splice(rIdx, 1)[0];
-            freeRects.push(...newSplits);
+              const newSplits = splitRect(rect, orient.w, orient.h, kerf, hFirst);
 
-            if (search(step + 1)) {
-              return true;
+              placed.push(placedPiece);
+              const remRect = freeRects.splice(rIdx, 1)[0];
+              freeRects.push(...newSplits);
+
+              if (search(remMask ^ (1 << i))) {
+                return true;
+              }
+
+              placed.pop();
+              freeRects.splice(freeRects.length - newSplits.length, newSplits.length);
+              freeRects.splice(rIdx, 0, remRect);
             }
-
-            placed.pop();
-            freeRects.splice(freeRects.length - newSplits.length, newSplits.length);
-            freeRects.splice(rIdx, 0, remRect);
           }
         }
       }
+
+      // Chỉ cần thử đặt 1 nhánh cho item đầu tiên tìm được để tránh hoán vị đối xứng
+      break;
     }
 
     return false;
   }
 
-  if (search(0)) {
+  if (search(unplacedMask)) {
     return placed.map((p) => ({ ...p }));
   }
   return null;
 }
+
 
 export function solveGroundTruthDP(
   stockSheets: StockSheetInput[],

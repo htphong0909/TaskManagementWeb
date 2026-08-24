@@ -9,8 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cp": "npx tsx scripts/stress-test-cp.ts"
+    "test:cp": "npx tsx scripts/stress-test-cp.ts",
+    "test:cp-dp": "npx tsx scripts/stress-test-dp.ts"
   },
+
 
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
