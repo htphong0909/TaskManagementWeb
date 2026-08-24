@@ -355,11 +355,12 @@ export function decomposeOversizedPieces(
       const instanceId = q === 0 ? piece.id : `${piece.id}-${q + 1}`;
       const instanceName = piece.quantity > 1 ? `${piece.name} (#${q + 1})` : piece.name;
 
+      const allowRot = piece.allowRotation !== false;
       const optimal = findOptimalDecomposition(
         piece.length,
         piece.width,
         stockSheets,
-        true,
+        allowRot,
         config
       );
 
@@ -371,8 +372,9 @@ export function decomposeOversizedPieces(
         relY: sp.relY,
         length: sp.length,
         width: sp.width,
-        allowRotation: true,
+        allowRotation: allowRot,
       }));
+
 
       subPieces.forEach((sp) => flatCutItems.push(sp));
 

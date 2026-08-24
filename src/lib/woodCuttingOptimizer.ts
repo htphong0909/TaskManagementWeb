@@ -36,67 +36,88 @@ interface StockSheetState {
   cutsCount: number;
 }
 
-export function calculateWoodCut(
-  stockSheets: StockSheetInput[],
-  requiredPieces: RequiredPieceInput[],
-  customConfig?: Partial<CalculationConfig>
-): CalculationResult {
-  const config: CalculationConfig = { ...DEFAULT_CONFIG, ...customConfig };
+type SortStrategy = "AREA_DESC" | "MAX_DIM_DESC" | "PERIMETER_DESC" | "ASPECT_RATIO_DESC" | "WIDTH_DESC" | "LENGTH_DESC";
+type FitRule = "BSSF" | "BLSF" | "BAF";
+type SplitRule = "SAS" | "LAS";
 
-  const validStock = (stockSheets || []).filter(
-    (s) => s && s.length > 0 && s.width > 0
-  );
-  const validPieces = (requiredPieces || [])
-    .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0)
-    .map((p) => ({ ...p, allowRotation: true }));
+interface HeuristicVariant {
+  sort: SortStrategy;
+  fit: FitRule;
+  split: SplitRule;
+}
 
-  if (validStock.length === 0 || validPieces.length === 0) {
-    return {
-      stockSheetsUsed: [],
-      joinedPieces: [],
-      summary: {
-        totalStockSheets: 0,
-        sheetBreakdown: {},
-        totalRequiredArea: 0,
-        totalStockArea: 0,
-        totalUsedArea: 0,
-        totalWasteArea: 0,
-        efficiencyPercent: 0,
-        totalCutsCount: 0,
-        totalSeamsCount: 0,
-      },
-    };
+function sortItems(
+  items: (RequiredPieceInput | SubPiece)[],
+  strategy: SortStrategy
+): (RequiredPieceInput | SubPiece)[] {
+  const list = [...items];
+  switch (strategy) {
+    case "AREA_DESC":
+      return list.sort((a, b) => {
+        const diff = b.length * b.width - a.length * a.width;
+        if (diff !== 0) return diff;
+        return Math.max(b.length, b.width) - Math.max(a.length, a.width);
+      });
+    case "MAX_DIM_DESC":
+      return list.sort((a, b) => {
+        const diff = Math.max(b.length, b.width) - Math.max(a.length, a.width);
+        if (diff !== 0) return diff;
+        return b.length * b.width - a.length * a.width;
+      });
+    case "PERIMETER_DESC":
+      return list.sort((a, b) => {
+        const diff = b.length + b.width - (a.length + a.width);
+        if (diff !== 0) return diff;
+        return b.length * b.width - a.length * a.width;
+      });
+    case "ASPECT_RATIO_DESC":
+      return list.sort((a, b) => {
+        const ratioA = Math.max(a.length, a.width) / Math.min(a.length, a.width);
+        const ratioB = Math.max(b.length, b.width) / Math.min(b.length, b.width);
+        const diff = ratioB - ratioA;
+        if (diff !== 0) return diff;
+        return b.length * b.width - a.length * a.width;
+      });
+    case "WIDTH_DESC":
+      return list.sort((a, b) => {
+        const diff = b.width - a.width;
+        if (diff !== 0) return diff;
+        return b.length - a.length;
+      });
+    case "LENGTH_DESC":
+      return list.sort((a, b) => {
+        const diff = b.length - a.length;
+        if (diff !== 0) return diff;
+        return b.width - a.width;
+      });
   }
+}
 
-  // 1. Phân rã các tấm vượt khổ
-  const { flatCutItems, joinedDiagrams } = decomposeOversizedPieces(
-    validPieces,
-    validStock,
-    config
-  );
+function scoreFit(
+  remW: number,
+  remH: number,
+  rule: FitRule
+): number {
+  switch (rule) {
+    case "BSSF":
+      return Math.min(remW, remH);
+    case "BLSF":
+      return Math.max(remW, remH);
+    case "BAF":
+      return remW * remH;
+  }
+}
 
-  // Gán màu sắc cho từng loại item
-  const colorMap = new Map<string, string>();
-  let colorIdx = 0;
-  flatCutItems.forEach((item) => {
-    const key = "parentId" in item ? item.parentId : item.name;
-    if (!colorMap.has(key)) {
-      colorMap.set(key, PASTEL_COLORS[colorIdx % PASTEL_COLORS.length]);
-      colorIdx++;
-    }
-  });
-
-  // 2. Sắp xếp giảm dần diện tích (Best-Fit Decreasing)
-  const itemsToPack = [...flatCutItems].sort((a, b) => {
-    const areaA = a.length * a.width;
-    const areaB = b.length * b.width;
-    if (areaB !== areaA) return areaB - areaA;
-    return Math.max(b.length, b.width) - Math.max(a.length, a.width);
-  });
-
+function packCandidate(
+  items: (RequiredPieceInput | SubPiece)[],
+  validStock: StockSheetInput[],
+  config: CalculationConfig,
+  variant: HeuristicVariant,
+  colorMap: Map<string, string>
+): StockSheetState[] {
+  const sortedItems = sortItems(items, variant.sort);
   const activeSheets: StockSheetState[] = [];
 
-  // Hàm mở 1 tấm ván gốc mới
   const openNewSheet = (preferredStock?: StockSheetInput): StockSheetState => {
     const stock = preferredStock || validStock[0];
     const newSheet: StockSheetState = {
@@ -111,8 +132,7 @@ export function calculateWoodCut(
     return newSheet;
   };
 
-  // 3. Xếp từng tấm vào khoảng trống tự do
-  for (const item of itemsToPack) {
+  for (const item of sortedItems) {
     const isSub = Boolean("parentId" in item && item.id.startsWith("sub-"));
     const itemName = "parentName" in item
       ? isSub
@@ -120,39 +140,39 @@ export function calculateWoodCut(
         : item.parentName
       : (item as RequiredPieceInput).name;
     const itemColor = colorMap.get("parentId" in item ? (item as SubPiece).parentId : (item as RequiredPieceInput).name) || PASTEL_COLORS[0];
-    const allowRotation = true;
+    const allowRotation = item.allowRotation !== false;
 
     let bestSheetIdx = -1;
     let bestRectIdx = -1;
     let bestRotated = false;
-    let bestShortSideFit = Number.MAX_VALUE;
+    let bestFitScore = Number.MAX_VALUE;
 
-    // Tìm kiếm vị trí tốt nhất trong các tấm đã mở (Best Short Side Fit)
+    // Tìm kiếm vị trí tốt nhất trong các tấm đã mở
     for (let sIdx = 0; sIdx < activeSheets.length; sIdx++) {
       const sheet = activeSheets[sIdx];
       for (let rIdx = 0; rIdx < sheet.freeRects.length; rIdx++) {
         const rect = sheet.freeRects[rIdx];
 
-        // Thử hướng bình thường (length x width)
+        // Hướng bình thường (length x width)
         if (item.length <= rect.width && item.width <= rect.height) {
-          const leftoverW = rect.width - item.length;
-          const leftoverH = rect.height - item.width;
-          const shortSideFit = Math.min(leftoverW, leftoverH);
-          if (shortSideFit < bestShortSideFit) {
-            bestShortSideFit = shortSideFit;
+          const remW = rect.width - item.length;
+          const remH = rect.height - item.width;
+          const score = scoreFit(remW, remH, variant.fit);
+          if (score < bestFitScore) {
+            bestFitScore = score;
             bestSheetIdx = sIdx;
             bestRectIdx = rIdx;
             bestRotated = false;
           }
         }
 
-        // Thử hướng xoay 90 độ (width x length)
+        // Hướng xoay 90 độ (width x length)
         if (allowRotation && item.width <= rect.width && item.length <= rect.height) {
-          const leftoverW = rect.width - item.width;
-          const leftoverH = rect.height - item.length;
-          const shortSideFit = Math.min(leftoverW, leftoverH);
-          if (shortSideFit < bestShortSideFit) {
-            bestShortSideFit = shortSideFit;
+          const remW = rect.width - item.width;
+          const remH = rect.height - item.length;
+          const score = scoreFit(remW, remH, variant.fit);
+          if (score < bestFitScore) {
+            bestFitScore = score;
             bestSheetIdx = sIdx;
             bestRectIdx = rIdx;
             bestRotated = true;
@@ -163,7 +183,6 @@ export function calculateWoodCut(
 
     // Nếu không vừa trong bất kỳ tấm đã mở nào -> Mở tấm mới
     if (bestSheetIdx === -1) {
-      // Tìm loại ván gốc phù hợp nhất
       const suitableStock = validStock.find((s) => {
         const fitN = item.length <= s.length && item.width <= s.width;
         const fitR = allowRotation && item.width <= s.length && item.length <= s.width;
@@ -181,10 +200,9 @@ export function calculateWoodCut(
       if (!fitNormal && fitRotated) {
         bestRotated = true;
       } else if (fitNormal && fitRotated) {
-        // Ưu tiên hướng có độ vừa khít cao hơn (tối thiểu khoảng trống thừa cạnh ngắn)
-        const wasteNormal = Math.min(rect.width - item.length, rect.height - item.width);
-        const wasteRotated = Math.min(rect.width - item.width, rect.height - item.length);
-        bestRotated = wasteRotated < wasteNormal;
+        const scoreNormal = scoreFit(rect.width - item.length, rect.height - item.width, variant.fit);
+        const scoreRotated = scoreFit(rect.width - item.width, rect.height - item.length, variant.fit);
+        bestRotated = scoreRotated < scoreNormal;
       } else {
         bestRotated = false;
       }
@@ -213,14 +231,16 @@ export function calculateWoodCut(
     targetSheet.placedPieces.push(placedPiece);
     targetSheet.cutsCount += 2;
 
-    // 4. Guillotine Split khoảng trống còn lại (Shorter Axis Split có tính mạch cưa kerf)
+    // Guillotine Split khoảng trống còn lại
     const k = config.kerf;
     const remW = targetRect.width - placedW - k;
     const remH = targetRect.height - placedH - k;
 
-    // Chọn phương chia cưa thẳng theo cạnh thừa ngắn hơn để giữ mảng ván thừa to nhất
     if (remW > 0 || remH > 0) {
-      if (remW <= remH) {
+      const splitHorizontalFirst =
+        variant.split === "SAS" ? remW <= remH : remW >= remH;
+
+      if (splitHorizontalFirst) {
         // Chia ngang trước:
         // Mảnh bên phải (theo chiều cao của chi tiết vừa đặt)
         if (remW >= 10 && placedH >= 10) {
@@ -264,7 +284,115 @@ export function calculateWoodCut(
     }
   }
 
-  // 5. Tổng hợp kết quả đầu ra
+  return activeSheets;
+}
+
+export function calculateWoodCut(
+  stockSheets: StockSheetInput[],
+  requiredPieces: RequiredPieceInput[],
+  customConfig?: Partial<CalculationConfig>
+): CalculationResult {
+  const config: CalculationConfig = { ...DEFAULT_CONFIG, ...customConfig };
+
+  const validStock = (stockSheets || []).filter(
+    (s) => s && s.length > 0 && s.width > 0
+  );
+  const validPieces = (requiredPieces || [])
+    .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0)
+    .map((p) => ({ ...p, allowRotation: p.allowRotation !== false }));
+
+  if (validStock.length === 0 || validPieces.length === 0) {
+    return {
+      stockSheetsUsed: [],
+      joinedPieces: [],
+      summary: {
+        totalStockSheets: 0,
+        sheetBreakdown: {},
+        totalRequiredArea: 0,
+        totalStockArea: 0,
+        totalUsedArea: 0,
+        totalWasteArea: 0,
+        efficiencyPercent: 0,
+        totalCutsCount: 0,
+        totalSeamsCount: 0,
+      },
+    };
+  }
+
+  // 1. Phân rã các tấm vượt khổ
+  const { flatCutItems, joinedDiagrams } = decomposeOversizedPieces(
+    validPieces,
+    validStock,
+    config
+  );
+
+  // Gán màu sắc cho từng loại item
+  const colorMap = new Map<string, string>();
+  let colorIdx = 0;
+  flatCutItems.forEach((item) => {
+    const key = "parentId" in item ? item.parentId : item.name;
+    if (!colorMap.has(key)) {
+      colorMap.set(key, PASTEL_COLORS[colorIdx % PASTEL_COLORS.length]);
+      colorIdx++;
+    }
+  });
+
+  // 2. Chạy Multi-Heuristic Ensemble tìm phương án tối ưu nhất
+  const sortStrategies: SortStrategy[] = [
+    "AREA_DESC",
+    "MAX_DIM_DESC",
+    "PERIMETER_DESC",
+    "ASPECT_RATIO_DESC",
+    "WIDTH_DESC",
+    "LENGTH_DESC",
+  ];
+  const fitRules: FitRule[] = ["BSSF", "BLSF", "BAF"];
+  const splitRules: SplitRule[] = ["SAS", "LAS"];
+
+  let bestSheets: StockSheetState[] | null = null;
+  let bestScore = Number.MAX_VALUE;
+
+  for (const sort of sortStrategies) {
+    for (const fit of fitRules) {
+      for (const split of splitRules) {
+        const candidateSheets = packCandidate(
+          flatCutItems,
+          validStock,
+          config,
+          { sort, fit, split },
+          colorMap
+        );
+
+        // Tính điểm: Ưu tiên số tấm ít nhất, kế đến diện tích hao phí ít nhất, kế đến số đường cưa
+        let candidateTotalStockArea = 0;
+        let candidateTotalUsedArea = 0;
+        let candidateTotalCuts = 0;
+
+        for (const sheet of candidateSheets) {
+          candidateTotalStockArea += sheet.length * sheet.width;
+          candidateTotalCuts += sheet.cutsCount;
+          for (const p of sheet.placedPieces) {
+            candidateTotalUsedArea += p.length * p.width;
+          }
+        }
+
+        const candidateWasteArea = Math.max(0, candidateTotalStockArea - candidateTotalUsedArea);
+        const score =
+          candidateSheets.length * 1_000_000_000 +
+          candidateWasteArea * 1_000 +
+          candidateTotalCuts * 10;
+
+        if (score < bestScore || bestSheets === null) {
+          bestScore = score;
+          bestSheets = candidateSheets;
+        }
+      }
+    }
+  }
+
+  const activeSheets = bestSheets || [];
+
+  // 3. Tổng hợp kết quả đầu ra
   let totalStockArea = 0;
   let totalUsedArea = 0;
   let totalCuts = 0;
@@ -341,3 +469,4 @@ export function calculateWoodCut(
     },
   };
 }
+

@@ -58,4 +58,21 @@ describe("woodCuttingOptimizer", () => {
     expect(result.stockSheetsUsed[0].placedPieces).toHaveLength(1);
     expect(result.stockSheetsUsed[0].placedPieces[0].name).toBe("Tấm hợp lệ");
   });
+
+  it("strictly respects allowRotation: false and keeps grain direction", () => {
+    const stockSheets: StockSheetInput[] = [
+      { id: "s1", length: 1000, width: 600 }
+    ];
+    // Piece 800x400: If allowRotation: false, length must be 800 and width 400 (not rotated)
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Tấm vân dọc", length: 800, width: 400, quantity: 1, allowRotation: false }
+    ];
+    const result = calculateWoodCut(stockSheets, pieces, { kerf: 3 });
+    expect(result.stockSheetsUsed).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces).toHaveLength(1);
+    expect(result.stockSheetsUsed[0].placedPieces[0].rotated).toBe(false);
+    expect(result.stockSheetsUsed[0].placedPieces[0].length).toBe(800);
+    expect(result.stockSheetsUsed[0].placedPieces[0].width).toBe(400);
+  });
 });
+
