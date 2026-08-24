@@ -13,13 +13,13 @@ export interface HeavyGeneratorOptions {
 }
 
 const DEFAULT_HEAVY_OPTIONS: HeavyGeneratorOptions = {
-  minPieces: 9,
-  maxPieces: 11,
+  minPieces: 13,
+  maxPieces: 14,
   rotationProb: 0.5,
   kerfChoices: [0, 2, 3, 5],
-  stockMinLength: 800,
+  stockMinLength: 900,
   stockMaxLength: 2440,
-  stockMinWidth: 400,
+  stockMinWidth: 500,
   stockMaxWidth: 1220,
 };
 
@@ -34,9 +34,10 @@ export function generateHeavyTestCase(
     Math.floor(rand() * (max - min + 1)) + min;
   const randChoice = <T>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
 
-  // Sinh kích thước ván gốc hoàn toàn ngẫu nhiên
+  // Kích thước ván gốc hoàn toàn ngẫu nhiên
   const stockLength = randInt(opts.stockMinLength, opts.stockMaxLength);
   const stockWidth = randInt(opts.stockMinWidth, opts.stockMaxWidth);
+  const stockArea = stockLength * stockWidth;
 
   const stockSheets: StockSheetInput[] = [
     {
@@ -49,6 +50,12 @@ export function generateHeavyTestCase(
 
   const kerf = randChoice(opts.kerfChoices);
   const numPieces = randInt(opts.minPieces, opts.maxPieces);
+
+  // Chọn số tấm ván mục tiêu: 1, 2 hoặc 3 tấm
+  const targetSheets = randChoice([1, 2, 2, 3]);
+  const targetTotalArea = stockArea * targetSheets * (0.6 + rand() * 0.25);
+  const avgPieceArea = targetTotalArea / numPieces;
+
   const pieces: RequiredPieceInput[] = [];
 
   for (let i = 0; i < numPieces; i++) {
@@ -56,26 +63,36 @@ export function generateHeavyTestCase(
     let length = 100;
     let width = 100;
 
-    if (shapeType < 0.25) {
-      // 1. Tấm dài mảnh (strip)
-      length = randInt(Math.floor(stockLength * 0.3), Math.floor(stockLength * 0.85));
-      width = randInt(50, Math.floor(stockWidth * 0.25));
-    } else if (shapeType < 0.5) {
-      // 2. Ước số ngẫu nhiên
+    // Phân bổ diện tích ngẫu nhiên quanh avgPieceArea (0.4x đến 1.8x)
+    const factor = 0.4 + rand() * 1.4;
+    const pieceArea = avgPieceArea * factor;
+
+    if (shapeType < 0.3) {
+      // 1. Dải dài mảnh (Skinny strip)
+      const aspect = 3.0 + rand() * 3.5;
+      length = Math.round(Math.sqrt(pieceArea * aspect));
+      width = Math.round(pieceArea / length);
+    } else if (shapeType < 0.6) {
+      // 2. Tấm vuông / gần vuông (Square block)
+      const aspect = 1.0 + rand() * 0.4;
+      length = Math.round(Math.sqrt(pieceArea * aspect));
+      width = Math.round(pieceArea / length);
+    } else if (shapeType < 0.8) {
+      // 3. Ước số cắt vừa vặn (Exact divisor cut)
       const divL = randChoice([2, 3, 4]);
       const divW = randChoice([2, 3, 4]);
       length = Math.max(50, Math.floor(stockLength / divL) - kerf);
       width = Math.max(50, Math.floor(stockWidth / divW) - kerf);
-    } else if (shapeType < 0.75) {
-      // 3. Tấm gần vuông
-      const size = randInt(80, Math.floor(Math.min(stockLength, stockWidth) * 0.6));
-      length = size;
-      width = Math.max(50, size + randInt(-30, 30));
     } else {
-      // 4. Kích thước tự do ngẫu nhiên
-      length = randInt(60, Math.floor(stockLength * 0.65));
-      width = randInt(50, Math.floor(stockWidth * 0.65));
+      // 4. Hình chữ nhật tự do (Freeform rectangle)
+      const aspect = 1.4 + rand() * 1.2;
+      length = Math.round(Math.sqrt(pieceArea * aspect));
+      width = Math.round(pieceArea / length);
     }
+
+    // Đảm bảo kích thước tối thiểu và không vượt quá ván gốc
+    length = Math.max(50, length);
+    width = Math.max(50, width);
 
     const allowRotation = rand() < opts.rotationProb;
     if (!allowRotation) {
@@ -111,3 +128,4 @@ export function generateHeavyTestCase(
     },
   };
 }
+

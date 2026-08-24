@@ -3,9 +3,10 @@ import { runDPStressBenchmark, DPTestCaseDiff } from "../src/lib/cp/dpStressTest
 function parseArgs() {
   const args = process.argv.slice(2);
   let count = 50;
-  let minPieces = 9;
-  let maxPieces = 11;
+  let minPieces = 13;
+  let maxPieces = 14;
   let startSeed = 2026;
+
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--count" || args[i] === "-n") {
