@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { StockSheetInput, RequiredPieceInput, CalculationConfig, CalculationResult } from "@/types/woodCut";
 import { calculateWoodCut } from "@/lib/woodCuttingOptimizer";
+import { solveGroundTruthDP } from "@/lib/cp/dpGroundTruthOptimizer";
 import StockSheetForm from "@/components/wood-cut/StockSheetForm";
 import RequiredPiecesForm from "@/components/wood-cut/RequiredPiecesForm";
 import WoodCutSummary from "@/components/wood-cut/WoodCutSummary";
@@ -17,13 +18,14 @@ const INITIAL_STOCK: StockSheetInput[] = [
 ];
 
 const INITIAL_PIECES: RequiredPieceInput[] = [
-  { id: "p-1", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, allowRotation: true },
-  { id: "p-2", name: "Tấm vuông nhỏ", length: 234, width: 234, quantity: 1, allowRotation: true },
+  { id: "p-1", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, orientation: "auto", allowRotation: true },
+  { id: "p-2", name: "Tấm vuông nhỏ", length: 234, width: 234, quantity: 1, orientation: "auto", allowRotation: true },
 ];
 
 const INITIAL_CONFIG: CalculationConfig = {
   kerf: 3,
   minSubPieceSize: 50,
+  useExactDP: false,
 };
 
 export default function WoodCutPage() {
@@ -63,8 +65,17 @@ export default function WoodCutPage() {
   }, [stockSheets, pieces, config]);
 
   const handleCalculate = () => {
-    const res = calculateWoodCut(stockSheets, pieces, config);
-    setResult(res);
+    try {
+      const res = config.useExactDP
+        ? solveGroundTruthDP(stockSheets, pieces, config)
+        : calculateWoodCut(stockSheets, pieces, config);
+      setResult(res);
+    } catch (e) {
+      console.error("Lỗi tính toán cắt gỗ:", e);
+      // Fallback Heuristic nếu DP gặp lỗi quá tải
+      const fallback = calculateWoodCut(stockSheets, pieces, config);
+      setResult(fallback);
+    }
   };
 
   // Tính toán tự động khi thay đổi dữ liệu

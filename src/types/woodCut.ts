@@ -1,3 +1,5 @@
+export type PieceOrientation = "auto" | "vertical" | "horizontal";
+
 export interface StockSheetInput {
   id: string;
   name?: string;
@@ -13,12 +15,14 @@ export interface RequiredPieceInput {
   length: number; // mm
   width: number;  // mm
   quantity: number;
-  allowRotation: boolean; // true = cho phép xoay 90 độ, false = giữ hướng vân gỗ
+  orientation?: PieceOrientation; // "auto" (Tự do xoay) | "vertical" (Để dọc) | "horizontal" (Để ngang)
+  allowRotation?: boolean;        // true = cho phép xoay 90 độ, false = giữ hướng vân gỗ
 }
 
 export interface CalculationConfig {
   kerf: number;            // Độ dày mạch cưa (mm), mặc định 3mm
   minSubPieceSize: number; // Kích thước tối thiểu của tấm ghép (mm), mặc định 50mm
+  useExactDP?: boolean;    // true = sử dụng thuật toán Quy hoạch động chính xác tuyệt đối
 }
 
 export interface SubPiece {
@@ -30,7 +34,10 @@ export interface SubPiece {
   length: number;
   width: number;
   allowRotation: boolean;
-  stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (Ván #1, Ván #2...)
+  orientation?: PieceOrientation;
+  stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (1, 2...)
+  stockSheetName?: string;  // Tên ván gốc (Ván 1, Ván 2...)
+  rotatedOnSheet?: boolean; // true nếu mẩu này khi cắt trên ván gốc bị xoay 90 độ
 }
 
 export interface PlacedPiece {

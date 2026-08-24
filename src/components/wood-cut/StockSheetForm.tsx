@@ -39,7 +39,26 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <span>📦</span> Ván Gỗ Gốc (Khổ ván mua/có sẵn)
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <label
+            className={`flex items-center gap-1.5 cursor-pointer select-none text-xs font-semibold px-2.5 py-1 rounded-xl border transition-all ${
+              config.useExactDP
+                ? "bg-amber-100 text-amber-900 border-amber-300 shadow-sm"
+                : "bg-slate-100/90 text-slate-600 hover:bg-slate-200/80 border-slate-200/60"
+            }`}
+            title="Sử dụng thuật toán Quy hoạch động (DP) để tìm số ván ít nhất tuyệt đối (100% chuẩn toán học)"
+          >
+            <input
+              type="checkbox"
+              checked={config.useExactDP === true}
+              onChange={(e) => setConfig({ ...config, useExactDP: e.target.checked })}
+              aria-label="Dùng thuật toán chính xác DP"
+              className="w-3.5 h-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-400 accent-amber-600 cursor-pointer"
+            />
+            <span className="flex items-center gap-1">
+              <span>🎯</span> Chuẩn 100% (DP)
+            </span>
+          </label>
           <label className="text-xs text-slate-600 font-semibold flex items-center gap-1">
             Lưỡi cưa (Kerf):
             <NumericInput
