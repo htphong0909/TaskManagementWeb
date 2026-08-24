@@ -10,7 +10,7 @@ describe("woodDecomposer", () => {
 
   it("creates single-piece diagram with 0 seams for normal sized pieces", () => {
     const pieces: RequiredPieceInput[] = [
-      { id: "p1", name: "Tấm nhỏ", length: 234, width: 234, quantity: 1, allowRotation: true }
+      { id: "p1", name: "Tấm nhỏ", length: 234, width: 234, quantity: 1, orientation: "auto", allowRotation: true }
     ];
     const result = decomposeOversizedPieces(pieces, stockSheets, config);
     expect(result.joinedDiagrams).toHaveLength(1);
@@ -21,7 +21,7 @@ describe("woodDecomposer", () => {
 
   it("decomposes 1110x1230 piece using 1200x600 stock with minimal seams", () => {
     const pieces: RequiredPieceInput[] = [
-      { id: "p2", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, allowRotation: true }
+      { id: "p2", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, orientation: "auto", allowRotation: true }
     ];
     const result = decomposeOversizedPieces(pieces, stockSheets, config);
     expect(result.joinedDiagrams).toHaveLength(1);
@@ -32,5 +32,20 @@ describe("woodDecomposer", () => {
     // Tổng diện tích các tấm con xấp xỉ diện tích tấm lớn
     const totalSubArea = diagram.subPieces.reduce((acc, sp) => acc + sp.length * sp.width, 0);
     expect(totalSubArea).toBeCloseTo(1110 * 1230, -2);
+  });
+
+  it("preserves vertical orientation during decomposition", () => {
+    const pieces: RequiredPieceInput[] = [
+      { id: "p3", name: "Mặt dọc lớn", length: 1110, width: 1230, quantity: 1, orientation: "vertical", allowRotation: false }
+    ];
+    const result = decomposeOversizedPieces(pieces, stockSheets, config);
+    expect(result.joinedDiagrams).toHaveLength(1);
+    const diagram = result.joinedDiagrams[0];
+    expect(diagram.targetLength).toBe(1110);
+    expect(diagram.targetWidth).toBe(1230);
+    diagram.subPieces.forEach((sp) => {
+      expect(sp.orientation).toBe("vertical");
+      expect(sp.allowRotation).toBe(false);
+    });
   });
 });

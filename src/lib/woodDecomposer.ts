@@ -4,6 +4,7 @@ import {
   CalculationConfig,
   SubPiece,
   JoinedPieceDiagram,
+  PieceOrientation,
 } from "@/types/woodCut";
 
 interface CandidateDecomposition {
@@ -21,11 +22,13 @@ function canFitInStock(
   l: number,
   w: number,
   stockSheets: StockSheetInput[],
-  allowRotation: boolean
+  orientation: PieceOrientation
 ): boolean {
   return stockSheets.some((s) => {
     const fitNormal = l <= s.length && w <= s.width;
-    const fitRotated = allowRotation && l <= s.width && w <= s.length;
+    const fitRotated = l <= s.width && w <= s.length;
+    if (orientation === "vertical") return fitNormal;
+    if (orientation === "horizontal") return fitRotated;
     return fitNormal || fitRotated;
   });
 }
@@ -35,32 +38,39 @@ function findOptimalDecomposition(
   pL: number,
   pW: number,
   stockSheets: StockSheetInput[],
-  allowRotation: boolean,
+  orientation: PieceOrientation,
   config: CalculationConfig
 ): CandidateDecomposition {
   const candidates: CandidateDecomposition[] = [];
+  const allowRot = orientation === "auto";
 
-  // Thử cả 2 hướng xoay của mặt gỗ ban đầu
-  const orientations = [{ L: pL, W: pW }];
-  if (allowRotation && pL !== pW) {
+  // 1. Trường hợp 1 mảnh nguyên (0 vết nối)
+  if (canFitInStock(pL, pW, stockSheets, orientation)) {
+    return {
+      subPieces: [{ relX: 0, relY: 0, length: pL, width: pW }],
+      targetL: pL,
+      targetW: pW,
+      seamCount: 0,
+      minPieceDimension: Math.min(pL, pW),
+      minPieceArea: pL * pW,
+      variance: 0,
+    };
+  }
+
+  // Thử các hướng xoay của mặt gỗ ban đầu
+  const orientations: { L: number; W: number }[] = [];
+  if (orientation === "vertical") {
+    orientations.push({ L: pL, W: pW });
+  } else if (orientation === "horizontal") {
     orientations.push({ L: pW, W: pL });
+  } else {
+    orientations.push({ L: pL, W: pW });
+    if (pL !== pW) {
+      orientations.push({ L: pW, W: pL });
+    }
   }
 
   for (const { L, W } of orientations) {
-    // 1. Trường hợp 1 mảnh nguyên (0 vết nối)
-    if (canFitInStock(L, W, stockSheets, allowRotation)) {
-      candidates.push({
-        subPieces: [{ relX: 0, relY: 0, length: L, width: W }],
-        targetL: L,
-        targetW: W,
-        seamCount: 0,
-        minPieceDimension: Math.min(L, W),
-        minPieceArea: L * W,
-        variance: 0,
-      });
-      continue;
-    }
-
     // 2. Chia 1 chiều theo Chiều Rộng (W) thành N phần
     for (let N = 2; N <= 8; N++) {
       // Cách 2.1: Chia đều (Balanced split)
@@ -73,7 +83,7 @@ function findOptimalDecomposition(
         currentSumW += val;
       }
 
-      if (wPartsBalanced.every((w) => canFitInStock(L, w, stockSheets, allowRotation))) {
+      if (wPartsBalanced.every((w) => canFitInStock(L, w, stockSheets, orientation))) {
         let curY = 0;
         const subPieces = wPartsBalanced.map((w) => {
           const sp = { relX: 0, relY: curY, length: L, width: w };
@@ -103,7 +113,7 @@ function findOptimalDecomposition(
       let maxFeasibleW = 0;
       for (const s of stockSheets) {
         if (L <= s.length) maxFeasibleW = Math.max(maxFeasibleW, s.width);
-        if (allowRotation && L <= s.width) maxFeasibleW = Math.max(maxFeasibleW, s.length);
+        if (allowRot && L <= s.width) maxFeasibleW = Math.max(maxFeasibleW, s.length);
       }
 
       if (maxFeasibleW > 0) {
@@ -123,7 +133,7 @@ function findOptimalDecomposition(
           }
         }
 
-        if (wPartsGreedy.every((w) => canFitInStock(L, w, stockSheets, allowRotation))) {
+        if (wPartsGreedy.every((w) => canFitInStock(L, w, stockSheets, orientation))) {
           let curY = 0;
           const subPieces = wPartsGreedy.map((w) => {
             const sp = { relX: 0, relY: curY, length: L, width: w };
@@ -161,7 +171,7 @@ function findOptimalDecomposition(
         currentSumL += val;
       }
 
-      if (lPartsBalanced.every((l) => canFitInStock(l, W, stockSheets, allowRotation))) {
+      if (lPartsBalanced.every((l) => canFitInStock(l, W, stockSheets, orientation))) {
         let curX = 0;
         const subPieces = lPartsBalanced.map((l) => {
           const sp = { relX: curX, relY: 0, length: l, width: W };
@@ -215,7 +225,7 @@ function findOptimalDecomposition(
         for (const w of wParts) {
           let currentX = 0;
           for (const l of lParts) {
-            if (!canFitInStock(l, w, stockSheets, allowRotation)) {
+            if (!canFitInStock(l, w, stockSheets, orientation)) {
               allFit = false;
               break;
             }
@@ -249,7 +259,8 @@ function findOptimalDecomposition(
     // Thử cắt theo L tại điểm splitL
     let maxFeasibleL = 0;
     for (const s of stockSheets) {
-      maxFeasibleL = Math.max(maxFeasibleL, Math.max(s.length, s.width));
+      maxFeasibleL = Math.max(maxFeasibleL, s.length);
+      if (allowRot) maxFeasibleL = Math.max(maxFeasibleL, s.width);
     }
 
     if (L > maxFeasibleL && maxFeasibleL > 0) {
@@ -260,13 +271,25 @@ function findOptimalDecomposition(
       for (let N1 = 1; N1 <= 4; N1++) {
         for (let N2 = 1; N2 <= 4; N2++) {
           const wPart1 = Math.floor(W / N1);
+          const wParts1: number[] = [];
+          let s1 = 0;
+          for (let i = 0; i < N1; i++) {
+            const v = i === N1 - 1 ? W - s1 : wPart1;
+            wParts1.push(v);
+            s1 += v;
+          }
+
           const wPart2 = Math.floor(W / N2);
+          const wParts2: number[] = [];
+          let s2 = 0;
+          for (let i = 0; i < N2; i++) {
+            const v = i === N2 - 1 ? W - s2 : wPart2;
+            wParts2.push(v);
+            s2 += v;
+          }
 
-          const wParts1 = Array.from({ length: N1 }, (_, i) => i === N1 - 1 ? W - wPart1 * (N1 - 1) : wPart1);
-          const wParts2 = Array.from({ length: N2 }, (_, i) => i === N2 - 1 ? W - wPart2 * (N2 - 1) : wPart2);
-
-          const r1Fit = wParts1.every((w) => canFitInStock(mainL, w, stockSheets, allowRotation));
-          const r2Fit = wParts2.every((w) => canFitInStock(remL, w, stockSheets, allowRotation));
+          const r1Fit = wParts1.every((w) => canFitInStock(mainL, w, stockSheets, orientation));
+          const r2Fit = wParts2.every((w) => canFitInStock(remL, w, stockSheets, orientation));
 
           if (r1Fit && r2Fit) {
             const tSubPieces: { relX: number; relY: number; length: number; width: number }[] = [];
@@ -355,12 +378,13 @@ export function decomposeOversizedPieces(
       const instanceId = q === 0 ? piece.id : `${piece.id}-${q + 1}`;
       const instanceName = piece.quantity > 1 ? `${piece.name} (#${q + 1})` : piece.name;
 
-      const allowRot = piece.allowRotation !== false;
+      const orient = piece.orientation || (piece.allowRotation === false ? "vertical" : "auto");
+      const allowRot = orient === "auto";
       const optimal = findOptimalDecomposition(
         piece.length,
         piece.width,
         stockSheets,
-        allowRot,
+        orient,
         config
       );
 
@@ -372,9 +396,9 @@ export function decomposeOversizedPieces(
         relY: sp.relY,
         length: sp.length,
         width: sp.width,
+        orientation: orient,
         allowRotation: allowRot,
       }));
-
 
       subPieces.forEach((sp) => flatCutItems.push(sp));
 

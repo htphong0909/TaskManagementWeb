@@ -131,11 +131,18 @@ function tryFitSingleSheetGuillotine(
           ? `${item.parentName} (Tấm con)`
           : item.parentName
         : (item as RequiredPieceInput).name;
-      const allowRotation = item.allowRotation !== false;
+      const orientMode = item.orientation || (item.allowRotation === false ? "vertical" : "auto");
 
-      const orientations = [{ w: item.length, h: item.width, rotated: false }];
-      if (allowRotation && item.length !== item.width) {
+      const orientations: { w: number; h: number; rotated: boolean }[] = [];
+      if (orientMode === "vertical") {
+        orientations.push({ w: item.length, h: item.width, rotated: false });
+      } else if (orientMode === "horizontal") {
         orientations.push({ w: item.width, h: item.length, rotated: true });
+      } else {
+        orientations.push({ w: item.length, h: item.width, rotated: false });
+        if (item.length !== item.width) {
+          orientations.push({ w: item.width, h: item.length, rotated: true });
+        }
       }
 
       for (let rIdx = 0; rIdx < freeRects.length; rIdx++) {
@@ -202,7 +209,11 @@ export function solveGroundTruthDP(
   );
   const validPieces = (requiredPieces || [])
     .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0)
-    .map((p) => ({ ...p, allowRotation: p.allowRotation !== false }));
+    .map((p) => ({
+      ...p,
+      orientation: p.orientation || (p.allowRotation === false ? "vertical" : "auto"),
+      allowRotation: p.orientation ? p.orientation === "auto" : p.allowRotation !== false,
+    }));
 
   if (validStock.length === 0 || validPieces.length === 0) {
     return {

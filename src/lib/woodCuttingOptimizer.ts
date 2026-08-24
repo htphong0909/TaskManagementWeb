@@ -141,7 +141,9 @@ export function packCandidate(
         : item.parentName
       : (item as RequiredPieceInput).name;
     const itemColor = colorMap.get("parentId" in item ? (item as SubPiece).parentId : (item as RequiredPieceInput).name) || PASTEL_COLORS[0];
-    const allowRotation = item.allowRotation !== false;
+    const orient = item.orientation || (item.allowRotation === false ? "vertical" : "auto");
+    const tryNormal = orient === "vertical" || orient === "auto";
+    const tryRotated = orient === "horizontal" || orient === "auto";
 
     let bestSheetIdx = -1;
     let bestRectIdx = -1;
@@ -155,7 +157,7 @@ export function packCandidate(
         const rect = sheet.freeRects[rIdx];
 
         // Hướng bình thường (length x width)
-        if (item.length <= rect.width && item.width <= rect.height) {
+        if (tryNormal && item.length <= rect.width && item.width <= rect.height) {
           const remW = rect.width - item.length;
           const remH = rect.height - item.width;
           const score = scoreFit(remW, remH, variant.fit);
@@ -168,7 +170,7 @@ export function packCandidate(
         }
 
         // Hướng xoay 90 độ (width x length)
-        if (allowRotation && item.width <= rect.width && item.length <= rect.height) {
+        if (tryRotated && item.width <= rect.width && item.length <= rect.height) {
           const remW = rect.width - item.width;
           const remH = rect.height - item.length;
           const score = scoreFit(remW, remH, variant.fit);
@@ -185,8 +187,8 @@ export function packCandidate(
     // Nếu không vừa trong bất kỳ tấm đã mở nào -> Mở tấm mới
     if (bestSheetIdx === -1) {
       const suitableStock = validStock.find((s) => {
-        const fitN = item.length <= s.length && item.width <= s.width;
-        const fitR = allowRotation && item.width <= s.length && item.length <= s.width;
+        const fitN = tryNormal && item.length <= s.length && item.width <= s.width;
+        const fitR = tryRotated && item.width <= s.length && item.length <= s.width;
         return fitN || fitR;
       }) || validStock[0];
 
@@ -195,15 +197,22 @@ export function packCandidate(
       bestRectIdx = 0;
       const rect = newSheet.freeRects[0];
 
-      const fitNormal = item.length <= rect.width && item.width <= rect.height;
-      const fitRotated = allowRotation && item.width <= rect.width && item.length <= rect.height;
+      const fitNormal = tryNormal && item.length <= rect.width && item.width <= rect.height;
+      const fitRotated = tryRotated && item.width <= rect.width && item.length <= rect.height;
 
-      if (!fitNormal && fitRotated) {
+      if (fitNormal && fitRotated) {
+        // Cả 2 hướng đều vừa tấm mới -> Chấm điểm xem hướng nào tối ưu hơn
+        const remW1 = rect.width - item.length;
+        const remH1 = rect.height - item.width;
+        const score1 = scoreFit(remW1, remH1, variant.fit);
+
+        const remW2 = rect.width - item.width;
+        const remH2 = rect.height - item.length;
+        const score2 = scoreFit(remW2, remH2, variant.fit);
+
+        bestRotated = score2 < score1;
+      } else if (fitRotated) {
         bestRotated = true;
-      } else if (fitNormal && fitRotated) {
-        const scoreNormal = scoreFit(rect.width - item.length, rect.height - item.width, variant.fit);
-        const scoreRotated = scoreFit(rect.width - item.width, rect.height - item.length, variant.fit);
-        bestRotated = scoreRotated < scoreNormal;
       } else {
         bestRotated = false;
       }
