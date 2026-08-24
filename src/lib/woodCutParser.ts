@@ -1,21 +1,32 @@
-import { RequiredPieceInput } from "@/types/woodCut";
+import { RequiredPieceInput, PieceOrientation } from "@/types/woodCut";
+
+const VERTICAL_REGEX = /(?:^|\s+)(!doc|!d|!v|!r|norot|no-rot|lock|r=0|r:0|rot=0)(?:\s+|$)/i;
+const HORIZONTAL_REGEX = /(?:^|\s+)(!ngang|!n|!h|!horiz|!horizontal)(?:\s+|$)/i;
+const AUTO_REGEX = /(?:^|\s+)(!xoay|!auto|!rot|r=1|r:1|rot=1)(?:\s+|$)/i;
 
 export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceInput[]; errors: string[] } {
   const lines = text.split("\n");
   const pieces: RequiredPieceInput[] = [];
   const errors: string[] = [];
 
-  const NO_ROT_REGEX = /(?:^|\s+)(!r|norot|no-rot|lock|r=0|r:0|rot=0)(?:\s+|$)/i;
-
   lines.forEach((line, index) => {
     let trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("//")) return;
 
-    let allowRotation = true;
-    if (NO_ROT_REGEX.test(trimmed)) {
-      allowRotation = false;
-      trimmed = trimmed.replace(NO_ROT_REGEX, " ").trim();
+    let orientation: PieceOrientation = "auto";
+
+    if (VERTICAL_REGEX.test(trimmed)) {
+      orientation = "vertical";
+      trimmed = trimmed.replace(VERTICAL_REGEX, " ").trim();
+    } else if (HORIZONTAL_REGEX.test(trimmed)) {
+      orientation = "horizontal";
+      trimmed = trimmed.replace(HORIZONTAL_REGEX, " ").trim();
+    } else if (AUTO_REGEX.test(trimmed)) {
+      orientation = "auto";
+      trimmed = trimmed.replace(AUTO_REGEX, " ").trim();
     }
+
+    const allowRotation = orientation === "auto";
 
     // Pattern 1: 1110, 1230 or 1110, 1230, 2
     // Pattern 2: 1110x1230 x2 or 1110*1230, 2 or 1110 1230 2
@@ -50,6 +61,7 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
       length: Math.round(length),
       width: Math.round(width),
       quantity,
+      orientation,
       allowRotation,
     });
   });
@@ -59,12 +71,14 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
 
 export function formatPiecesToText(pieces: RequiredPieceInput[]): string {
   return pieces
-    .map(
-      (p) =>
-        `${p.length}, ${p.width}${p.quantity > 1 ? `, ${p.quantity}` : ""}${
-          p.allowRotation === false ? " !r" : ""
-        }`
-    )
+    .map((p) => {
+      let tag = "";
+      const orient = p.orientation || (p.allowRotation === false ? "vertical" : "auto");
+      if (orient === "vertical") tag = " !doc";
+      else if (orient === "horizontal") tag = " !ngang";
+
+      return `${p.length}, ${p.width}${p.quantity > 1 ? `, ${p.quantity}` : ""}${tag}`;
+    })
     .join("\n");
 }
 
