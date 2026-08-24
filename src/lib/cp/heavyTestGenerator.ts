@@ -13,8 +13,8 @@ export interface HeavyGeneratorOptions {
 }
 
 const DEFAULT_HEAVY_OPTIONS: HeavyGeneratorOptions = {
-  minPieces: 13,
-  maxPieces: 14,
+  minPieces: 1,
+  maxPieces: 8,
   rotationProb: 0.5,
   kerfChoices: [0, 2, 3, 5],
   stockMinLength: 900,

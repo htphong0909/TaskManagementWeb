@@ -10,6 +10,15 @@ export interface DPTestCaseDiff {
   gtSheets: number;
   heuristicSheets: number;
   sheetGap: number;
+  gtCuts: number;
+  heuristicCuts: number;
+  cutsGap: number;
+  gtEfficiency: number;
+  heuristicEfficiency: number;
+  efficiencyGap: number;
+  totalRequiredArea: number;
+  gtStockArea: number;
+  heuristicStockArea: number;
   gtWasteArea: number;
   heuristicWasteArea: number;
   wasteGap: number;
@@ -27,12 +36,18 @@ export interface DPBenchmarkReport {
   maxSheetGap: number;
   avgWasteGapPercent: number;
   maxCompetitiveRatio: number;
+  avgGtCuts: number;
+  avgHeuristicCuts: number;
+  avgCutsGap: number;
+  avgGtEfficiency: number;
+  avgHeuristicEfficiency: number;
   gtTotalTimeMs: number;
   heuristicTotalTimeMs: number;
   avgGtTimeMs: number;
   avgHeuristicTimeMs: number;
   speedupFactor: number;
   diffs: DPTestCaseDiff[];
+  topGapCases: DPTestCaseDiff[];
 }
 
 export interface DPBenchmarkOptions extends Partial<HeavyGeneratorOptions> {
@@ -44,7 +59,8 @@ export function runDPStressBenchmark(
   testCount: number,
   options?: DPBenchmarkOptions
 ): DPBenchmarkReport {
-  const startSeed = options?.startSeed ?? 5000;
+  const startSeed = options?.startSeed ?? 2026;
+  const allCases: DPTestCaseDiff[] = [];
   const diffs: DPTestCaseDiff[] = [];
 
   let optimalMatches = 0;
@@ -52,6 +68,10 @@ export function runDPStressBenchmark(
   let maxSheetGap = 0;
   let totalWasteGapPercent = 0;
   let maxCompetitiveRatio = 1.0;
+  let totalGtCuts = 0;
+  let totalHeuristicCuts = 0;
+  let totalGtEfficiency = 0;
+  let totalHeuristicEfficiency = 0;
   let gtTotalTimeMs = 0;
   let heuristicTotalTimeMs = 0;
 
@@ -100,6 +120,16 @@ export function runDPStressBenchmark(
 
     totalSheetGap += Math.max(0, sheetGap);
 
+    const gtCuts = gtResult.summary.totalCutsCount;
+    const heurCuts = heurResult.summary.totalCutsCount;
+    totalGtCuts += gtCuts;
+    totalHeuristicCuts += heurCuts;
+
+    const gtEff = gtResult.summary.efficiencyPercent;
+    const heurEff = heurResult.summary.efficiencyPercent;
+    totalGtEfficiency += gtEff;
+    totalHeuristicEfficiency += heurEff;
+
     const gtWaste = gtResult.summary.totalWasteArea;
     const heurWaste = heurResult.summary.totalWasteArea;
     const totalReqArea = gtResult.summary.totalRequiredArea || 1;
@@ -114,6 +144,15 @@ export function runDPStressBenchmark(
       gtSheets,
       heuristicSheets: heurSheets,
       sheetGap,
+      gtCuts,
+      heuristicCuts: heurCuts,
+      cutsGap: heurCuts - gtCuts,
+      gtEfficiency: gtEff,
+      heuristicEfficiency: heurEff,
+      efficiencyGap: parseFloat((heurEff - gtEff).toFixed(1)),
+      totalRequiredArea: totalReqArea,
+      gtStockArea: gtResult.summary.totalStockArea,
+      heuristicStockArea: heurResult.summary.totalStockArea,
       gtWasteArea: gtWaste,
       heuristicWasteArea: heurWaste,
       wasteGap: parseFloat((heurWaste - gtWaste).toFixed(3)),
@@ -126,6 +165,8 @@ export function runDPStressBenchmark(
         allowRotation: p.allowRotation,
       })),
     };
+
+    allCases.push(caseDiff);
 
     if (sheetGap > 0) {
       diffs.push(caseDiff);
@@ -144,6 +185,11 @@ export function runDPStressBenchmark(
   const speedupFactor =
     heuristicTotalTimeMs > 0 ? gtTotalTimeMs / heuristicTotalTimeMs : 1.0;
 
+  const topGapCases = [...diffs].sort((a, b) => {
+    if (b.sheetGap !== a.sheetGap) return b.sheetGap - a.sheetGap;
+    return b.wasteGap - a.wasteGap;
+  });
+
   return {
     totalCases: testCount,
     optimalMatches,
@@ -152,11 +198,18 @@ export function runDPStressBenchmark(
     maxSheetGap,
     avgWasteGapPercent: parseFloat(avgWasteGapPercent.toFixed(2)),
     maxCompetitiveRatio: parseFloat(maxCompetitiveRatio.toFixed(3)),
+    avgGtCuts: parseFloat((totalGtCuts / testCount).toFixed(1)),
+    avgHeuristicCuts: parseFloat((totalHeuristicCuts / testCount).toFixed(1)),
+    avgCutsGap: parseFloat(((totalHeuristicCuts - totalGtCuts) / testCount).toFixed(1)),
+    avgGtEfficiency: parseFloat((totalGtEfficiency / testCount).toFixed(1)),
+    avgHeuristicEfficiency: parseFloat((totalHeuristicEfficiency / testCount).toFixed(1)),
     gtTotalTimeMs: parseFloat(gtTotalTimeMs.toFixed(2)),
     heuristicTotalTimeMs: parseFloat(heuristicTotalTimeMs.toFixed(2)),
     avgGtTimeMs: parseFloat(avgGtTimeMs.toFixed(3)),
     avgHeuristicTimeMs: parseFloat(avgHeuristicTimeMs.toFixed(3)),
     speedupFactor: parseFloat(speedupFactor.toFixed(1)),
     diffs,
+    topGapCases,
   };
 }
+
