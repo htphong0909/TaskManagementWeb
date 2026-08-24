@@ -34,4 +34,35 @@ describe("woodCutParser", () => {
     expect(text).toContain("1110, 1230, 2");
     expect(text).toContain("234, 234");
   });
+
+  it("parses lines with !r, norot, no-rot, lock, and r=0 as allowRotation: false", () => {
+    const input = `
+1110, 1230 !r
+234, 234 x2 norot
+500x600 no-rot
+800x400 lock
+400x400 r=0
+300x300
+    `.trim();
+
+    const { pieces, errors } = parseRequiredPiecesText(input);
+    expect(errors).toHaveLength(0);
+    expect(pieces).toHaveLength(6);
+    expect(pieces[0]).toMatchObject({ length: 1110, width: 1230, allowRotation: false });
+    expect(pieces[1]).toMatchObject({ length: 234, width: 234, quantity: 2, allowRotation: false });
+    expect(pieces[2]).toMatchObject({ length: 500, width: 600, allowRotation: false });
+    expect(pieces[3]).toMatchObject({ length: 800, width: 400, allowRotation: false });
+    expect(pieces[4]).toMatchObject({ length: 400, width: 400, allowRotation: false });
+    expect(pieces[5]).toMatchObject({ length: 300, width: 300, allowRotation: true });
+  });
+
+  it("formats pieces with allowRotation: false appending !r", () => {
+    const pieces = [
+      { id: "p1", name: "T1", length: 1110, width: 1230, quantity: 2, allowRotation: false },
+      { id: "p2", name: "T2", length: 234, width: 234, quantity: 1, allowRotation: true },
+    ];
+    const text = formatPiecesToText(pieces);
+    expect(text).toBe("1110, 1230, 2 !r\n234, 234");
+  });
 });
+

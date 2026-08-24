@@ -5,9 +5,17 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
   const pieces: RequiredPieceInput[] = [];
   const errors: string[] = [];
 
+  const NO_ROT_REGEX = /(?:^|\s+)(!r|norot|no-rot|lock|r=0|r:0|rot=0)(?:\s+|$)/i;
+
   lines.forEach((line, index) => {
-    const trimmed = line.trim();
+    let trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("//")) return;
+
+    let allowRotation = true;
+    if (NO_ROT_REGEX.test(trimmed)) {
+      allowRotation = false;
+      trimmed = trimmed.replace(NO_ROT_REGEX, " ").trim();
+    }
 
     // Pattern 1: 1110, 1230 or 1110, 1230, 2
     // Pattern 2: 1110x1230 x2 or 1110*1230, 2 or 1110 1230 2
@@ -42,7 +50,7 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
       length: Math.round(length),
       width: Math.round(width),
       quantity,
-      allowRotation: true,
+      allowRotation,
     });
   });
 
@@ -51,6 +59,12 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
 
 export function formatPiecesToText(pieces: RequiredPieceInput[]): string {
   return pieces
-    .map((p) => `${p.length}, ${p.width}${p.quantity > 1 ? `, ${p.quantity}` : ""}`)
+    .map(
+      (p) =>
+        `${p.length}, ${p.width}${p.quantity > 1 ? `, ${p.quantity}` : ""}${
+          p.allowRotation === false ? " !r" : ""
+        }`
+    )
     .join("\n");
 }
+
