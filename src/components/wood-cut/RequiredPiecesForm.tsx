@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { RequiredPieceInput } from "@/types/woodCut";
+import { RequiredPieceInput, PieceOrientation } from "@/types/woodCut";
 import { parseRequiredPiecesText, formatPiecesToText } from "@/lib/woodCutParser";
 import NumericInput from "./NumericInput";
 
@@ -25,6 +25,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
         length: 500,
         width: 300,
         quantity: 1,
+        orientation: "auto",
         allowRotation: true,
       },
     ]);
@@ -32,6 +33,10 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
 
   const handleUpdate = (id: string, field: keyof RequiredPieceInput, val: any) => {
     setPieces(pieces.map((p) => (p.id === id ? { ...p, [field]: val } : p)));
+  };
+
+  const handleUpdateMultiple = (id: string, updates: Partial<RequiredPieceInput>) => {
+    setPieces(pieces.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };
 
   const handleRemove = (id: string) => {
@@ -54,11 +59,14 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
     setMode("batch");
   };
 
-  const allRotated = pieces.length > 0 && pieces.every((p) => p.allowRotation !== false);
-
-  const handleToggleAllRotation = () => {
-    const nextState = !allRotated;
-    setPieces(pieces.map((p) => ({ ...p, allowRotation: nextState })));
+  const handleSetAllOrientation = (orient: PieceOrientation) => {
+    setPieces(
+      pieces.map((p) => ({
+        ...p,
+        orientation: orient,
+        allowRotation: orient === "auto",
+      }))
+    );
   };
 
   return (
@@ -68,22 +76,31 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <span>📐</span> Mặt Gỗ Cần Làm ({pieces.length} loại)
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {mode === "table" && pieces.length > 0 && (
-            <button
-              type="button"
-              onClick={handleToggleAllRotation}
-              className="text-[11px] font-semibold text-slate-600 hover:text-violet-700 bg-slate-100/90 hover:bg-slate-200/80 px-2 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-200/60"
-              title={allRotated ? "Khóa hướng vân gỗ cho tất cả (không xoay)" : "Cho phép xoay 90 độ tất cả để tối ưu ván"}
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleSetAllOrientation(e.target.value as PieceOrientation);
+                  e.target.value = "";
+                }
+              }}
+              defaultValue=""
+              aria-label="Đặt hướng cho tất cả"
+              className="text-[11px] font-semibold text-slate-600 hover:text-violet-700 bg-slate-100/90 hover:bg-slate-200/80 px-2 py-1 rounded-lg transition-all border border-slate-200/60 outline-none cursor-pointer"
+              title="Đặt hướng cho tất cả các tấm"
             >
-              <span>🔄</span> {allRotated ? "Tắt xoay tất cả" : "Bật xoay tất cả"}
-            </button>
+              <option value="" disabled>📐 Đổi hướng tất cả</option>
+              <option value="auto">🔄 Tất cả tự do xoay</option>
+              <option value="vertical">↕️ Tất cả để dọc</option>
+              <option value="horizontal">↔️ Tất cả để ngang</option>
+            </select>
           )}
           <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60">
             <button
               type="button"
               onClick={() => setMode("table")}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "table" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -92,7 +109,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
             <button
               type="button"
               onClick={handleOpenBatch}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "batch" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -105,13 +122,13 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
       {mode === "batch" ? (
         <div className="space-y-2">
           <p className="text-xs text-slate-500">
-            Dán danh sách kích thước (mỗi dòng một tấm, định dạng <code>1110, 1230</code> hoặc <code>234x234 x2 !r</code> để khóa vân gỗ):
+            Dán danh sách kích thước (mỗi dòng một tấm, vd: <code>1110, 1230</code> hoặc <code>234x234 x2 !doc</code>, <code>400x1250 !ngang</code>, <code>500x600 !xoay</code>):
           </p>
           <textarea
             rows={7}
             value={batchText}
             onChange={(e) => setBatchText(e.target.value)}
-            placeholder="1110, 1230&#10;234, 234&#10;500x600 x2 !r"
+            placeholder="1110, 1230&#10;234, 234 x2 !doc&#10;500x600 !ngang&#10;400, 1830, 2 !xoay"
             className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200/50"
           />
           {batchErrors.length > 0 && (
@@ -125,14 +142,14 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
             <button
               type="button"
               onClick={() => setMode("table")}
-              className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="button"
               onClick={handleApplyBatch}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all shadow-sm"
+              className="px-4 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all shadow-sm cursor-pointer"
             >
               Áp dụng vào bảng
             </button>
@@ -185,25 +202,31 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                   ariaLabel={`Số lượng ${p.name}`}
                 />
               </div>
-              <label
-                className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-medium text-slate-600 hover:text-violet-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80"
-                title="Cho phép xoay 90° (bỏ tick để giữ đúng chiều vân gỗ)"
+
+              {/* 3-Way Orientation Dropdown (Option A) */}
+              <select
+                value={p.orientation || (p.allowRotation === false ? "vertical" : "auto")}
+                onChange={(e) => {
+                  const orient = e.target.value as PieceOrientation;
+                  handleUpdateMultiple(p.id, {
+                    orientation: orient,
+                    allowRotation: orient === "auto",
+                  });
+                }}
+                aria-label={`Hướng đặt ${p.name}`}
+                className="text-[11px] font-medium text-slate-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80 outline-none focus:border-violet-400 cursor-pointer shadow-sm"
+                title="Định hướng đặt tấm trên ván (để dọc, để ngang hoặc tự do xoay)"
               >
-                <input
-                  type="checkbox"
-                  checked={p.allowRotation !== false}
-                  onChange={(e) => handleUpdate(p.id, "allowRotation", e.target.checked)}
-                  aria-label={`Cho phép xoay 90° ${p.name}`}
-                  className="w-3.5 h-3.5 rounded border-slate-300 text-violet-600 focus:ring-violet-400 accent-violet-600 cursor-pointer"
-                />
-                <span>Xoay 🔄</span>
-              </label>
+                <option value="auto">🔄 Tự do xoay</option>
+                <option value="vertical">↕️ Để dọc</option>
+                <option value="horizontal">↔️ Để ngang</option>
+              </select>
 
               {pieces.length > 1 && (
                 <button
                   type="button"
                   onClick={() => handleRemove(p.id)}
-                  className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                  className="text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors cursor-pointer"
                   title="Xóa dòng"
                 >
                   ✕
@@ -216,7 +239,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
             <button
               type="button"
               onClick={handleAddRow}
-              className="text-xs font-semibold text-violet-700 hover:text-violet-900 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-all flex items-center gap-1"
+              className="text-xs font-semibold text-violet-700 hover:text-violet-900 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-xl border border-violet-200 transition-all flex items-center gap-1 cursor-pointer"
             >
               + Thêm mặt gỗ
             </button>
