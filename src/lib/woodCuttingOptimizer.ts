@@ -520,10 +520,9 @@ export function calculateWoodCut(
 
   const validPieces = (requiredPieces || [])
     .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0 && !isNaN(p.length) && !isNaN(p.width))
-    .filter((p) => p.length <= INPUT_LIMITS.MAX_PIECE_DIM && p.width <= INPUT_LIMITS.MAX_PIECE_DIM)
+    .filter((p) => p.length <= INPUT_LIMITS.MAX_PIECE_DIM && p.width <= INPUT_LIMITS.MAX_PIECE_DIM && p.quantity <= INPUT_LIMITS.MAX_QUANTITY_PER_PIECE)
     .map((p) => ({
       ...p,
-      quantity: Math.min(INPUT_LIMITS.MAX_QUANTITY_PER_PIECE, Math.max(1, p.quantity)),
       allowRotation: p.allowRotation !== false,
     }));
 
