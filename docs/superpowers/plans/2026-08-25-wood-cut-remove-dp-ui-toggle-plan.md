@@ -1,3 +1,43 @@
+# Remove DP UI Toggle Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Gỡ bỏ hoàn toàn checkbox "🎯 Chuẩn 100% (DP)" và các badge DP trên giao diện người dùng, đồng thời tinh gọn luồng tính toán trong `src/app/wood-cut/page.tsx` để luôn sử dụng trực tiếp động cơ Heuristic tối ưu.
+
+**Architecture:**
+1. **Tinh gọn Giao diện (`StockSheetForm.tsx`)**: Xóa bỏ checkbox DP, badge trạng thái và prop `totalPiecesCount`.
+2. **Đơn giản hóa State & Pipeline (`page.tsx`)**: Gỡ bỏ import `solveGroundTruthDP`, xóa logic kiểm tra DP, gọi trực tiếp `calculateWoodCut`.
+3. **Bảo toàn Test Suite**: Giữ nguyên module `src/lib/cp/` để chạy benchmark nội bộ.
+
+**Tech Stack:** TypeScript, Next.js 16, React 19, Vitest.
+
+## Global Constraints
+
+- Không ảnh hưởng đến các tính toán cắt ghép ván hiện tại.
+- Tất cả 19 test suite phải tiếp tục chạy PASS 100%.
+
+---
+
+### Task 1: Simplify `StockSheetForm.tsx` & Clean Up UI
+
+**Files:**
+- Modify: `src/components/wood-cut/StockSheetForm.tsx`
+
+**Interfaces:**
+- Props:
+  ```typescript
+  interface Props {
+    stockSheets: StockSheetInput[];
+    setStockSheets: (sheets: StockSheetInput[]) => void;
+    config: CalculationConfig;
+    setConfig: (config: CalculationConfig) => void;
+  }
+  ```
+
+- [ ] **Step 1: Update `src/components/wood-cut/StockSheetForm.tsx`**
+
+Remove DP checkbox and badge:
+```tsx
 "use client";
 
 import React from "react";
@@ -117,3 +157,77 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
     </div>
   );
 }
+```
+
+- [ ] **Step 2: Commit Task 1**
+
+```bash
+git add src/components/wood-cut/StockSheetForm.tsx
+git commit -m "refactor(wood-cut): remove DP checkbox and badge from StockSheetForm"
+```
+
+---
+
+### Task 2: Simplify `WoodCutPage.tsx` Calculation Pipeline & State
+
+**Files:**
+- Modify: `src/app/wood-cut/page.tsx`
+- Modify: `src/__tests__/woodCutIntegration.test.ts` (if needed)
+
+- [ ] **Step 1: Update `src/app/wood-cut/page.tsx`**
+
+1. Remove `import { solveGroundTruthDP } from "@/lib/cp/dpGroundTruthOptimizer";`
+2. Change `INITIAL_CONFIG`:
+```typescript
+const INITIAL_CONFIG: CalculationConfig = {
+  kerf: 3,
+  minSubPieceSize: 50,
+};
+```
+3. Update `handleCalculate`:
+```typescript
+const handleCalculate = () => {
+  try {
+    const res = calculateWoodCut(stockSheets, pieces, config);
+    setResult(res);
+  } catch (e) {
+    console.error("Lỗi tính toán cắt gỗ:", e);
+  }
+};
+```
+4. Update `StockSheetForm` call:
+```tsx
+<StockSheetForm
+  stockSheets={stockSheets}
+  setStockSheets={setStockSheets}
+  config={config}
+  setConfig={setConfig}
+/>
+```
+
+- [ ] **Step 2: Run integration tests**
+
+Run: `npx vitest run src/__tests__/woodCutIntegration.test.ts`
+Expected: PASS
+
+- [ ] **Step 3: Commit Task 2**
+
+```bash
+git add src/app/wood-cut/page.tsx src/__tests__/woodCutIntegration.test.ts
+git commit -m "refactor(wood-cut): simplify calculation pipeline and remove DP branching in page.tsx"
+```
+
+---
+
+### Task 3: Full Project Test Suite Verification
+
+**Files:**
+- Run full test suite: `npm test`
+
+- [ ] **Step 1: Run `npm test`**
+
+Expected: All 19 test files PASS (100% pass rate).
+
+- [ ] **Step 2: Push changes to `origin/dev`**
+
+Run: `git push origin dev`

@@ -1,6 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { calculateWoodCut } from "../woodCuttingOptimizer";
-import { StockSheetInput, RequiredPieceInput } from "@/types/woodCut";
+import { calculateWoodCut, coalesceFreeRectangles, scoreFit, splitFreeRectangle } from "../woodCuttingOptimizer";
+import { StockSheetInput, RequiredPieceInput, FreeRectangle } from "@/types/woodCut";
 
 describe("woodCuttingOptimizer", () => {
   const stockSheets: StockSheetInput[] = [
@@ -89,5 +88,78 @@ describe("woodCuttingOptimizer", () => {
     expect(result.stockSheetsUsed[0].placedPieces[0].rotated).toBe(true);
     expect(result.stockSheetsUsed[0].placedPieces[0].length).toBe(300);
     expect(result.stockSheetsUsed[0].placedPieces[0].width).toBe(400);
+  });
+
+  describe("FreeRectangle Coalescing", () => {
+    it("merges two vertically adjacent rectangles with the same x and width", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 500, height: 300 },
+        { x: 0, y: 300, width: 500, height: 200 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(1);
+      expect(merged[0]).toEqual({ x: 0, y: 0, width: 500, height: 500 });
+    });
+
+    it("merges two horizontally adjacent rectangles with the same y and height", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 400, height: 600 },
+        { x: 400, y: 0, width: 300, height: 600 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(1);
+      expect(merged[0]).toEqual({ x: 0, y: 0, width: 700, height: 600 });
+    });
+
+    it("does not merge non-adjacent or mismatched rectangles", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 400, height: 600 },
+        { x: 500, y: 0, width: 300, height: 600 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(2);
+    });
+  });
+
+  describe("Extended Fit & Split Rules", () => {
+    it("scores BPCF (Best Perimeter Contact Fit) correctly when touching sheet edges", () => {
+      const score = scoreFit(1000 - 400, 800 - 300, 0, 0, 400, 300, 1000, 800, "BPCF");
+      expect(score).toBeLessThan(0);
+    });
+
+    it("splits rectangle according to MINAS (Minimize Area Split)", () => {
+      const targetRect: FreeRectangle = { x: 0, y: 0, width: 800, height: 600 };
+      const splits = splitFreeRectangle(targetRect, 500, 400, 3, "MINAS");
+      expect(splits.length).toBeGreaterThan(0);
+      const sumArea = splits.reduce((acc, r) => acc + r.width * r.height, 0);
+      expect(sumArea).toBeLessThan(800 * 600);
+    });
+  });
+
+  describe("Deterministic Extended Ensemble", () => {
+    it("packs pieces compactly using coalescing without overlapping", () => {
+      const stock: StockSheetInput[] = [{ id: "s1", name: "Ván 1000x1000", length: 1000, width: 1000 }];
+      const pieces: RequiredPieceInput[] = [
+        { id: "p1", name: "C1", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p2", name: "C2", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p3", name: "C3", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p4", name: "C4", length: 500, width: 500, quantity: 1, allowRotation: true },
+      ];
+      const res = calculateWoodCut(stock, pieces, { kerf: 0 });
+      expect(res.stockSheetsUsed).toHaveLength(1);
+      expect(res.stockSheetsUsed[0].placedPieces).toHaveLength(4);
+    });
+  });
+
+  describe("GRASP & Local Search Refinement", () => {
+    it("consistently returns optimal or near-optimal sheets within fast budget", () => {
+      const stock: StockSheetInput[] = [{ id: "s1", name: "Ván 1200x800", length: 1200, width: 800 }];
+      const pieces: RequiredPieceInput[] = [
+        { id: "p1", name: "P1", length: 600, width: 400, quantity: 2, allowRotation: true },
+        { id: "p2", name: "P2", length: 600, width: 400, quantity: 2, allowRotation: true },
+      ];
+      const res = calculateWoodCut(stock, pieces, { kerf: 3 });
+      expect(res.stockSheetsUsed.length).toBeLessThanOrEqual(2);
+    });
   });
 });

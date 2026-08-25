@@ -33,4 +33,23 @@ describe("DP Bitmask Ground Truth Solver", () => {
     expect(result.stockSheetsUsed).toHaveLength(1);
     expect(result.stockSheetsUsed[0].placedPieces.every((p) => !p.rotated)).toBe(true);
   });
+
+  it("gracefully falls back to heuristic when N > 12 without hanging or crashing", () => {
+    const stockSheet: StockSheetInput[] = [{ id: "s1", length: 2000, width: 1000 }];
+    const pieces: RequiredPieceInput[] = Array.from({ length: 16 }, (_, i) => ({
+      id: `p-${i + 1}`,
+      name: `Tấm ${i + 1}`,
+      length: 300,
+      width: 200,
+      quantity: 1,
+      allowRotation: true,
+    }));
+
+    const t0 = performance.now();
+    const res = solveGroundTruthDP(stockSheet, pieces, { kerf: 3 });
+    const t1 = performance.now();
+
+    expect(res.stockSheetsUsed.length).toBeGreaterThan(0);
+    expect(t1 - t0).toBeLessThan(1000);
+  });
 });
