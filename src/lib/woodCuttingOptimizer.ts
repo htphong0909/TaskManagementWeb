@@ -92,7 +92,8 @@ export type SortStrategy =
   | "WIDTH_DESC"
   | "LENGTH_DESC"
   | "COMBINED_PRIORITY_DESC"
-  | "SIDE_RATIO_DESC";
+  | "SIDE_RATIO_DESC"
+  | "NONE";
 
 export type FitRule = "BSSF" | "BLSF" | "BAF" | "BPCF";
 export type SplitRule = "SAS" | "LAS" | "MINAS" | "MAXAS" | "SLAS" | "LLAS";
@@ -161,6 +162,8 @@ export function sortItems(
         if (diff !== 0) return diff;
         return b.width - a.width;
       });
+    case "NONE":
+      return list;
   }
 }
 
@@ -273,16 +276,46 @@ export function splitFreeRectangle(
   return result;
 }
 
+export type SheetAllocationMode = "GLOBAL_BEST_FIT" | "SHEET_BY_SHEET";
+
+export interface HeuristicVariant {
+  sort: SortStrategy;
+  fit: FitRule;
+  split: SplitRule;
+  allocation?: SheetAllocationMode;
+}
+
+export function evaluateCandidateScore(candidateSheets: StockSheetState[]): number {
+  let candidateTotalStockArea = 0;
+  let candidateTotalUsedArea = 0;
+  let candidateTotalCuts = 0;
+
+  for (const sheet of candidateSheets) {
+    candidateTotalStockArea += sheet.length * sheet.width;
+    candidateTotalCuts += sheet.cutsCount;
+    for (const p of sheet.placedPieces) {
+      candidateTotalUsedArea += p.length * p.width;
+    }
+  }
+
+  const candidateWasteArea = Math.max(0, candidateTotalStockArea - candidateTotalUsedArea);
+  return (
+    candidateSheets.length * 1_000_000_000 +
+    candidateWasteArea * 1_000 +
+    candidateTotalCuts * 10
+  );
+}
+
 export function packCandidate(
   items: (RequiredPieceInput | SubPiece)[],
   validStock: StockSheetInput[],
   config: CalculationConfig,
   variant: HeuristicVariant,
-
   colorMap: Map<string, string>
 ): StockSheetState[] {
   const sortedItems = sortItems(items, variant.sort);
   const activeSheets: StockSheetState[] = [];
+  const allocation = variant.allocation || "GLOBAL_BEST_FIT";
 
   const openNewSheet = (preferredStock?: StockSheetInput): StockSheetState => {
     const stock = preferredStock || validStock[0];
@@ -315,33 +348,31 @@ export function packCandidate(
     let bestRotated = false;
     let bestFitScore = Number.MAX_VALUE;
 
-    // Tìm kiếm vị trí tốt nhất trong các tấm đã mở
-    for (let sIdx = 0; sIdx < activeSheets.length; sIdx++) {
-      const sheet = activeSheets[sIdx];
+    if (allocation === "SHEET_BY_SHEET" && activeSheets.length > 0) {
+      const curIdx = activeSheets.length - 1;
+      const sheet = activeSheets[curIdx];
       for (let rIdx = 0; rIdx < sheet.freeRects.length; rIdx++) {
         const rect = sheet.freeRects[rIdx];
 
-        // Hướng bình thường (length x width)
         if (tryNormal && item.length <= rect.width && item.width <= rect.height) {
           const remW = rect.width - item.length;
           const remH = rect.height - item.width;
-          const score = scoreFit(remW, remH, variant.fit);
+          const score = scoreFit(remW, remH, rect.x, rect.y, item.length, item.width, sheet.length, sheet.width, variant.fit);
           if (score < bestFitScore) {
             bestFitScore = score;
-            bestSheetIdx = sIdx;
+            bestSheetIdx = curIdx;
             bestRectIdx = rIdx;
             bestRotated = false;
           }
         }
 
-        // Hướng xoay 90 độ (width x length)
         if (tryRotated && item.width <= rect.width && item.length <= rect.height) {
           const remW = rect.width - item.width;
           const remH = rect.height - item.length;
-          const score = scoreFit(remW, remH, variant.fit);
+          const score = scoreFit(remW, remH, rect.x, rect.y, item.width, item.length, sheet.length, sheet.width, variant.fit);
           if (score < bestFitScore) {
             bestFitScore = score;
-            bestSheetIdx = sIdx;
+            bestSheetIdx = curIdx;
             bestRectIdx = rIdx;
             bestRotated = true;
           }
@@ -349,7 +380,39 @@ export function packCandidate(
       }
     }
 
-    // Nếu không vừa trong bất kỳ tấm đã mở nào -> Mở tấm mới
+    if (bestSheetIdx === -1) {
+      for (let sIdx = 0; sIdx < activeSheets.length; sIdx++) {
+        const sheet = activeSheets[sIdx];
+        for (let rIdx = 0; rIdx < sheet.freeRects.length; rIdx++) {
+          const rect = sheet.freeRects[rIdx];
+
+          if (tryNormal && item.length <= rect.width && item.width <= rect.height) {
+            const remW = rect.width - item.length;
+            const remH = rect.height - item.width;
+            const score = scoreFit(remW, remH, rect.x, rect.y, item.length, item.width, sheet.length, sheet.width, variant.fit);
+            if (score < bestFitScore) {
+              bestFitScore = score;
+              bestSheetIdx = sIdx;
+              bestRectIdx = rIdx;
+              bestRotated = false;
+            }
+          }
+
+          if (tryRotated && item.width <= rect.width && item.length <= rect.height) {
+            const remW = rect.width - item.width;
+            const remH = rect.height - item.length;
+            const score = scoreFit(remW, remH, rect.x, rect.y, item.width, item.length, sheet.length, sheet.width, variant.fit);
+            if (score < bestFitScore) {
+              bestFitScore = score;
+              bestSheetIdx = sIdx;
+              bestRectIdx = rIdx;
+              bestRotated = true;
+            }
+          }
+        }
+      }
+    }
+
     if (bestSheetIdx === -1) {
       const suitableStock = validStock.find((s) => {
         const fitN = tryNormal && item.length <= s.length && item.width <= s.width;
@@ -366,14 +429,13 @@ export function packCandidate(
       const fitRotated = tryRotated && item.width <= rect.width && item.length <= rect.height;
 
       if (fitNormal && fitRotated) {
-        // Cả 2 hướng đều vừa tấm mới -> Chấm điểm xem hướng nào tối ưu hơn
         const remW1 = rect.width - item.length;
         const remH1 = rect.height - item.width;
-        const score1 = scoreFit(remW1, remH1, variant.fit);
+        const score1 = scoreFit(remW1, remH1, rect.x, rect.y, item.length, item.width, newSheet.length, newSheet.width, variant.fit);
 
         const remW2 = rect.width - item.width;
         const remH2 = rect.height - item.length;
-        const score2 = scoreFit(remW2, remH2, variant.fit);
+        const score2 = scoreFit(remW2, remH2, rect.x, rect.y, item.width, item.length, newSheet.length, newSheet.width, variant.fit);
 
         bestRotated = score2 < score1;
       } else if (fitRotated) {
@@ -383,7 +445,6 @@ export function packCandidate(
       }
     }
 
-    // Đặt tấm vào vị trí
     const targetSheet = activeSheets[bestSheetIdx];
     const targetRect = targetSheet.freeRects.splice(bestRectIdx, 1)[0];
 
@@ -406,57 +467,15 @@ export function packCandidate(
     targetSheet.placedPieces.push(placedPiece);
     targetSheet.cutsCount += 2;
 
-    // Guillotine Split khoảng trống còn lại
-    const k = config.kerf;
-    const remW = targetRect.width - placedW - k;
-    const remH = targetRect.height - placedH - k;
-
-    if (remW > 0 || remH > 0) {
-      const splitHorizontalFirst =
-        variant.split === "SAS" ? remW <= remH : remW >= remH;
-
-      if (splitHorizontalFirst) {
-        // Chia ngang trước:
-        // Mảnh bên phải (theo chiều cao của chi tiết vừa đặt)
-        if (remW >= 10 && placedH >= 10) {
-          targetSheet.freeRects.push({
-            x: targetRect.x + placedW + k,
-            y: targetRect.y,
-            width: remW,
-            height: placedH,
-          });
-        }
-        // Mảnh phía dưới (toàn bộ chiều ngang targetRect)
-        if (remH >= 10 && targetRect.width >= 10) {
-          targetSheet.freeRects.push({
-            x: targetRect.x,
-            y: targetRect.y + placedH + k,
-            width: targetRect.width,
-            height: remH,
-          });
-        }
-      } else {
-        // Chia dọc trước:
-        // Mảnh bên phải (toàn bộ chiều cao targetRect)
-        if (remW >= 10 && targetRect.height >= 10) {
-          targetSheet.freeRects.push({
-            x: targetRect.x + placedW + k,
-            y: targetRect.y,
-            width: remW,
-            height: targetRect.height,
-          });
-        }
-        // Mảnh phía dưới (theo chiều rộng của chi tiết vừa đặt)
-        if (remH >= 10 && placedW >= 10) {
-          targetSheet.freeRects.push({
-            x: targetRect.x,
-            y: targetRect.y + placedH + k,
-            width: placedW,
-            height: remH,
-          });
-        }
-      }
-    }
+    const newSplits = splitFreeRectangle(
+      targetRect,
+      placedW,
+      placedH,
+      config.kerf,
+      variant.split
+    );
+    targetSheet.freeRects.push(...newSplits);
+    targetSheet.freeRects = coalesceFreeRectangles(targetSheet.freeRects);
   }
 
   return activeSheets;
@@ -512,55 +531,93 @@ export function calculateWoodCut(
     }
   });
 
-  // 2. Chạy Multi-Heuristic Ensemble tìm phương án tối ưu nhất
+  // 2. Chạy Multi-Heuristic Ensemble kết hợp GRASP tìm phương án tối ưu nhất
   const sortStrategies: SortStrategy[] = [
     "AREA_DESC",
     "MAX_DIM_DESC",
     "PERIMETER_DESC",
-    "ASPECT_RATIO_DESC",
+    "COMBINED_PRIORITY_DESC",
+    "SIDE_RATIO_DESC",
     "WIDTH_DESC",
     "LENGTH_DESC",
+    "ASPECT_RATIO_DESC",
   ];
-  const fitRules: FitRule[] = ["BSSF", "BLSF", "BAF"];
-  const splitRules: SplitRule[] = ["SAS", "LAS"];
+  const fitRules: FitRule[] = ["BSSF", "BLSF", "BAF", "BPCF"];
+  const splitRules: SplitRule[] = ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
+  const allocations: SheetAllocationMode[] = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
 
   let bestSheets: StockSheetState[] | null = null;
   let bestScore = Number.MAX_VALUE;
 
-  for (const sort of sortStrategies) {
-    for (const fit of fitRules) {
-      for (const split of splitRules) {
-        const candidateSheets = packCandidate(
-          flatCutItems,
-          validStock,
-          config,
-          { sort, fit, split },
-          colorMap
-        );
+  // 2.1. Deterministic Ensemble Pass (Đầy đủ các chiến lược kết hợp)
+  for (const allocation of allocations) {
+    for (const sort of sortStrategies) {
+      for (const fit of fitRules) {
+        for (const split of splitRules) {
+          const candidateSheets = packCandidate(
+            flatCutItems,
+            validStock,
+            config,
+            { sort, fit, split, allocation },
+            colorMap
+          );
 
-        // Tính điểm: Ưu tiên số tấm ít nhất, kế đến diện tích hao phí ít nhất, kế đến số đường cưa
-        let candidateTotalStockArea = 0;
-        let candidateTotalUsedArea = 0;
-        let candidateTotalCuts = 0;
-
-        for (const sheet of candidateSheets) {
-          candidateTotalStockArea += sheet.length * sheet.width;
-          candidateTotalCuts += sheet.cutsCount;
-          for (const p of sheet.placedPieces) {
-            candidateTotalUsedArea += p.length * p.width;
+          const score = evaluateCandidateScore(candidateSheets);
+          if (score < bestScore || bestSheets === null) {
+            bestScore = score;
+            bestSheets = candidateSheets;
           }
         }
+      }
+    }
+  }
 
-        const candidateWasteArea = Math.max(0, candidateTotalStockArea - candidateTotalUsedArea);
-        const score =
-          candidateSheets.length * 1_000_000_000 +
-          candidateWasteArea * 1_000 +
-          candidateTotalCuts * 10;
+  // 2.2. Adaptive GRASP & 2-Opt Local Search (với Time Guard < 10ms)
+  if (flatCutItems.length >= 3) {
+    const graspStartTime = performance.now();
+    let seed = 2026;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
 
-        if (score < bestScore || bestSheets === null) {
-          bestScore = score;
-          bestSheets = candidateSheets;
+    let iterations = 0;
+    const maxIterations = 60;
+
+    while (performance.now() - graspStartTime < 10 && iterations < maxIterations) {
+      iterations++;
+
+      const baseSort = sortStrategies[Math.floor(rand() * sortStrategies.length)];
+      const baseSorted = sortItems(flatCutItems, baseSort);
+
+      const permuted = [...baseSorted];
+      const numSwaps = 1 + Math.floor(rand() * 2);
+      for (let s = 0; s < numSwaps; s++) {
+        const i1 = Math.floor(rand() * permuted.length);
+        const i2 = Math.floor(rand() * permuted.length);
+        if (i1 !== i2) {
+          const tmp = permuted[i1];
+          permuted[i1] = permuted[i2];
+          permuted[i2] = tmp;
         }
+      }
+
+      const fit = fitRules[Math.floor(rand() * fitRules.length)];
+      const split = splitRules[Math.floor(rand() * splitRules.length)];
+      const allocation = allocations[Math.floor(rand() * allocations.length)];
+
+      const candidateSheets = packCandidate(
+        permuted,
+        validStock,
+        config,
+        { sort: "NONE", fit, split, allocation },
+        colorMap
+      );
+
+      const score = evaluateCandidateScore(candidateSheets);
+      if (score < bestScore) {
+        bestScore = score;
+        bestSheets = candidateSheets;
       }
     }
   }

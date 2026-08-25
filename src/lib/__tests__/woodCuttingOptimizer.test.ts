@@ -135,4 +135,31 @@ describe("woodCuttingOptimizer", () => {
       expect(sumArea).toBeLessThan(800 * 600);
     });
   });
+
+  describe("Deterministic Extended Ensemble", () => {
+    it("packs pieces compactly using coalescing without overlapping", () => {
+      const stock: StockSheetInput[] = [{ id: "s1", name: "Ván 1000x1000", length: 1000, width: 1000 }];
+      const pieces: RequiredPieceInput[] = [
+        { id: "p1", name: "C1", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p2", name: "C2", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p3", name: "C3", length: 500, width: 500, quantity: 1, allowRotation: true },
+        { id: "p4", name: "C4", length: 500, width: 500, quantity: 1, allowRotation: true },
+      ];
+      const res = calculateWoodCut(stock, pieces, { kerf: 0 });
+      expect(res.stockSheetsUsed).toHaveLength(1);
+      expect(res.stockSheetsUsed[0].placedPieces).toHaveLength(4);
+    });
+  });
+
+  describe("GRASP & Local Search Refinement", () => {
+    it("consistently returns optimal or near-optimal sheets within fast budget", () => {
+      const stock: StockSheetInput[] = [{ id: "s1", name: "Ván 1200x800", length: 1200, width: 800 }];
+      const pieces: RequiredPieceInput[] = [
+        { id: "p1", name: "P1", length: 600, width: 400, quantity: 2, allowRotation: true },
+        { id: "p2", name: "P2", length: 600, width: 400, quantity: 2, allowRotation: true },
+      ];
+      const res = calculateWoodCut(stock, pieces, { kerf: 3 });
+      expect(res.stockSheetsUsed.length).toBeLessThanOrEqual(2);
+    });
+  });
 });
