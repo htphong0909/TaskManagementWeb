@@ -71,8 +71,29 @@ function findOptimalDecomposition(
   }
 
   for (const { L, W } of orientations) {
+    // Xác định kích thước ván gốc tối đa theo hướng này
+    let maxStockL = 0;
+    let maxStockW = 0;
+    for (const s of stockSheets) {
+      if (orientation === "vertical") {
+        maxStockL = Math.max(maxStockL, s.length);
+        maxStockW = Math.max(maxStockW, s.width);
+      } else if (orientation === "horizontal") {
+        maxStockL = Math.max(maxStockL, s.width);
+        maxStockW = Math.max(maxStockW, s.length);
+      } else {
+        const maxD = Math.max(s.length, s.width);
+        const minD = Math.min(s.length, s.width);
+        maxStockL = Math.max(maxStockL, maxD);
+        maxStockW = Math.max(maxStockW, minD);
+      }
+    }
+
+    if (maxStockL <= 0 || maxStockW <= 0) continue;
+
     // 2. Chia 1 chiều theo Chiều Rộng (W) thành N phần
-    for (let N = 2; N <= 8; N++) {
+    const minNW_1D = Math.max(2, Math.ceil(W / maxStockW));
+    for (let N = minNW_1D; N <= minNW_1D + 2; N++) {
       // Cách 2.1: Chia đều (Balanced split)
       const wPart = Math.floor(W / N);
       const wPartsBalanced: number[] = [];
@@ -105,11 +126,10 @@ function findOptimalDecomposition(
           minPieceArea: minArea,
           variance,
         });
-        break; // Đã tìm thấy N nhỏ nhất cho kiểu chia đều theo W
+        break;
       }
 
       // Cách 2.2: Chia lấy khổ cực đại trước (Greedy Max-Stock split)
-      // Tìm max stock width phù hợp với L
       let maxFeasibleW = 0;
       for (const s of stockSheets) {
         if (L <= s.length) maxFeasibleW = Math.max(maxFeasibleW, s.width);
@@ -160,8 +180,8 @@ function findOptimalDecomposition(
     }
 
     // 3. Chia 1 chiều theo Chiều Dài (L) thành N phần
-    for (let N = 2; N <= 8; N++) {
-      // Cách 3.1: Chia đều (Balanced split)
+    const minNL_1D = Math.max(2, Math.ceil(L / maxStockL));
+    for (let N = minNL_1D; N <= minNL_1D + 2; N++) {
       const lPart = Math.floor(L / N);
       const lPartsBalanced: number[] = [];
       let currentSumL = 0;
@@ -193,13 +213,18 @@ function findOptimalDecomposition(
           minPieceArea: minArea,
           variance,
         });
-        break; // Đã tìm thấy N nhỏ nhất cho kiểu chia đều theo L
+        break;
       }
     }
 
-    // 4. Chia 2 chiều dạng Lưới (2D Grid: NL x NW)
-    for (let NL = 2; NL <= 4; NL++) {
-      for (let NW = 2; NW <= 4; NW++) {
+    // 4. Chia 2 chiều dạng Lưới Động (Dynamic 2D Grid: NL x NW)
+    const minNL_2D = Math.max(1, Math.ceil(L / maxStockL));
+    const minNW_2D = Math.max(1, Math.ceil(W / maxStockW));
+
+    for (let NL = minNL_2D; NL <= minNL_2D + 2; NL++) {
+      for (let NW = minNW_2D; NW <= minNW_2D + 2; NW++) {
+        if (NL === 1 && NW === 1) continue;
+
         const lPart = Math.floor(L / NL);
         const wPart = Math.floor(W / NW);
 
@@ -254,85 +279,48 @@ function findOptimalDecomposition(
         }
       }
     }
-
-    // 5. Chia Guillotine Asymmetric T-Cut (1 mảng lớn nguyên + 1 dải còn lại)
-    // Thử cắt theo L tại điểm splitL
-    let maxFeasibleL = 0;
-    for (const s of stockSheets) {
-      maxFeasibleL = Math.max(maxFeasibleL, s.length);
-      if (allowRot) maxFeasibleL = Math.max(maxFeasibleL, s.width);
-    }
-
-    if (L > maxFeasibleL && maxFeasibleL > 0) {
-      const mainL = maxFeasibleL;
-      const remL = L - mainL;
-      // R1: mainL x W, R2: remL x W
-      // Nếu R1 chia theo W thành K1 mảnh, R2 chia theo W thành K2 mảnh
-      for (let N1 = 1; N1 <= 4; N1++) {
-        for (let N2 = 1; N2 <= 4; N2++) {
-          const wPart1 = Math.floor(W / N1);
-          const wParts1: number[] = [];
-          let s1 = 0;
-          for (let i = 0; i < N1; i++) {
-            const v = i === N1 - 1 ? W - s1 : wPart1;
-            wParts1.push(v);
-            s1 += v;
-          }
-
-          const wPart2 = Math.floor(W / N2);
-          const wParts2: number[] = [];
-          let s2 = 0;
-          for (let i = 0; i < N2; i++) {
-            const v = i === N2 - 1 ? W - s2 : wPart2;
-            wParts2.push(v);
-            s2 += v;
-          }
-
-          const r1Fit = wParts1.every((w) => canFitInStock(mainL, w, stockSheets, orientation));
-          const r2Fit = wParts2.every((w) => canFitInStock(remL, w, stockSheets, orientation));
-
-          if (r1Fit && r2Fit) {
-            const tSubPieces: { relX: number; relY: number; length: number; width: number }[] = [];
-            let y1 = 0;
-            wParts1.forEach((w) => {
-              tSubPieces.push({ relX: 0, relY: y1, length: mainL, width: w });
-              y1 += w;
-            });
-            let y2 = 0;
-            wParts2.forEach((w) => {
-              tSubPieces.push({ relX: mainL, relY: y2, length: remL, width: w });
-              y2 += w;
-            });
-
-            const minDim = Math.min(...tSubPieces.map((p) => Math.min(p.length, p.width)));
-            const minArea = Math.min(...tSubPieces.map((p) => p.length * p.width));
-            const avgArea = (L * W) / tSubPieces.length;
-            const variance = tSubPieces.reduce((acc, p) => acc + Math.pow(p.length * p.width - avgArea, 2), 0);
-
-            candidates.push({
-              subPieces: tSubPieces,
-              targetL: L,
-              targetW: W,
-              seamCount: tSubPieces.length - 1,
-              minPieceDimension: minDim,
-              minPieceArea: minArea,
-              variance,
-            });
-          }
-        }
-      }
-    }
   }
 
+  // 5. Invariant Canonical Fallback: Nếu không có candidate nào vừa, bắt buộc sinh lưới chính xác
   if (candidates.length === 0) {
-    // Fallback nếu kích thước quá đặc biệt
+    const bestStock = stockSheets[0] || { length: 2440, width: 1220 };
+    const maxSL = allowRot
+      ? Math.max(bestStock.length, bestStock.width)
+      : orientation === "horizontal"
+      ? bestStock.width
+      : bestStock.length;
+    const maxSW = allowRot
+      ? Math.min(bestStock.length, bestStock.width)
+      : orientation === "horizontal"
+      ? bestStock.length
+      : bestStock.width;
+
+    const cNL = Math.max(1, Math.ceil(pL / maxSL));
+    const cNW = Math.max(1, Math.ceil(pW / maxSW));
+
+    const lPart = Math.floor(pL / cNL);
+    const wPart = Math.floor(pW / cNW);
+
+    const subPieces: { relX: number; relY: number; length: number; width: number }[] = [];
+    let curY = 0;
+    for (let j = 0; j < cNW; j++) {
+      const w = j === cNW - 1 ? pW - curY : wPart;
+      let curX = 0;
+      for (let i = 0; i < cNL; i++) {
+        const l = i === cNL - 1 ? pL - curX : lPart;
+        subPieces.push({ relX: curX, relY: curY, length: l, width: w });
+        curX += l;
+      }
+      curY += w;
+    }
+
     return {
-      subPieces: [{ relX: 0, relY: 0, length: pL, width: pW }],
+      subPieces,
       targetL: pL,
       targetW: pW,
-      seamCount: 0,
-      minPieceDimension: Math.min(pL, pW),
-      minPieceArea: pL * pW,
+      seamCount: subPieces.length - 1,
+      minPieceDimension: Math.min(...subPieces.map((p) => Math.min(p.length, p.width))),
+      minPieceArea: Math.min(...subPieces.map((p) => p.length * p.width)),
       variance: 0,
     };
   }

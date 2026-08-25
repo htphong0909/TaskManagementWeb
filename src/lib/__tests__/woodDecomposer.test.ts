@@ -48,4 +48,23 @@ describe("woodDecomposer", () => {
       expect(sp.allowRotation).toBe(false);
     });
   });
+
+  it("decomposes extreme oversized piece (4002 x 12210) on stock (2440 x 1220) into valid subpieces", () => {
+    const stock: StockSheetInput[] = [{ id: "s1", length: 2440, width: 1220 }];
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Tấm đại", length: 4002, width: 12210, quantity: 1, allowRotation: true },
+    ];
+
+    const { flatCutItems, joinedDiagrams } = decomposeOversizedPieces(pieces, stock, { kerf: 3, minSubPieceSize: 50 });
+
+    expect(joinedDiagrams).toHaveLength(1);
+    expect(joinedDiagrams[0].subPieces.length).toBeGreaterThanOrEqual(10);
+
+    // 100% mọi mảnh con phải nằm gọn trong ván gốc 2440 x 1220 (hoặc xoay 1220 x 2440)
+    for (const sp of flatCutItems) {
+      const fitsNormal = sp.length <= 2440 && sp.width <= 1220;
+      const fitsRotated = sp.length <= 1220 && sp.width <= 2440;
+      expect(fitsNormal || fitsRotated).toBe(true);
+    }
+  });
 });
