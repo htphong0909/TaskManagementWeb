@@ -84,17 +84,26 @@ interface StockSheetState {
   cutsCount: number;
 }
 
-type SortStrategy = "AREA_DESC" | "MAX_DIM_DESC" | "PERIMETER_DESC" | "ASPECT_RATIO_DESC" | "WIDTH_DESC" | "LENGTH_DESC";
-type FitRule = "BSSF" | "BLSF" | "BAF";
-type SplitRule = "SAS" | "LAS";
+export type SortStrategy =
+  | "AREA_DESC"
+  | "MAX_DIM_DESC"
+  | "PERIMETER_DESC"
+  | "ASPECT_RATIO_DESC"
+  | "WIDTH_DESC"
+  | "LENGTH_DESC"
+  | "COMBINED_PRIORITY_DESC"
+  | "SIDE_RATIO_DESC";
 
-interface HeuristicVariant {
+export type FitRule = "BSSF" | "BLSF" | "BAF" | "BPCF";
+export type SplitRule = "SAS" | "LAS" | "MINAS" | "MAXAS" | "SLAS" | "LLAS";
+
+export interface HeuristicVariant {
   sort: SortStrategy;
   fit: FitRule;
   split: SplitRule;
 }
 
-function sortItems(
+export function sortItems(
   items: (RequiredPieceInput | SubPiece)[],
   strategy: SortStrategy
 ): (RequiredPieceInput | SubPiece)[] {
@@ -120,11 +129,25 @@ function sortItems(
       });
     case "ASPECT_RATIO_DESC":
       return list.sort((a, b) => {
-        const ratioA = Math.max(a.length, a.width) / Math.min(a.length, a.width);
-        const ratioB = Math.max(b.length, b.width) / Math.min(b.length, b.width);
+        const ratioA = Math.max(a.length, a.width) / Math.max(1, Math.min(a.length, a.width));
+        const ratioB = Math.max(b.length, b.width) / Math.max(1, Math.min(b.length, b.width));
         const diff = ratioB - ratioA;
         if (diff !== 0) return diff;
         return b.length * b.width - a.length * a.width;
+      });
+    case "SIDE_RATIO_DESC":
+      return list.sort((a, b) => {
+        const ratioA = Math.max(a.length, a.width) / Math.max(1, Math.min(a.length, a.width));
+        const ratioB = Math.max(b.length, b.width) / Math.max(1, Math.min(b.length, b.width));
+        const diff = ratioB - ratioA;
+        if (diff !== 0) return diff;
+        return b.length * b.width - a.length * a.width;
+      });
+    case "COMBINED_PRIORITY_DESC":
+      return list.sort((a, b) => {
+        const scoreA = a.length * a.width * 10 + (a.length + a.width) * 5 + Math.max(a.length, a.width);
+        const scoreB = b.length * b.width * 10 + (b.length + b.width) * 5 + Math.max(b.length, b.width);
+        return scoreB - scoreA;
       });
     case "WIDTH_DESC":
       return list.sort((a, b) => {
@@ -141,10 +164,16 @@ function sortItems(
   }
 }
 
-function scoreFit(
+export function scoreFit(
   remW: number,
   remH: number,
-  rule: FitRule
+  placedX: number = 0,
+  placedY: number = 0,
+  placedW: number = 0,
+  placedH: number = 0,
+  sheetW: number = 0,
+  sheetH: number = 0,
+  rule: FitRule = "BSSF"
 ): number {
   switch (rule) {
     case "BSSF":
@@ -153,7 +182,95 @@ function scoreFit(
       return Math.max(remW, remH);
     case "BAF":
       return remW * remH;
+    case "BPCF": {
+      let contactPerimeter = 0;
+      if (placedX === 0) contactPerimeter += placedH;
+      if (placedY === 0) contactPerimeter += placedW;
+      if (sheetW > 0 && placedX + placedW === sheetW) contactPerimeter += placedH;
+      if (sheetH > 0 && placedY + placedH === sheetH) contactPerimeter += placedW;
+      return -contactPerimeter * 1000 + (remW * remH) / 1000;
+    }
   }
+}
+
+export function splitFreeRectangle(
+  targetRect: FreeRectangle,
+  placedW: number,
+  placedH: number,
+  kerf: number,
+  rule: SplitRule
+): FreeRectangle[] {
+  const remW = targetRect.width - placedW - kerf;
+  const remH = targetRect.height - placedH - kerf;
+  if (remW <= 0 && remH <= 0) return [];
+
+  let splitHorizontalFirst: boolean;
+
+  switch (rule) {
+    case "SAS":
+      splitHorizontalFirst = placedW <= placedH;
+      break;
+    case "LAS":
+      splitHorizontalFirst = placedW >= placedH;
+      break;
+    case "MINAS": {
+      const minAreaHoriz = Math.min(remW * placedH, targetRect.width * remH);
+      const minAreaVert = Math.min(remW * targetRect.height, placedW * remH);
+      splitHorizontalFirst = minAreaHoriz <= minAreaVert;
+      break;
+    }
+    case "MAXAS": {
+      const maxAreaHoriz = Math.max(remW * placedH, targetRect.width * remH);
+      const maxAreaVert = Math.max(remW * targetRect.height, placedW * remH);
+      splitHorizontalFirst = maxAreaHoriz >= maxAreaVert;
+      break;
+    }
+    case "SLAS":
+      splitHorizontalFirst = remW <= remH;
+      break;
+    case "LLAS":
+      splitHorizontalFirst = remW >= remH;
+      break;
+  }
+
+  const result: FreeRectangle[] = [];
+  if (splitHorizontalFirst) {
+    if (remW >= 5 && placedH >= 5) {
+      result.push({
+        x: targetRect.x + placedW + kerf,
+        y: targetRect.y,
+        width: remW,
+        height: placedH,
+      });
+    }
+    if (remH >= 5 && targetRect.width >= 5) {
+      result.push({
+        x: targetRect.x,
+        y: targetRect.y + placedH + kerf,
+        width: targetRect.width,
+        height: remH,
+      });
+    }
+  } else {
+    if (remW >= 5 && targetRect.height >= 5) {
+      result.push({
+        x: targetRect.x + placedW + kerf,
+        y: targetRect.y,
+        width: remW,
+        height: targetRect.height,
+      });
+    }
+    if (remH >= 5 && placedW >= 5) {
+      result.push({
+        x: targetRect.x,
+        y: targetRect.y + placedH + kerf,
+        width: placedW,
+        height: remH,
+      });
+    }
+  }
+
+  return result;
 }
 
 export function packCandidate(

@@ -1,4 +1,4 @@
-import { calculateWoodCut, coalesceFreeRectangles } from "../woodCuttingOptimizer";
+import { calculateWoodCut, coalesceFreeRectangles, scoreFit, splitFreeRectangle } from "../woodCuttingOptimizer";
 import { StockSheetInput, RequiredPieceInput, FreeRectangle } from "@/types/woodCut";
 
 describe("woodCuttingOptimizer", () => {
@@ -118,6 +118,21 @@ describe("woodCuttingOptimizer", () => {
       ];
       const merged = coalesceFreeRectangles(rects);
       expect(merged).toHaveLength(2);
+    });
+  });
+
+  describe("Extended Fit & Split Rules", () => {
+    it("scores BPCF (Best Perimeter Contact Fit) correctly when touching sheet edges", () => {
+      const score = scoreFit(1000 - 400, 800 - 300, 0, 0, 400, 300, 1000, 800, "BPCF");
+      expect(score).toBeLessThan(0);
+    });
+
+    it("splits rectangle according to MINAS (Minimize Area Split)", () => {
+      const targetRect: FreeRectangle = { x: 0, y: 0, width: 800, height: 600 };
+      const splits = splitFreeRectangle(targetRect, 500, 400, 3, "MINAS");
+      expect(splits.length).toBeGreaterThan(0);
+      const sumArea = splits.reduce((acc, r) => acc + r.width * r.height, 0);
+      expect(sumArea).toBeLessThan(800 * 600);
     });
   });
 });
