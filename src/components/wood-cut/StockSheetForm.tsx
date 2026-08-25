@@ -46,7 +46,7 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               value={config.kerf}
               onChange={(val) => setConfig({ ...config, kerf: val })}
               min={0}
-              max={20}
+              max={50}
               defaultValue={3}
               className="w-14 px-1.5 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
               ariaLabel="Độ dày lưỡi cưa"
@@ -72,7 +72,8 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               <NumericInput
                 value={s.length}
                 onChange={(val) => handleUpdate(s.id, "length", val)}
-                min={1}
+                min={100}
+                max={10000}
                 defaultValue={1200}
                 className="w-18 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                 placeholder="Dài"
@@ -82,7 +83,8 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
               <NumericInput
                 value={s.width}
                 onChange={(val) => handleUpdate(s.id, "width", val)}
-                min={1}
+                min={100}
+                max={10000}
                 defaultValue={600}
                 className="w-18 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                 placeholder="Rộng"

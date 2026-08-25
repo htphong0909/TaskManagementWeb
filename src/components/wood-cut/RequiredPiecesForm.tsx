@@ -17,6 +17,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
   const [batchErrors, setBatchErrors] = useState<string[]>([]);
 
   const handleAddRow = () => {
+    if (pieces.length >= 100) return;
     setPieces([
       ...pieces,
       {
@@ -174,7 +175,8 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                 <NumericInput
                   value={p.length}
                   onChange={(val) => handleUpdate(p.id, "length", val)}
-                  min={1}
+                  min={10}
+                  max={30000}
                   defaultValue={100}
                   className="w-16 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                   placeholder="Dài"
@@ -184,7 +186,8 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                 <NumericInput
                   value={p.width}
                   onChange={(val) => handleUpdate(p.id, "width", val)}
-                  min={1}
+                  min={10}
+                  max={30000}
                   defaultValue={100}
                   className="w-16 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-violet-400 text-center"
                   placeholder="Rộng"
@@ -197,6 +200,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                   value={p.quantity}
                   onChange={(val) => handleUpdate(p.id, "quantity", val)}
                   min={1}
+                  max={500}
                   defaultValue={1}
                   className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
                   ariaLabel={`Số lượng ${p.name}`}
