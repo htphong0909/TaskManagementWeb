@@ -27,6 +27,54 @@ const PASTEL_COLORS = [
   "#a3e635", // lime
 ];
 
+export function coalesceFreeRectangles(freeRects: FreeRectangle[]): FreeRectangle[] {
+  const rects: FreeRectangle[] = freeRects.map((r) => ({ ...r }));
+  let merged = true;
+
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i];
+        const b = rects[j];
+
+        // 1. Gộp Dọc (cùng x, cùng width, tiếp xúc Y)
+        if (a.x === b.x && a.width === b.width) {
+          if (a.y + a.height === b.y) {
+            a.height += b.height;
+            rects.splice(j, 1);
+            merged = true;
+            break;
+          } else if (b.y + b.height === a.y) {
+            b.height += a.height;
+            rects.splice(i, 1);
+            merged = true;
+            break;
+          }
+        }
+
+        // 2. Gộp Ngang (cùng y, cùng height, tiếp xúc X)
+        if (a.y === b.y && a.height === b.height) {
+          if (a.x + a.width === b.x) {
+            a.width += b.width;
+            rects.splice(j, 1);
+            merged = true;
+            break;
+          } else if (b.x + b.width === a.x) {
+            b.width += a.width;
+            rects.splice(i, 1);
+            merged = true;
+            break;
+          }
+        }
+      }
+      if (merged) break;
+    }
+  }
+
+  return rects;
+}
+
 interface StockSheetState {
   stockType: StockSheetInput;
   length: number;

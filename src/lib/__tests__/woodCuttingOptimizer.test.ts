@@ -1,6 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { calculateWoodCut } from "../woodCuttingOptimizer";
-import { StockSheetInput, RequiredPieceInput } from "@/types/woodCut";
+import { calculateWoodCut, coalesceFreeRectangles } from "../woodCuttingOptimizer";
+import { StockSheetInput, RequiredPieceInput, FreeRectangle } from "@/types/woodCut";
 
 describe("woodCuttingOptimizer", () => {
   const stockSheets: StockSheetInput[] = [
@@ -89,5 +88,36 @@ describe("woodCuttingOptimizer", () => {
     expect(result.stockSheetsUsed[0].placedPieces[0].rotated).toBe(true);
     expect(result.stockSheetsUsed[0].placedPieces[0].length).toBe(300);
     expect(result.stockSheetsUsed[0].placedPieces[0].width).toBe(400);
+  });
+
+  describe("FreeRectangle Coalescing", () => {
+    it("merges two vertically adjacent rectangles with the same x and width", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 500, height: 300 },
+        { x: 0, y: 300, width: 500, height: 200 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(1);
+      expect(merged[0]).toEqual({ x: 0, y: 0, width: 500, height: 500 });
+    });
+
+    it("merges two horizontally adjacent rectangles with the same y and height", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 400, height: 600 },
+        { x: 400, y: 0, width: 300, height: 600 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(1);
+      expect(merged[0]).toEqual({ x: 0, y: 0, width: 700, height: 600 });
+    });
+
+    it("does not merge non-adjacent or mismatched rectangles", () => {
+      const rects: FreeRectangle[] = [
+        { x: 0, y: 0, width: 400, height: 600 },
+        { x: 500, y: 0, width: 300, height: 600 },
+      ];
+      const merged = coalesceFreeRectangles(rects);
+      expect(merged).toHaveLength(2);
+    });
   });
 });
