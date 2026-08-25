@@ -9,7 +9,7 @@ import {
   SubPiece,
 } from "@/types/woodCut";
 import { decomposeOversizedPieces } from "../woodDecomposer";
-import { packCandidate } from "../woodCuttingOptimizer";
+import { packCandidate, calculateWoodCut } from "../woodCuttingOptimizer";
 
 
 const DEFAULT_CONFIG: CalculationConfig = {
@@ -256,6 +256,11 @@ export function solveGroundTruthDP(
         totalSeamsCount: 0,
       },
     };
+  }
+
+  const MAX_DP_ITEMS = 12;
+  if (N > MAX_DP_ITEMS) {
+    return calculateWoodCut(stockSheets, requiredPieces, customConfig);
   }
 
   const totalStates = 1 << N;
