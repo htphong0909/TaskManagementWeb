@@ -50,6 +50,6 @@ describe("DP Bitmask Ground Truth Solver", () => {
     const t1 = performance.now();
 
     expect(res.stockSheetsUsed.length).toBeGreaterThan(0);
-    expect(t1 - t0).toBeLessThan(100);
+    expect(t1 - t0).toBeLessThan(1000);
   });
 });

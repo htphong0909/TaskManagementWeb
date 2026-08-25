@@ -151,7 +151,7 @@ export function runStressBenchmark(
     heuristicTotalTimeMs: parseFloat(heuristicTotalTimeMs.toFixed(2)),
     avgGtTimeMs: parseFloat(avgGtTimeMs.toFixed(3)),
     avgHeuristicTimeMs: parseFloat(avgHeuristicTimeMs.toFixed(3)),
-    speedupFactor: parseFloat(speedupFactor.toFixed(1)),
+    speedupFactor: parseFloat(speedupFactor.toFixed(2)),
     diffs,
   };
 }
