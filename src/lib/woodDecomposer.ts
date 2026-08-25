@@ -57,39 +57,29 @@ function findOptimalDecomposition(
     };
   }
 
-  // Thử các hướng xoay của mặt gỗ ban đầu
-  const orientations: { L: number; W: number }[] = [];
-  if (orientation === "vertical") {
-    orientations.push({ L: pL, W: pW });
-  } else if (orientation === "horizontal") {
-    orientations.push({ L: pW, W: pL });
-  } else {
-    orientations.push({ L: pL, W: pW });
-    if (pL !== pW) {
-      orientations.push({ L: pW, W: pL });
+  // Luôn giữ nguyên kích thước danh định ban đầu của mặt gỗ
+  const L = pL;
+  const W = pW;
+
+  // Xác định kích thước ván gốc tối đa theo hướng này
+  let maxStockL = 0;
+  let maxStockW = 0;
+  for (const s of stockSheets) {
+    if (orientation === "vertical") {
+      maxStockL = Math.max(maxStockL, s.length);
+      maxStockW = Math.max(maxStockW, s.width);
+    } else if (orientation === "horizontal") {
+      maxStockL = Math.max(maxStockL, s.width);
+      maxStockW = Math.max(maxStockW, s.length);
+    } else {
+      const maxD = Math.max(s.length, s.width);
+      const minD = Math.min(s.length, s.width);
+      maxStockL = Math.max(maxStockL, maxD);
+      maxStockW = Math.max(maxStockW, minD);
     }
   }
 
-  for (const { L, W } of orientations) {
-    // Xác định kích thước ván gốc tối đa theo hướng này
-    let maxStockL = 0;
-    let maxStockW = 0;
-    for (const s of stockSheets) {
-      if (orientation === "vertical") {
-        maxStockL = Math.max(maxStockL, s.length);
-        maxStockW = Math.max(maxStockW, s.width);
-      } else if (orientation === "horizontal") {
-        maxStockL = Math.max(maxStockL, s.width);
-        maxStockW = Math.max(maxStockW, s.length);
-      } else {
-        const maxD = Math.max(s.length, s.width);
-        const minD = Math.min(s.length, s.width);
-        maxStockL = Math.max(maxStockL, maxD);
-        maxStockW = Math.max(maxStockW, minD);
-      }
-    }
-
-    if (maxStockL <= 0 || maxStockW <= 0) continue;
+  if (maxStockL > 0 && maxStockW > 0) {
 
     // 2. Chia 1 chiều theo Chiều Rộng (W) thành N phần
     const minNW_1D = Math.max(2, Math.ceil(W / maxStockW));

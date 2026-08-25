@@ -67,4 +67,19 @@ describe("woodDecomposer", () => {
       expect(fitsNormal || fitsRotated).toBe(true);
     }
   });
+
+  it("preserves original dimensions (targetLength x targetWidth) for horizontal orientation", () => {
+    const stock: StockSheetInput[] = [{ id: "s1", length: 2440, width: 1220 }];
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Mặt Ngang", length: 1000, width: 400, quantity: 1, orientation: "horizontal", allowRotation: false }
+    ];
+
+    const result = decomposeOversizedPieces(pieces, stock, { kerf: 3, minSubPieceSize: 50 });
+    expect(result.joinedDiagrams).toHaveLength(1);
+    expect(result.joinedDiagrams[0].targetLength).toBe(1000);
+    expect(result.joinedDiagrams[0].targetWidth).toBe(400);
+    expect(result.flatCutItems[0].orientation).toBe("horizontal");
+    expect(result.flatCutItems[0].length).toBe(1000);
+    expect(result.flatCutItems[0].width).toBe(400);
+  });
 });
