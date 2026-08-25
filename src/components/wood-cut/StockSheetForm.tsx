@@ -9,9 +9,12 @@ interface Props {
   setStockSheets: (sheets: StockSheetInput[]) => void;
   config: CalculationConfig;
   setConfig: (config: CalculationConfig) => void;
+  totalPiecesCount?: number;
 }
 
-export default function StockSheetForm({ stockSheets, setStockSheets, config, setConfig }: Props) {
+export default function StockSheetForm({ stockSheets, setStockSheets, config, setConfig, totalPiecesCount = 0 }: Props) {
+  const isOverMaxDP = totalPiecesCount > 12;
+
   const handleAddStockSheet = () => {
     setStockSheets([
       ...stockSheets,
@@ -41,24 +44,36 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
         </h2>
         <div className="flex items-center gap-3 flex-wrap">
           <label
-            className={`flex items-center gap-1.5 cursor-pointer select-none text-xs font-semibold px-2.5 py-1 rounded-xl border transition-all ${
-              config.useExactDP
-                ? "bg-amber-100 text-amber-900 border-amber-300 shadow-sm"
-                : "bg-slate-100/90 text-slate-600 hover:bg-slate-200/80 border-slate-200/60"
+            className={`flex items-center gap-1.5 select-none text-xs font-semibold px-2.5 py-1 rounded-xl border transition-all ${
+              isOverMaxDP
+                ? "bg-slate-100/60 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
+                : config.useExactDP
+                ? "bg-amber-100 text-amber-900 border-amber-300 shadow-sm cursor-pointer"
+                : "bg-slate-100/90 text-slate-600 hover:bg-slate-200/80 border-slate-200/60 cursor-pointer"
             }`}
-            title="Sử dụng thuật toán Quy hoạch động (DP) để tìm số ván ít nhất tuyệt đối (100% chuẩn toán học)"
+            title={
+              isOverMaxDP
+                ? "Đơn hàng > 12 chi tiết — Hệ thống tự động dùng Heuristic tối ưu để đảm bảo phản hồi tức thì"
+                : "Sử dụng thuật toán Quy hoạch động (DP) để tìm số ván ít nhất tuyệt đối (100% chuẩn toán học)"
+            }
           >
             <input
               type="checkbox"
-              checked={config.useExactDP === true}
+              disabled={isOverMaxDP}
+              checked={config.useExactDP === true && !isOverMaxDP}
               onChange={(e) => setConfig({ ...config, useExactDP: e.target.checked })}
               aria-label="Dùng thuật toán chính xác DP"
-              className="w-3.5 h-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-400 accent-amber-600 cursor-pointer"
+              className="w-3.5 h-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-400 accent-amber-600 cursor-pointer disabled:cursor-not-allowed"
             />
             <span className="flex items-center gap-1">
               <span>🎯</span> Chuẩn 100% (DP)
             </span>
           </label>
+          {isOverMaxDP && (
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              ⚡ Heuristic (N &gt; 12)
+            </span>
+          )}
           <label className="text-xs text-slate-600 font-semibold flex items-center gap-1">
             Lưỡi cưa (Kerf):
             <NumericInput

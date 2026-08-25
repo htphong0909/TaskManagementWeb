@@ -43,7 +43,10 @@ export default function WoodCutPage() {
         const parsed = JSON.parse(saved);
         if (parsed.stockSheets && parsed.stockSheets.length > 0) setStockSheets(parsed.stockSheets);
         if (parsed.pieces && parsed.pieces.length > 0) setPieces(parsed.pieces);
-        if (parsed.config) setConfig(parsed.config);
+        if (parsed.config) {
+          // Luôn đảm bảo khi reload không tự động bật DP để tránh freeze loop
+          setConfig({ ...parsed.config, useExactDP: false });
+        }
       }
       const savedBoard = localStorage.getItem("last_active_board_id");
       if (savedBoard) setLastBoardId(savedBoard);
@@ -57,7 +60,7 @@ export default function WoodCutPage() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ stockSheets, pieces, config })
+        JSON.stringify({ stockSheets, pieces, config: { ...config, useExactDP: false } })
       );
     } catch (e) {
       console.error("Lỗi ghi localStorage:", e);
@@ -141,6 +144,7 @@ export default function WoodCutPage() {
                 setStockSheets={setStockSheets}
                 config={config}
                 setConfig={setConfig}
+                totalPiecesCount={pieces.reduce((acc, p) => acc + (p.quantity || 1), 0)}
               />
             </div>
 
