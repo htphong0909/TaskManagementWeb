@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { StockSheetInput, RequiredPieceInput, CalculationConfig, CalculationResult } from "@/types/woodCut";
 import { calculateWoodCut } from "@/lib/woodCuttingOptimizer";
-import { solveGroundTruthDP } from "@/lib/cp/dpGroundTruthOptimizer";
 import StockSheetForm from "@/components/wood-cut/StockSheetForm";
 import RequiredPiecesForm from "@/components/wood-cut/RequiredPiecesForm";
 import WoodCutSummary from "@/components/wood-cut/WoodCutSummary";
@@ -25,7 +24,6 @@ const INITIAL_PIECES: RequiredPieceInput[] = [
 const INITIAL_CONFIG: CalculationConfig = {
   kerf: 3,
   minSubPieceSize: 50,
-  useExactDP: false,
 };
 
 export default function WoodCutPage() {
@@ -43,10 +41,7 @@ export default function WoodCutPage() {
         const parsed = JSON.parse(saved);
         if (parsed.stockSheets && parsed.stockSheets.length > 0) setStockSheets(parsed.stockSheets);
         if (parsed.pieces && parsed.pieces.length > 0) setPieces(parsed.pieces);
-        if (parsed.config) {
-          // Luôn đảm bảo khi reload không tự động bật DP để tránh freeze loop
-          setConfig({ ...parsed.config, useExactDP: false });
-        }
+        if (parsed.config) setConfig(parsed.config);
       }
       const savedBoard = localStorage.getItem("last_active_board_id");
       if (savedBoard) setLastBoardId(savedBoard);
@@ -60,7 +55,7 @@ export default function WoodCutPage() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ stockSheets, pieces, config: { ...config, useExactDP: false } })
+        JSON.stringify({ stockSheets, pieces, config })
       );
     } catch (e) {
       console.error("Lỗi ghi localStorage:", e);
@@ -69,15 +64,10 @@ export default function WoodCutPage() {
 
   const handleCalculate = () => {
     try {
-      const res = config.useExactDP
-        ? solveGroundTruthDP(stockSheets, pieces, config)
-        : calculateWoodCut(stockSheets, pieces, config);
+      const res = calculateWoodCut(stockSheets, pieces, config);
       setResult(res);
     } catch (e) {
       console.error("Lỗi tính toán cắt gỗ:", e);
-      // Fallback Heuristic nếu DP gặp lỗi quá tải
-      const fallback = calculateWoodCut(stockSheets, pieces, config);
-      setResult(fallback);
     }
   };
 
@@ -144,7 +134,6 @@ export default function WoodCutPage() {
                 setStockSheets={setStockSheets}
                 config={config}
                 setConfig={setConfig}
-                totalPiecesCount={pieces.reduce((acc, p) => acc + (p.quantity || 1), 0)}
               />
             </div>
 
