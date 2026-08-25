@@ -44,6 +44,7 @@ export default function NumericInput({
       const parsed = parseInt(cleaned, 10);
       if (!isNaN(parsed)) {
         if (max !== undefined && parsed > max) {
+          setLocalText(String(max));
           onChange(max);
         } else if (parsed >= min) {
           onChange(parsed);

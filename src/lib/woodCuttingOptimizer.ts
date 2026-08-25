@@ -489,21 +489,75 @@ export function packCandidate(
   return activeSheets;
 }
 
+export const INPUT_LIMITS = {
+  MIN_STOCK_DIM: 100,
+  MAX_STOCK_DIM: 10000,
+  MIN_PIECE_DIM: 10,
+  MAX_PIECE_DIM: 30000,
+  MAX_QUANTITY_PER_PIECE: 500,
+  MAX_TOTAL_SUBPIECES: 500,
+  MAX_KERF: 50,
+};
+
 export function calculateWoodCut(
   stockSheets: StockSheetInput[],
   requiredPieces: RequiredPieceInput[],
   customConfig?: Partial<CalculationConfig>
 ): CalculationResult {
-  const config: CalculationConfig = { ...DEFAULT_CONFIG, ...customConfig };
+  const config: CalculationConfig = {
+    ...DEFAULT_CONFIG,
+    ...customConfig,
+    kerf: Math.max(0, Math.min(INPUT_LIMITS.MAX_KERF, customConfig?.kerf ?? DEFAULT_CONFIG.kerf)),
+  };
 
-  const validStock = (stockSheets || []).filter(
-    (s) => s && s.length > 0 && s.width > 0
-  );
+  const validStock = (stockSheets || [])
+    .filter((s) => s && s.length > 0 && s.width > 0 && !isNaN(s.length) && !isNaN(s.width))
+    .map((s) => ({
+      ...s,
+      length: Math.min(INPUT_LIMITS.MAX_STOCK_DIM, Math.max(1, s.length)),
+      width: Math.min(INPUT_LIMITS.MAX_STOCK_DIM, Math.max(1, s.width)),
+    }));
+
   const validPieces = (requiredPieces || [])
-    .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0)
-    .map((p) => ({ ...p, allowRotation: p.allowRotation !== false }));
+    .filter((p) => p && p.length > 0 && p.width > 0 && p.quantity > 0 && !isNaN(p.length) && !isNaN(p.width))
+    .filter((p) => p.length <= INPUT_LIMITS.MAX_PIECE_DIM && p.width <= INPUT_LIMITS.MAX_PIECE_DIM && p.quantity <= INPUT_LIMITS.MAX_QUANTITY_PER_PIECE)
+    .map((p) => ({
+      ...p,
+      allowRotation: p.allowRotation !== false,
+    }));
 
   if (validStock.length === 0 || validPieces.length === 0) {
+    return {
+      stockSheetsUsed: [],
+      joinedPieces: [],
+      summary: {
+        totalStockSheets: 0,
+        sheetBreakdown: {},
+        totalRequiredArea: 0,
+        totalStockArea: 0,
+        totalUsedArea: 0,
+        totalWasteArea: 0,
+        efficiencyPercent: 0,
+        totalCutsCount: 0,
+        totalSeamsCount: 0,
+      },
+    };
+  }
+
+  // Pre-Flight Safety Guard: Ước tính nhanh số lượng mảnh con trước khi tính toán nặng
+  let estimatedSubpieces = 0;
+  const maxSL = Math.max(...validStock.map((s) => Math.max(s.length, s.width)));
+  const minSW = Math.max(...validStock.map((s) => Math.min(s.length, s.width)));
+
+  if (maxSL > 0 && minSW > 0) {
+    for (const p of validPieces) {
+      const nl = Math.max(1, Math.ceil(p.length / maxSL));
+      const nw = Math.max(1, Math.ceil(p.width / minSW));
+      estimatedSubpieces += nl * nw * p.quantity;
+    }
+  }
+
+  if (estimatedSubpieces > INPUT_LIMITS.MAX_TOTAL_SUBPIECES) {
     return {
       stockSheetsUsed: [],
       joinedPieces: [],

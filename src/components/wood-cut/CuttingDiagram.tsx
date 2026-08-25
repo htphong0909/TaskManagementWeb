@@ -115,7 +115,7 @@ export default function CuttingDiagram({ sheet }: Props) {
                 fontSize={Math.min(14, Math.max(9, piece.width / 8))}
                 fontWeight="700"
               >
-                {piece.length} × {piece.width} mm {piece.rotated ? "⟲" : ""}
+                {piece.length} × {piece.width} mm {piece.rotated ? "⟲ Ngang vân" : "(Dọc vân)"}
               </text>
             )}
           </g>
