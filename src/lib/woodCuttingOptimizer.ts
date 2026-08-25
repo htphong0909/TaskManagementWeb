@@ -87,6 +87,7 @@ interface StockSheetState {
 export type SortStrategy =
   | "AREA_DESC"
   | "MAX_DIM_DESC"
+  | "MIN_DIM_DESC"
   | "PERIMETER_DESC"
   | "ASPECT_RATIO_DESC"
   | "WIDTH_DESC"
@@ -102,6 +103,7 @@ export interface HeuristicVariant {
   sort: SortStrategy;
   fit: FitRule;
   split: SplitRule;
+  allocation?: SheetAllocationMode;
 }
 
 export function sortItems(
@@ -119,6 +121,12 @@ export function sortItems(
     case "MAX_DIM_DESC":
       return list.sort((a, b) => {
         const diff = Math.max(b.length, b.width) - Math.max(a.length, a.width);
+        if (diff !== 0) return diff;
+        return b.length * b.width - a.length * a.width;
+      });
+    case "MIN_DIM_DESC":
+      return list.sort((a, b) => {
+        const diff = Math.min(b.length, b.width) - Math.min(a.length, a.width);
         if (diff !== 0) return diff;
         return b.length * b.width - a.length * a.width;
       });
@@ -535,6 +543,7 @@ export function calculateWoodCut(
   const sortStrategies: SortStrategy[] = [
     "AREA_DESC",
     "MAX_DIM_DESC",
+    "MIN_DIM_DESC",
     "PERIMETER_DESC",
     "COMBINED_PRIORITY_DESC",
     "SIDE_RATIO_DESC",
@@ -572,7 +581,7 @@ export function calculateWoodCut(
     }
   }
 
-  // 2.2. Adaptive GRASP & 2-Opt Local Search (với Time Guard < 10ms)
+  // 2.2. Adaptive GRASP & 2-Opt Local Search (với Time Guard < 12ms)
   if (flatCutItems.length >= 3) {
     const graspStartTime = performance.now();
     let seed = 2026;
@@ -582,16 +591,16 @@ export function calculateWoodCut(
     };
 
     let iterations = 0;
-    const maxIterations = 60;
+    const maxIterations = 160;
 
-    while (performance.now() - graspStartTime < 10 && iterations < maxIterations) {
+    while (performance.now() - graspStartTime < 12 && iterations < maxIterations) {
       iterations++;
 
-      const baseSort = sortStrategies[Math.floor(rand() * sortStrategies.length)];
+      const baseSort = sortStrategies[iterations % sortStrategies.length];
       const baseSorted = sortItems(flatCutItems, baseSort);
 
       const permuted = [...baseSorted];
-      const numSwaps = 1 + Math.floor(rand() * 2);
+      const numSwaps = 1 + (iterations % 3);
       for (let s = 0; s < numSwaps; s++) {
         const i1 = Math.floor(rand() * permuted.length);
         const i2 = Math.floor(rand() * permuted.length);
