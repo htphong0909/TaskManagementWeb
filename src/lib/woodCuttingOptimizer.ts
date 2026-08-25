@@ -540,29 +540,41 @@ export function calculateWoodCut(
   });
 
   // 2. Chạy Multi-Heuristic Ensemble kết hợp GRASP tìm phương án tối ưu nhất
-  const sortStrategies: SortStrategy[] = [
-    "AREA_DESC",
-    "MAX_DIM_DESC",
-    "MIN_DIM_DESC",
-    "PERIMETER_DESC",
-    "COMBINED_PRIORITY_DESC",
-    "SIDE_RATIO_DESC",
-    "WIDTH_DESC",
-    "LENGTH_DESC",
-    "ASPECT_RATIO_DESC",
-  ];
-  const fitRules: FitRule[] = ["BSSF", "BLSF", "BAF", "BPCF"];
-  const splitRules: SplitRule[] = ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
+  const isLargeOrder = flatCutItems.length > 40;
+
+  const sortStrategies: SortStrategy[] = isLargeOrder
+    ? ["AREA_DESC", "MAX_DIM_DESC", "COMBINED_PRIORITY_DESC", "PERIMETER_DESC"]
+    : [
+        "AREA_DESC",
+        "MAX_DIM_DESC",
+        "MIN_DIM_DESC",
+        "PERIMETER_DESC",
+        "COMBINED_PRIORITY_DESC",
+        "SIDE_RATIO_DESC",
+        "WIDTH_DESC",
+        "LENGTH_DESC",
+        "ASPECT_RATIO_DESC",
+      ];
+  const fitRules: FitRule[] = isLargeOrder ? ["BSSF", "BPCF"] : ["BSSF", "BLSF", "BAF", "BPCF"];
+  const splitRules: SplitRule[] = isLargeOrder ? ["MINAS", "SAS", "MAXAS"] : ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
   const allocations: SheetAllocationMode[] = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
 
   let bestSheets: StockSheetState[] | null = null;
   let bestScore = Number.MAX_VALUE;
 
+  const ensembleStartTime = performance.now();
+  const maxEnsembleTimeMs = isLargeOrder ? 35 : 120;
+
   // 2.1. Deterministic Ensemble Pass (Đầy đủ các chiến lược kết hợp)
+  ensembleLoop:
   for (const allocation of allocations) {
     for (const sort of sortStrategies) {
       for (const fit of fitRules) {
         for (const split of splitRules) {
+          if (performance.now() - ensembleStartTime > maxEnsembleTimeMs && bestSheets !== null) {
+            break ensembleLoop;
+          }
+
           const candidateSheets = packCandidate(
             flatCutItems,
             validStock,
