@@ -51,7 +51,17 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
     }
 
     if (isNaN(length) || isNaN(width) || length <= 0 || width <= 0) {
-      errors.push(`Dòng ${index + 1}: Kích thước phải là số dương lớn hơn 0`);
+      errors.push(`Dòng ${index + 1}: Kích thước phải là số dương lớn hơn 0.`);
+      return;
+    }
+
+    if (length > 30000 || width > 30000) {
+      errors.push(`Dòng ${index + 1}: Kích thước (${length} × ${width}mm) vượt giới hạn tối đa (30,000mm).`);
+      return;
+    }
+
+    if (quantity > 500) {
+      errors.push(`Dòng ${index + 1}: Số lượng (${quantity}) vượt quá giới hạn tối đa (500 tấm/loại).`);
       return;
     }
 
