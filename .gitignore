@@ -42,3 +42,8 @@ next-env.d.ts
 
 # credentials
 supervise-web-*.json
+
+# superpowers temp cache
+.superpowers/
+.agents/.superpowers/
+

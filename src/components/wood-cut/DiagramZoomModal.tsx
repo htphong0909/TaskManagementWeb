@@ -40,6 +40,16 @@ export default function DiagramZoomModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Khóa cuộn trang nền (Body scroll lock) khi modal đang mở
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   // Reset transform khi mở modal mới
   useEffect(() => {
     if (isOpen) {
@@ -47,17 +57,27 @@ export default function DiagramZoomModal({
     }
   }, [isOpen, resetTransform]);
 
-  // Xử lý lăn chuột để Zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Lắng nghe sự kiện lăn chuột native với { passive: false } để ngăn chặn hoàn toàn trang ngoài bị cuộn
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!isOpen || !container) return;
 
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-    setScale((prevScale) => {
-      const nextScale = prevScale * zoomFactor;
-      return Math.min(Math.max(nextScale, 0.2), 6);
-    });
-  };
+    const onWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      setScale((prevScale) => {
+        const nextScale = prevScale * zoomFactor;
+        return Math.min(Math.max(nextScale, 0.2), 6);
+      });
+    };
+
+    container.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", onWheelNative);
+    };
+  }, [isOpen]);
 
   // Xử lý bắt đầu kéo (Drag start)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -87,7 +107,7 @@ export default function DiagramZoomModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/75 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex flex-col bg-slate-900/75 backdrop-blur-md animate-in fade-in duration-200 select-none overscroll-none touch-none"
       onMouseUp={handleMouseUp}
     >
       {/* Header Modal */}
@@ -123,10 +143,9 @@ export default function DiagramZoomModal({
       {/* Main Canvas Area (Kéo & Zoom) */}
       <div
         ref={containerRef}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
-        className={`flex-1 relative overflow-hidden flex items-center justify-center p-6 ${
+        className={`flex-1 relative overflow-hidden flex items-center justify-center p-6 overscroll-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
