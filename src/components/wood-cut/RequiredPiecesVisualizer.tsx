@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { RequiredPieceInput, WoodGrain } from "@/types/woodCut";
+import DiagramZoomModal from "./DiagramZoomModal";
 
 const PASTEL_COLORS = [
   { bg: "#ede9fe", border: "#c4b5fd", text: "#5b21b6", stroke: "#8b5cf6" }, // violet
@@ -21,7 +22,259 @@ interface Props {
 }
 
 export default function RequiredPiecesVisualizer({ pieces, stockGrain }: Props) {
+  const [activePiece, setActivePiece] = useState<RequiredPieceInput | null>(null);
+
   if (!pieces || pieces.length === 0) return null;
+
+  const renderModalSvg = (p: RequiredPieceInput) => {
+    const padding = 70;
+    const vbW = p.length + padding * 2;
+    const vbH = p.width + padding * 2;
+
+    const pieceIdx = pieces.findIndex((item) => item.id === p.id);
+    const colorTheme = PASTEL_COLORS[(pieceIdx >= 0 ? pieceIdx : 0) % PASTEL_COLORS.length];
+
+    const rawGrain: WoodGrain =
+      p.grain ||
+      (p.orientation === "vertical"
+        ? "vertical"
+        : p.orientation === "horizontal"
+        ? "horizontal"
+        : "none");
+    const effectiveGrain: WoodGrain = stockGrain === "none" ? "none" : rawGrain;
+    const patternId = `modal-grain-piece-${p.id}-${effectiveGrain}`;
+
+    const singleArea = ((p.length * p.width) / 1e6).toFixed(3);
+    const totalArea = ((p.length * p.width * p.quantity) / 1e6).toFixed(3);
+
+    const topY = padding - 28;
+    const leftX = padding - 28;
+
+    return (
+      <svg
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        className="w-full h-auto max-h-[75vh] select-none drop-shadow-md"
+      >
+        <defs>
+          {/* Mũi tên đo kích thước */}
+          <marker
+            id="dim-arrow-piece"
+            viewBox="0 0 10 10"
+            refX="5"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 0 2 L 10 5 L 0 8 z" fill="#64748b" />
+          </marker>
+          <marker
+            id="dim-arrow-piece-rev"
+            viewBox="0 0 10 10"
+            refX="5"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 10 2 L 0 5 L 10 8 z" fill="#64748b" />
+          </marker>
+
+          {/* Pattern vân gỗ */}
+          {effectiveGrain === "horizontal" && (
+            <pattern id={patternId} width="70" height="35" patternUnits="userSpaceOnUse">
+              <path
+                d="M0 10 Q35 4 70 10 M0 24 Q35 30 70 24"
+                fill="none"
+                stroke={colorTheme.stroke}
+                strokeWidth="1.4"
+                strokeOpacity="0.55"
+              />
+            </pattern>
+          )}
+          {effectiveGrain === "vertical" && (
+            <pattern id={patternId} width="35" height="70" patternUnits="userSpaceOnUse">
+              <path
+                d="M10 0 Q4 35 10 70 M24 0 Q30 35 24 70"
+                fill="none"
+                stroke={colorTheme.stroke}
+                strokeWidth="1.4"
+                strokeOpacity="0.55"
+              />
+            </pattern>
+          )}
+        </defs>
+
+        {/* --- ĐƯỜNG ĐO KÍCH THƯỚC (CAD DIMENSIONS) --- */}
+        {/* Đường gióng phụ chiều dài (top) */}
+        <line
+          x1={padding}
+          y1={padding - 5}
+          x2={padding}
+          y2={topY - 10}
+          stroke="#94a3b8"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        <line
+          x1={padding + p.length}
+          y1={padding - 5}
+          x2={padding + p.length}
+          y2={topY - 10}
+          stroke="#94a3b8"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        {/* Đường đo ngang chiều dài */}
+        <line
+          x1={padding + 8}
+          y1={topY}
+          x2={padding + p.length - 8}
+          y2={topY}
+          stroke="#475569"
+          strokeWidth="1.8"
+          markerStart="url(#dim-arrow-piece-rev)"
+          markerEnd="url(#dim-arrow-piece)"
+        />
+        {/* Nhãn chiều dài */}
+        <text
+          x={padding + p.length / 2}
+          y={topY - 8}
+          textAnchor="middle"
+          dominantBaseline="baseline"
+          fill="#334155"
+          fontSize={Math.min(22, Math.max(14, p.length / 40))}
+          fontWeight="800"
+        >
+          Dài: {p.length} mm
+        </text>
+
+        {/* Đường gióng phụ chiều rộng (left) */}
+        <line
+          x1={padding - 5}
+          y1={padding}
+          x2={leftX - 10}
+          y2={padding}
+          stroke="#94a3b8"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        <line
+          x1={padding - 5}
+          y1={padding + p.width}
+          x2={leftX - 10}
+          y2={padding + p.width}
+          stroke="#94a3b8"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        {/* Đường đo dọc chiều rộng */}
+        <line
+          x1={leftX}
+          y1={padding + 8}
+          x2={leftX}
+          y2={padding + p.width - 8}
+          stroke="#475569"
+          strokeWidth="1.8"
+          markerStart="url(#dim-arrow-piece-rev)"
+          markerEnd="url(#dim-arrow-piece)"
+        />
+        {/* Nhãn chiều rộng (xoay dọc) */}
+        <text
+          x={leftX - 10}
+          y={padding + p.width / 2}
+          textAnchor="middle"
+          dominantBaseline="ideographic"
+          fill="#334155"
+          fontSize={Math.min(22, Math.max(14, p.width / 28))}
+          fontWeight="800"
+          transform={`rotate(-90 ${leftX - 10} ${padding + p.width / 2})`}
+        >
+          Rộng: {p.width} mm
+        </text>
+
+        {/* --- HÌNH CHỮ NHẬT CHI TIẾT --- */}
+        <rect
+          x={padding}
+          y={padding}
+          width={p.length}
+          height={p.width}
+          fill={colorTheme.bg}
+          stroke={colorTheme.border}
+          strokeWidth="3.5"
+          rx="6"
+        />
+
+        {/* Lớp hoa văn vân gỗ SVG */}
+        {effectiveGrain !== "none" && (
+          <rect
+            x={padding}
+            y={padding}
+            width={p.length}
+            height={p.width}
+            fill={`url(#${patternId})`}
+            rx="6"
+          />
+        )}
+
+        {/* Khối huy hiệu trung tâm (Center Info Badge) */}
+        {p.length > 180 && p.width > 100 && (
+          <g transform={`translate(${padding + p.length / 2}, ${padding + p.width / 2})`}>
+            <rect
+              x="-120"
+              y="-44"
+              width="240"
+              height="88"
+              rx="12"
+              fill="rgba(255, 255, 255, 0.94)"
+              stroke={colorTheme.border}
+              strokeWidth="1.5"
+              className="drop-shadow-sm"
+            />
+            <text
+              x="0"
+              y="-20"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#1e293b"
+              fontSize="16"
+              fontWeight="900"
+            >
+              {p.name || "Chi tiết"}
+            </text>
+            <text
+              x="0"
+              y="4"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={colorTheme.text}
+              fontSize="13"
+              fontWeight="800"
+            >
+              {p.length} × {p.width} mm • {singleArea} m²
+              {p.quantity > 1 ? ` (Tổng: ${totalArea} m²)` : ""}
+            </text>
+            <text
+              x="0"
+              y="26"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#475569"
+              fontSize="12"
+              fontWeight="800"
+            >
+              Số lượng: {p.quantity} tấm •{" "}
+              {effectiveGrain === "horizontal"
+                ? "↔️ Vân ngang"
+                : effectiveGrain === "vertical"
+                ? "↕️ Vân dọc"
+                : "🔄 Tự do"}
+            </text>
+          </g>
+        )}
+      </svg>
+    );
+  };
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
@@ -40,22 +293,37 @@ export default function RequiredPiecesVisualizer({ pieces, stockGrain }: Props) 
         {pieces.map((p, idx) => {
           const colorTheme = PASTEL_COLORS[idx % PASTEL_COLORS.length];
           const rawGrain: WoodGrain =
-            p.grain || (p.orientation === "vertical" ? "vertical" : p.orientation === "horizontal" ? "horizontal" : "none");
+            p.grain ||
+            (p.orientation === "vertical"
+              ? "vertical"
+              : p.orientation === "horizontal"
+              ? "horizontal"
+              : "none");
           const effectiveGrain: WoodGrain = stockGrain === "none" ? "none" : rawGrain;
           const patternId = `piece-grain-pattern-${p.id}-${effectiveGrain}`;
 
           return (
             <div
               key={p.id}
-              className="bg-white/80 backdrop-blur-xs border border-slate-200/80 rounded-xl p-2 flex flex-col justify-between shadow-xs hover:border-violet-300 transition-all group"
+              onClick={() => setActivePiece(p)}
+              className="bg-white/80 backdrop-blur-xs border border-slate-200/80 rounded-xl p-2 flex flex-col justify-between shadow-xs hover:border-violet-400 hover:shadow-md hover:scale-[1.008] transition-all cursor-pointer group"
+              title="Nhấp để phóng to và xem kích thước chi tiết"
             >
               <div className="flex items-center justify-between mb-1 text-[11px]">
-                <span className="font-extrabold text-slate-800 truncate max-w-[90px] group-hover:text-violet-700 transition-colors" title={p.name}>
+                <span
+                  className="font-extrabold text-slate-800 truncate max-w-[85px] group-hover:text-violet-700 transition-colors"
+                  title={p.name}
+                >
                   {p.name || `Tấm ${idx + 1}`}
                 </span>
-                <span className="font-bold text-slate-500 text-[10px] bg-slate-100 px-1.5 py-0.2 rounded">
-                  ×{p.quantity}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-slate-500 text-[10px] bg-slate-100 px-1.5 py-0.2 rounded">
+                    ×{p.quantity}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-500 group-hover:text-violet-700 bg-white/90 px-1 py-0.2 rounded border border-slate-200 shadow-xs flex items-center gap-0.5">
+                    🔍 Xem lớn
+                  </span>
+                </div>
               </div>
 
               {/* Khung SVG đúng tỉ lệ */}
@@ -136,12 +404,41 @@ export default function RequiredPiecesVisualizer({ pieces, stockGrain }: Props) 
               </div>
 
               <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500 font-semibold">
-                <span>{p.length} × {p.width} mm</span>
+                <span>
+                  {p.length} × {p.width} mm
+                </span>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Modal Phóng To & Kéo Rê (Pan & Zoom) */}
+      {activePiece && (
+        <DiagramZoomModal
+          isOpen={true}
+          onClose={() => setActivePiece(null)}
+          title={`Chi Tiết: ${activePiece.name || "Chi tiết"} (${activePiece.length} × ${activePiece.width} mm)`}
+          subtitle={`Số lượng: ${activePiece.quantity} tấm • Hướng thớ: ${
+            stockGrain === "none"
+              ? "🔄 Tự do"
+              : activePiece.grain === "horizontal"
+              ? "↔️ Vân ngang"
+              : activePiece.grain === "vertical"
+              ? "↕️ Vân dọc"
+              : "🔄 Tự do"
+          } • Diện tích: 1 tấm = ${((activePiece.length * activePiece.width) / 1e6).toFixed(3)} m²${
+            activePiece.quantity > 1
+              ? ` (Tổng: ${((activePiece.length * activePiece.width * activePiece.quantity) / 1e6).toFixed(3)} m²)`
+              : ""
+          }`}
+          badge="Mặt gỗ cần làm"
+        >
+          <div className="w-full bg-[#fcfbf7] rounded-2xl border border-[#ded5c7] p-6 shadow-2xl flex items-center justify-center">
+            {renderModalSvg(activePiece)}
+          </div>
+        </DiagramZoomModal>
+      )}
     </div>
   );
 }
