@@ -86,6 +86,7 @@ export interface JoinedPieceDiagram {
   targetWidth: number;
   subPieces: SubPiece[];
   seamCount: number;
+  grain?: WoodGrain;
 }
 
 export interface CalculationResult {

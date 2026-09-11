@@ -416,6 +416,7 @@ export function decomposeOversizedPieces(
         targetWidth: optimal.targetW,
         subPieces,
         seamCount: optimal.seamCount,
+        grain: piece.grain,
       });
     }
   }

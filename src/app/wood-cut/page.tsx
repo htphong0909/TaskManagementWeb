@@ -17,13 +17,14 @@ const INITIAL_STOCK: StockSheetInput[] = [
 ];
 
 const INITIAL_PIECES: RequiredPieceInput[] = [
-  { id: "p-1", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, orientation: "auto", allowRotation: true },
-  { id: "p-2", name: "Tấm vuông nhỏ", length: 234, width: 234, quantity: 1, orientation: "auto", allowRotation: true },
+  { id: "p-1", name: "Mặt bàn lớn", length: 1110, width: 1230, quantity: 1, grain: "vertical", orientation: "vertical", allowRotation: false },
+  { id: "p-2", name: "Tấm vuông nhỏ", length: 234, width: 234, quantity: 1, grain: "none", orientation: "auto", allowRotation: true },
 ];
 
 const INITIAL_CONFIG: CalculationConfig = {
   kerf: 3,
   minSubPieceSize: 50,
+  stockGrain: "vertical",
 };
 
 export default function WoodCutPage() {
@@ -143,6 +144,7 @@ export default function WoodCutPage() {
                 pieces={pieces}
                 setPieces={setPieces}
                 onCalculate={handleCalculate}
+                stockGrain={config.stockGrain || "vertical"}
               />
             </div>
           </div>
@@ -219,7 +221,11 @@ export default function WoodCutPage() {
               {/* Grid 2 cột rộng rãi trên desktop */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {result.stockSheetsUsed.map((sheet) => (
-                  <CuttingDiagram key={sheet.sheetIndex} sheet={sheet} />
+                  <CuttingDiagram
+                    key={sheet.sheetIndex}
+                    sheet={sheet}
+                    stockGrain={config.stockGrain || "vertical"}
+                  />
                 ))}
               </div>
             </div>

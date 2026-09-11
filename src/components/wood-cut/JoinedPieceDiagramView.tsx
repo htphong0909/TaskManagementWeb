@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { JoinedPieceDiagram } from "@/types/woodCut";
+import { JoinedPieceDiagram, WoodGrain } from "@/types/woodCut";
 import DiagramZoomModal from "./DiagramZoomModal";
 
 interface Props {
@@ -16,6 +16,7 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
   const viewBoxHeight = diagram.targetWidth + padding * 2;
 
   const isJoined = diagram.seamCount > 0;
+  const pieceGrain: WoodGrain = diagram.grain ?? diagram.subPieces[0]?.appliedGrain ?? "none";
 
   const renderSvg = (inModal = false) => (
     <svg
@@ -24,6 +25,20 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
         inModal ? "max-h-[80vh]" : "max-h-[220px]"
       }`}
     >
+      <defs>
+        {/* Continuous Master Wood Grain Pattern across the joined piece */}
+        {pieceGrain === "vertical" && (
+          <pattern id={`joined-grain-${diagram.parentId}`} width="32" height="64" patternUnits="userSpaceOnUse">
+            <path d="M8 0 Q3 32 8 64 M20 0 Q25 32 20 64" fill="none" stroke={isJoined ? "#b45309" : "#4338ca"} strokeWidth="0.85" strokeOpacity="0.22" />
+          </pattern>
+        )}
+        {pieceGrain === "horizontal" && (
+          <pattern id={`joined-grain-${diagram.parentId}`} width="64" height="32" patternUnits="userSpaceOnUse">
+            <path d="M0 8 Q32 3 64 8 M0 20 Q32 25 64 20" fill="none" stroke={isJoined ? "#b45309" : "#4338ca"} strokeWidth="0.85" strokeOpacity="0.22" />
+          </pattern>
+        )}
+      </defs>
+
       {/* Khung viền tổng thể mặt gỗ */}
       <rect
         x={padding}
@@ -101,6 +116,19 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
           </g>
         );
       })}
+
+      {/* Lớp vân gỗ tổng thể liền mạch chứng minh hướng vân thống nhất qua các mối nối */}
+      {pieceGrain !== "none" && (
+        <rect
+          x={padding}
+          y={padding}
+          width={diagram.targetLength}
+          height={diagram.targetWidth}
+          fill={`url(#joined-grain-${diagram.parentId})`}
+          rx={4}
+          pointerEvents="none"
+        />
+      )}
     </svg>
   );
 
@@ -120,11 +148,22 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
           <div className="flex items-center gap-2.5">
             <span className="text-xl">{isJoined ? "🧩" : "🪵"}</span>
             <div>
-              <h4 className={`text-sm font-extrabold transition-colors ${
-                isJoined ? "text-amber-950 group-hover:text-amber-700" : "text-indigo-950 group-hover:text-indigo-700"
-              }`}>
-                {diagram.parentName}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className={`text-sm font-extrabold transition-colors ${
+                  isJoined ? "text-amber-950 group-hover:text-amber-700" : "text-indigo-950 group-hover:text-indigo-700"
+                }`}>
+                  {diagram.parentName}
+                </h4>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  pieceGrain === "vertical"
+                    ? "text-violet-700 bg-violet-50 border-violet-200"
+                    : pieceGrain === "horizontal"
+                    ? "text-blue-700 bg-blue-50 border-blue-200"
+                    : "text-slate-600 bg-slate-100 border-slate-200"
+                }`}>
+                  {pieceGrain === "vertical" ? "↕️ Vân dọc" : pieceGrain === "horizontal" ? "↔️ Vân ngang" : "🔄 Tự do"}
+                </span>
+              </div>
               <span className="text-[11px] font-bold text-slate-600">
                 Kích thước: {diagram.targetLength} × {diagram.targetWidth} mm
               </span>
@@ -158,8 +197,12 @@ export default function JoinedPieceDiagramView({ diagram }: Props) {
         title={`${diagram.parentName} (${diagram.targetLength} × ${diagram.targetWidth} mm)`}
         subtitle={
           isJoined
-            ? `Cấu trúc ghép từ ${diagram.subPieces.length} mẩu ván con (${diagram.seamCount} đường nối ghép)`
-            : "Mặt gỗ nguyên bản cắt trực tiếp từ ván gốc"
+            ? `Cấu trúc ghép từ ${diagram.subPieces.length} mẩu ván con (${diagram.seamCount} đường nối ghép) • Vân thớ: ${
+                pieceGrain === "vertical" ? "↕️ Vân dọc" : pieceGrain === "horizontal" ? "↔️ Vân ngang" : "Tự do"
+              }`
+            : `Mặt gỗ nguyên bản cắt trực tiếp từ ván gốc • Vân thớ: ${
+                pieceGrain === "vertical" ? "↕️ Vân dọc" : pieceGrain === "horizontal" ? "↔️ Vân ngang" : "Tự do"
+              }`
         }
         badge={isJoined ? `Ghép ${diagram.subPieces.length} mẩu` : "Tấm nguyên"}
       >
