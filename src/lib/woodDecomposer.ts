@@ -5,6 +5,7 @@ import {
   SubPiece,
   JoinedPieceDiagram,
   PieceOrientation,
+  WoodGrain,
 } from "@/types/woodCut";
 
 interface CandidateDecomposition {
@@ -22,13 +23,12 @@ function canFitInStock(
   l: number,
   w: number,
   stockSheets: StockSheetInput[],
-  orientation: PieceOrientation
+  tryNormal: boolean,
+  tryRotated: boolean
 ): boolean {
   return stockSheets.some((s) => {
-    const fitNormal = l <= s.length && w <= s.width;
-    const fitRotated = l <= s.width && w <= s.length;
-    if (orientation === "vertical") return fitNormal;
-    if (orientation === "horizontal") return fitRotated;
+    const fitNormal = tryNormal && l <= s.length && w <= s.width;
+    const fitRotated = tryRotated && l <= s.width && w <= s.length;
     return fitNormal || fitRotated;
   });
 }
@@ -38,14 +38,15 @@ function findOptimalDecomposition(
   pL: number,
   pW: number,
   stockSheets: StockSheetInput[],
-  orientation: PieceOrientation,
+  tryNormal: boolean,
+  tryRotated: boolean,
   config: CalculationConfig
 ): CandidateDecomposition {
   const candidates: CandidateDecomposition[] = [];
-  const allowRot = orientation === "auto";
+  const allowRot = tryNormal && tryRotated;
 
   // 1. Trường hợp 1 mảnh nguyên (0 vết nối)
-  if (canFitInStock(pL, pW, stockSheets, orientation)) {
+  if (canFitInStock(pL, pW, stockSheets, tryNormal, tryRotated)) {
     return {
       subPieces: [{ relX: 0, relY: 0, length: pL, width: pW }],
       targetL: pL,
@@ -65,10 +66,10 @@ function findOptimalDecomposition(
   let maxStockL = 0;
   let maxStockW = 0;
   for (const s of stockSheets) {
-    if (orientation === "vertical") {
+    if (tryNormal && !tryRotated) {
       maxStockL = Math.max(maxStockL, s.length);
       maxStockW = Math.max(maxStockW, s.width);
-    } else if (orientation === "horizontal") {
+    } else if (!tryNormal && tryRotated) {
       maxStockL = Math.max(maxStockL, s.width);
       maxStockW = Math.max(maxStockW, s.length);
     } else {
@@ -94,7 +95,7 @@ function findOptimalDecomposition(
         currentSumW += val;
       }
 
-      if (wPartsBalanced.every((w) => canFitInStock(L, w, stockSheets, orientation))) {
+      if (wPartsBalanced.every((w) => canFitInStock(L, w, stockSheets, tryNormal, tryRotated))) {
         let curY = 0;
         const subPieces = wPartsBalanced.map((w) => {
           const sp = { relX: 0, relY: curY, length: L, width: w };
@@ -143,7 +144,7 @@ function findOptimalDecomposition(
           }
         }
 
-        if (wPartsGreedy.every((w) => canFitInStock(L, w, stockSheets, orientation))) {
+        if (wPartsGreedy.every((w) => canFitInStock(L, w, stockSheets, tryNormal, tryRotated))) {
           let curY = 0;
           const subPieces = wPartsGreedy.map((w) => {
             const sp = { relX: 0, relY: curY, length: L, width: w };
@@ -181,7 +182,7 @@ function findOptimalDecomposition(
         currentSumL += val;
       }
 
-      if (lPartsBalanced.every((l) => canFitInStock(l, W, stockSheets, orientation))) {
+      if (lPartsBalanced.every((l) => canFitInStock(l, W, stockSheets, tryNormal, tryRotated))) {
         let curX = 0;
         const subPieces = lPartsBalanced.map((l) => {
           const sp = { relX: curX, relY: 0, length: l, width: W };
@@ -240,7 +241,7 @@ function findOptimalDecomposition(
         for (const w of wParts) {
           let currentX = 0;
           for (const l of lParts) {
-            if (!canFitInStock(l, w, stockSheets, orientation)) {
+            if (!canFitInStock(l, w, stockSheets, tryNormal, tryRotated)) {
               allFit = false;
               break;
             }
@@ -274,14 +275,14 @@ function findOptimalDecomposition(
   // 5. Invariant Canonical Fallback: Nếu không có candidate nào vừa, bắt buộc sinh lưới chính xác
   if (candidates.length === 0) {
     const bestStock = stockSheets[0] || { length: 2440, width: 1220 };
-    const maxSL = allowRot
+    const maxSL = (tryNormal && tryRotated)
       ? Math.max(bestStock.length, bestStock.width)
-      : orientation === "horizontal"
+      : (!tryNormal && tryRotated)
       ? bestStock.width
       : bestStock.length;
-    const maxSW = allowRot
+    const maxSW = (tryNormal && tryRotated)
       ? Math.min(bestStock.length, bestStock.width)
-      : orientation === "horizontal"
+      : (!tryNormal && tryRotated)
       ? bestStock.length
       : bestStock.width;
 
@@ -351,18 +352,45 @@ export function decomposeOversizedPieces(
     return { flatCutItems: pieces, joinedDiagrams: [] };
   }
 
+  const stockGrain: WoodGrain | undefined = config.stockGrain;
+
   for (const piece of pieces) {
     for (let q = 0; q < piece.quantity; q++) {
       const instanceId = q === 0 ? piece.id : `${piece.id}-${q + 1}`;
       const instanceName = piece.quantity > 1 ? `${piece.name} (#${q + 1})` : piece.name;
 
-      const orient = piece.orientation || (piece.allowRotation === false ? "vertical" : "auto");
-      const allowRot = orient === "auto";
+      let tryNormal = true;
+      let tryRotated = true;
+
+      if (piece.grain !== undefined || stockGrain !== undefined) {
+        const activeStockGrain: WoodGrain = stockGrain || "vertical";
+        const activePieceGrain: WoodGrain = piece.grain || "none";
+        if (activeStockGrain === "none" || activePieceGrain === "none") {
+          tryNormal = true;
+          tryRotated = true;
+        } else if (activePieceGrain === activeStockGrain) {
+          tryNormal = true;
+          tryRotated = false;
+        } else {
+          tryNormal = false;
+          tryRotated = true;
+        }
+      } else {
+        const orient = piece.orientation || (piece.allowRotation === false ? "vertical" : "auto");
+        tryNormal = orient === "vertical" || orient === "auto";
+        tryRotated = orient === "horizontal" || orient === "auto";
+      }
+
+      const allowRot = tryNormal && tryRotated;
+      const orient: PieceOrientation =
+        !allowRot ? (tryNormal ? "vertical" : "horizontal") : "auto";
+
       const optimal = findOptimalDecomposition(
         piece.length,
         piece.width,
         stockSheets,
-        orient,
+        tryNormal,
+        tryRotated,
         config
       );
 
@@ -374,6 +402,7 @@ export function decomposeOversizedPieces(
         relY: sp.relY,
         length: sp.length,
         width: sp.width,
+        grain: piece.grain,
         orientation: orient,
         allowRotation: allowRot,
       }));

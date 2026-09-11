@@ -82,14 +82,30 @@ export function validateCuttingPlanIntegrity(
       if (!p.isSubPiece) {
         const original = pieceMap.get(p.name);
         if (original) {
-          const orient = original.orientation || (original.allowRotation === false ? "vertical" : "auto");
-          if (orient === "vertical" && p.rotated) {
-            errors.push(`Chi tiết "${p.name}" bị xoay sai hướng (yêu cầu khóa vân dọc).`);
-            orientationViolationsCount++;
-          }
-          if (orient === "horizontal" && !p.rotated) {
-            errors.push(`Chi tiết "${p.name}" không xoay (yêu cầu xoay vân ngang).`);
-            orientationViolationsCount++;
+          if (original.grain !== undefined || config.stockGrain !== undefined) {
+            const stockGrain = config.stockGrain || "vertical";
+            const pieceGrain = original.grain || "none";
+            if (stockGrain !== "none" && pieceGrain !== "none") {
+              const shouldBeRotated = pieceGrain !== stockGrain;
+              if (shouldBeRotated && !p.rotated) {
+                errors.push(`Chi tiết "${p.name}" không xoay (yêu cầu xoay để đúng vân).`);
+                orientationViolationsCount++;
+              }
+              if (!shouldBeRotated && p.rotated) {
+                errors.push(`Chi tiết "${p.name}" bị xoay sai hướng (yêu cầu không xoay để đúng vân).`);
+                orientationViolationsCount++;
+              }
+            }
+          } else {
+            const orient = original.orientation || (original.allowRotation === false ? "vertical" : "auto");
+            if (orient === "vertical" && p.rotated) {
+              errors.push(`Chi tiết "${p.name}" bị xoay sai hướng (yêu cầu khóa vân dọc).`);
+              orientationViolationsCount++;
+            }
+            if (orient === "horizontal" && !p.rotated) {
+              errors.push(`Chi tiết "${p.name}" không xoay (yêu cầu xoay vân ngang).`);
+              orientationViolationsCount++;
+            }
           }
         }
       }

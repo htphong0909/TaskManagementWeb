@@ -1,8 +1,8 @@
-import { RequiredPieceInput, PieceOrientation } from "@/types/woodCut";
+import { RequiredPieceInput, PieceOrientation, WoodGrain } from "@/types/woodCut";
 
 const VERTICAL_REGEX = /(?:^|\s+)(!doc|!d|!v|!r|norot|no-rot|lock|r=0|r:0|rot=0)(?:\s+|$)/i;
 const HORIZONTAL_REGEX = /(?:^|\s+)(!ngang|!n|!h|!horiz|!horizontal)(?:\s+|$)/i;
-const AUTO_REGEX = /(?:^|\s+)(!xoay|!auto|!rot|r=1|r:1|rot=1)(?:\s+|$)/i;
+const AUTO_REGEX = /(?:^|\s+)(!xoay|!auto|!rot|!none|r=1|r:1|rot=1)(?:\s+|$)/i;
 
 export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceInput[]; errors: string[] } {
   const lines = text.split("\n");
@@ -14,15 +14,19 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
     if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("//")) return;
 
     let orientation: PieceOrientation = "auto";
+    let grain: WoodGrain = "none";
 
     if (VERTICAL_REGEX.test(trimmed)) {
       orientation = "vertical";
+      grain = "vertical";
       trimmed = trimmed.replace(VERTICAL_REGEX, " ").trim();
     } else if (HORIZONTAL_REGEX.test(trimmed)) {
       orientation = "horizontal";
+      grain = "horizontal";
       trimmed = trimmed.replace(HORIZONTAL_REGEX, " ").trim();
     } else if (AUTO_REGEX.test(trimmed)) {
       orientation = "auto";
+      grain = "none";
       trimmed = trimmed.replace(AUTO_REGEX, " ").trim();
     }
 
@@ -71,6 +75,7 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
       length: Math.round(length),
       width: Math.round(width),
       quantity,
+      grain,
       orientation,
       allowRotation,
     });
@@ -83,9 +88,9 @@ export function formatPiecesToText(pieces: RequiredPieceInput[]): string {
   return pieces
     .map((p) => {
       let tag = "";
-      const orient = p.orientation || (p.allowRotation === false ? "vertical" : "auto");
-      if (orient === "vertical") tag = " !doc";
-      else if (orient === "horizontal") tag = " !ngang";
+      const grain = p.grain || (p.orientation === "vertical" ? "vertical" : p.orientation === "horizontal" ? "horizontal" : "none");
+      if (grain === "vertical") tag = " !doc";
+      else if (grain === "horizontal") tag = " !ngang";
 
       return `${p.length}, ${p.width}${p.quantity > 1 ? `, ${p.quantity}` : ""}${tag}`;
     })
