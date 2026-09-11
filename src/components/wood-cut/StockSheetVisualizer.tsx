@@ -116,7 +116,7 @@ export default function StockSheetVisualizer({ stockSheets, stockGrain }: Props)
           x={padding + s.length / 2}
           y={topY - 8}
           textAnchor="middle"
-          dominantBaseline="baseline"
+          dominantBaseline="auto"
           fill="#334155"
           fontSize={Math.min(22, Math.max(14, s.length / 45))}
           fontWeight="800"

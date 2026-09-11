@@ -141,7 +141,7 @@ export default function RequiredPiecesVisualizer({ pieces, stockGrain }: Props) 
           x={padding + p.length / 2}
           y={topY - 8}
           textAnchor="middle"
-          dominantBaseline="baseline"
+          dominantBaseline="auto"
           fill="#334155"
           fontSize={Math.min(22, Math.max(14, p.length / 40))}
           fontWeight="800"
