@@ -1,3 +1,4 @@
+export type WoodGrain = "none" | "horizontal" | "vertical";
 export type PieceOrientation = "auto" | "vertical" | "horizontal";
 
 export interface StockSheetInput {
@@ -15,6 +16,7 @@ export interface RequiredPieceInput {
   length: number; // mm
   width: number;  // mm
   quantity: number;
+  grain?: WoodGrain;              // "none" (Tự do xoay) | "horizontal" (Vân ngang) | "vertical" (Vân dọc)
   orientation?: PieceOrientation; // "auto" (Tự do xoay) | "vertical" (Để dọc) | "horizontal" (Để ngang)
   allowRotation?: boolean;        // true = cho phép xoay 90 độ, false = giữ hướng vân gỗ
 }
@@ -22,6 +24,7 @@ export interface RequiredPieceInput {
 export interface CalculationConfig {
   kerf: number;            // Độ dày mạch cưa (mm), mặc định 3mm
   minSubPieceSize: number; // Kích thước tối thiểu của tấm ghép (mm), mặc định 50mm
+  stockGrain?: WoodGrain;  // Hướng vân ván phôi gốc: "none" | "horizontal" | "vertical" (Mặc định: "horizontal")
   useExactDP?: boolean;    // true = sử dụng thuật toán Quy hoạch động chính xác tuyệt đối
 }
 
@@ -35,6 +38,8 @@ export interface SubPiece {
   width: number;
   allowRotation: boolean;
   orientation?: PieceOrientation;
+  grain?: WoodGrain;
+  appliedGrain?: WoodGrain;
   stockSheetIndex?: number; // Số thứ tự tấm ván gốc cắt ra mẩu này (1, 2...)
   stockSheetName?: string;  // Tên ván gốc (Ván 1, Ván 2...)
   rotatedOnSheet?: boolean; // true nếu mẩu này khi cắt trên ván gốc bị xoay 90 độ
@@ -52,6 +57,7 @@ export interface PlacedPiece {
   width: number;
   rotated: boolean;
   color: string;
+  appliedGrain?: WoodGrain;
 }
 
 export interface FreeRectangle {
