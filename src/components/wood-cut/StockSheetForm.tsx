@@ -27,7 +27,7 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
     ]);
   };
 
-  const handleUpdate = (id: string, field: keyof StockSheetInput, val: any) => {
+  const handleUpdate = <K extends keyof StockSheetInput>(id: string, field: K, val: StockSheetInput[K]) => {
     setStockSheets(stockSheets.map(s => s.id === id ? { ...s, [field]: val } : s));
   };
 

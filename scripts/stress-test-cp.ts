@@ -3,7 +3,7 @@ import { runStressBenchmark } from "../src/lib/cp/cpStressTester";
 function parseArgs() {
   const args = process.argv.slice(2);
   let count = 1000;
-  let minPieces = 2;
+  const minPieces = 2;
   let maxPieces = 4;
   let startSeed = 1000;
 

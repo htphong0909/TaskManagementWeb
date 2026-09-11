@@ -1,4 +1,4 @@
-import { StockSheetInput, RequiredPieceInput, CalculationConfig } from "@/types/woodCut";
+import { StockSheetInput, RequiredPieceInput } from "@/types/woodCut";
 import { createPRNG, TestCase } from "./testGenerator";
 
 export interface HeavyGeneratorOptions {

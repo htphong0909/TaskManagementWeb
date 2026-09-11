@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { RequiredPieceInput, PieceOrientation, WoodGrain } from "@/types/woodCut";
+import { RequiredPieceInput, WoodGrain } from "@/types/woodCut";
 import { parseRequiredPiecesText, formatPiecesToText } from "@/lib/woodCutParser";
 import NumericInput from "./NumericInput";
 import RequiredPiecesVisualizer from "./RequiredPiecesVisualizer";
@@ -35,7 +35,7 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate, sto
     ]);
   };
 
-  const handleUpdate = (id: string, field: keyof RequiredPieceInput, val: any) => {
+  const handleUpdate = <K extends keyof RequiredPieceInput>(id: string, field: K, val: RequiredPieceInput[K]) => {
     setPieces(pieces.map((p) => (p.id === id ? { ...p, [field]: val } : p)));
   };
 

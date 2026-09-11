@@ -14,7 +14,7 @@ export default function WoodCutSummary({ result }: Props) {
         <span className="text-3xl block mb-2">🪚</span>
         <p className="text-sm font-bold text-slate-700">Chưa có kết quả tính toán</p>
         <p className="text-xs text-slate-400 mt-1">
-          Nhập kích thước ván gốc và các mặt gỗ cần làm ở phần thiết lập phía trên, sau đó nhấn <strong>"⚡ Tính Toán Cắt Ván"</strong>.
+          Nhập kích thước ván gốc và các mặt gỗ cần làm ở phần thiết lập phía trên, sau đó nhấn <strong>&quot;⚡ Tính Toán Cắt Ván&quot;</strong>.
         </p>
       </div>
     );
