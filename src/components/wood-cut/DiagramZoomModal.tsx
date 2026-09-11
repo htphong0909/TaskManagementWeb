@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   isOpen: boolean;
@@ -19,11 +20,16 @@ export default function DiagramZoomModal({
   badge,
   children,
 }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const resetTransform = useCallback(() => {
     setScale(1);
@@ -42,13 +48,13 @@ export default function DiagramZoomModal({
 
   // Khóa cuộn trang nền (Body scroll lock) khi modal đang mở
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !mounted) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [isOpen]);
+  }, [isOpen, mounted]);
 
   // Reset transform khi mở modal mới
   useEffect(() => {
@@ -60,7 +66,7 @@ export default function DiagramZoomModal({
   // Lắng nghe sự kiện lăn chuột native với { passive: false } để ngăn chặn hoàn toàn trang ngoài bị cuộn
   useEffect(() => {
     const container = containerRef.current;
-    if (!isOpen || !container) return;
+    if (!isOpen || !mounted || !container) return;
 
     const onWheelNative = (e: WheelEvent) => {
       e.preventDefault();
@@ -77,7 +83,7 @@ export default function DiagramZoomModal({
     return () => {
       container.removeEventListener("wheel", onWheelNative);
     };
-  }, [isOpen]);
+  }, [isOpen, mounted]);
 
   // Xử lý bắt đầu kéo (Drag start)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -103,9 +109,9 @@ export default function DiagramZoomModal({
     setIsDragging(false);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex flex-col bg-slate-900/75 backdrop-blur-md animate-in fade-in duration-200 select-none overscroll-none touch-none"
       onMouseUp={handleMouseUp}
@@ -155,7 +161,7 @@ export default function DiagramZoomModal({
             transformOrigin: "center center",
             transition: isDragging ? "none" : "transform 0.08s ease-out",
           }}
-          className="w-full max-w-5xl flex items-center justify-center pointer-events-auto"
+          className="w-full max-w-6xl xl:max-w-7xl flex items-center justify-center pointer-events-auto"
         >
           {children}
         </div>
@@ -208,6 +214,7 @@ export default function DiagramZoomModal({
       <div className="absolute bottom-6 right-6 hidden md:block text-[11px] text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
         🖱️ Lăn chuột để <strong>Phóng to/Thu nhỏ</strong> • Đè chuột trái để <strong>Kéo di chuyển</strong>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
