@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { StockSheetInput, CalculationConfig } from "@/types/woodCut";
+import { StockSheetInput, CalculationConfig, WoodGrain } from "@/types/woodCut";
 import NumericInput from "./NumericInput";
+import StockSheetVisualizer from "./StockSheetVisualizer";
 
 interface Props {
   stockSheets: StockSheetInput[];
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function StockSheetForm({ stockSheets, setStockSheets, config, setConfig }: Props) {
+  const stockGrain: WoodGrain = config.stockGrain || "vertical";
+
   const handleAddStockSheet = () => {
     setStockSheets([
       ...stockSheets,
@@ -35,20 +38,62 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
 
   return (
     <div className="bg-white/70 backdrop-blur-lg rounded-2xl border border-white/60 shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <span>📦</span> Ván Gỗ Gốc (Khổ ván mua/có sẵn)
+          <span>📦</span> Ván Gỗ Gốc
         </h2>
-        <div className="flex items-center gap-3 flex-wrap">
+
+        {/* Bộ chọn vân ván gốc (3-State Segmented Control) */}
+        <div className="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/70 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setConfig({ ...config, stockGrain: "none" })}
+            className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+              stockGrain === "none"
+                ? "bg-white text-slate-800 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+            title="Ván phôi trơn không vân (mặt gỗ tự do xoay)"
+          >
+            🚫 Không vân
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfig({ ...config, stockGrain: "vertical" })}
+            className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+              stockGrain === "vertical"
+                ? "bg-white text-violet-700 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+            title="Thớ gỗ chạy dọc theo chiều dài ván phôi (tiêu chuẩn)"
+          >
+            ↕️ Vân dọc
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfig({ ...config, stockGrain: "horizontal" })}
+            className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+              stockGrain === "horizontal"
+                ? "bg-white text-violet-700 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+            title="Thớ gỗ chạy ngang theo chiều rộng ván phôi"
+          >
+            ↔️ Vân ngang
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
           <label className="text-xs text-slate-600 font-semibold flex items-center gap-1">
-            Lưỡi cưa (Kerf):
+            Mạch cưa:
             <NumericInput
               value={config.kerf}
               onChange={(val) => setConfig({ ...config, kerf: val })}
               min={0}
               max={50}
               defaultValue={3}
-              className="w-14 px-1.5 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
+              className="w-12 px-1 py-0.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
               ariaLabel="Độ dày lưỡi cưa"
             />
             mm
@@ -116,6 +161,9 @@ export default function StockSheetForm({ stockSheets, setStockSheets, config, se
           <span>+</span> Thêm ván gốc
         </button>
       </div>
+
+      {/* Khu vực Visualize Ván Gỗ Gốc */}
+      <StockSheetVisualizer stockSheets={stockSheets} stockGrain={stockGrain} />
     </div>
   );
 }
