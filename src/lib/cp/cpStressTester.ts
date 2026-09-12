@@ -1,4 +1,4 @@
-import { generateRandomTestCase, TestCase, GeneratorOptions } from "./testGenerator";
+import { generateRandomTestCase, GeneratorOptions } from "./testGenerator";
 import { solveGroundTruth } from "./groundTruthOptimizer";
 import { calculateWoodCut } from "../woodCuttingOptimizer";
 import { CalculationResult } from "@/types/woodCut";

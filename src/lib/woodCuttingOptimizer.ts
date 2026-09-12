@@ -7,6 +7,7 @@ import {
   PlacedPiece,
   FreeRectangle,
   SubPiece,
+  WoodGrain,
 } from "@/types/woodCut";
 import { decomposeOversizedPieces } from "./woodDecomposer";
 
@@ -347,9 +348,28 @@ export function packCandidate(
         : item.parentName
       : (item as RequiredPieceInput).name;
     const itemColor = colorMap.get("parentId" in item ? (item as SubPiece).parentId : (item as RequiredPieceInput).name) || PASTEL_COLORS[0];
-    const orient = item.orientation || (item.allowRotation === false ? "vertical" : "auto");
-    const tryNormal = orient === "vertical" || orient === "auto";
-    const tryRotated = orient === "horizontal" || orient === "auto";
+    const stockGrain: WoodGrain = config.stockGrain || "vertical";
+    let tryNormal = true;
+    let tryRotated = true;
+
+    if (("grain" in item && item.grain !== undefined) || config.stockGrain !== undefined) {
+      const itemGrain: WoodGrain = ("grain" in item && item.grain) ? item.grain : "none";
+
+      if (stockGrain === "none" || itemGrain === "none") {
+        tryNormal = true;
+        tryRotated = true;
+      } else if (itemGrain === stockGrain) {
+        tryNormal = true;
+        tryRotated = false;
+      } else {
+        tryNormal = false;
+        tryRotated = true;
+      }
+    } else {
+      const orient = item.orientation || (item.allowRotation === false ? "vertical" : "auto");
+      tryNormal = orient === "vertical" || orient === "auto";
+      tryRotated = orient === "horizontal" || orient === "auto";
+    }
 
     let bestSheetIdx = -1;
     let bestRectIdx = -1;
@@ -471,6 +491,7 @@ export function packCandidate(
       width: placedH,
       rotated: bestRotated,
       color: itemColor,
+      appliedGrain: stockGrain === "none" ? "none" : stockGrain,
     };
     targetSheet.placedPieces.push(placedPiece);
     targetSheet.cutsCount += 2;

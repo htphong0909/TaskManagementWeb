@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateICPCTestSuite, ICPCTestCase } from "../cp/icpcStressTester";
+import { generateICPCTestSuite } from "../cp/icpcStressTester";
 import { calculateWoodCut } from "../woodCuttingOptimizer";
 import { validateCuttingPlanIntegrity } from "../woodCuttingValidator";
 

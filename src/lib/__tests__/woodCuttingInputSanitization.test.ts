@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateWoodCut, INPUT_LIMITS } from "../woodCuttingOptimizer";
+import { calculateWoodCut } from "../woodCuttingOptimizer";
 import { parseRequiredPiecesText } from "../woodCutParser";
 import { StockSheetInput, RequiredPieceInput } from "@/types/woodCut";
 

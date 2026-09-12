@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { PlacedStockSheet, PlacedPiece } from "@/types/woodCut";
+import { PlacedStockSheet, PlacedPiece, WoodGrain } from "@/types/woodCut";
 import DiagramZoomModal from "./DiagramZoomModal";
 
 interface Props {
   sheet: PlacedStockSheet;
+  stockGrain?: WoodGrain;
 }
 
-export default function CuttingDiagram({ sheet }: Props) {
+export default function CuttingDiagram({ sheet, stockGrain = "vertical" }: Props) {
   const [hoveredPiece, setHoveredPiece] = useState<PlacedPiece | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -25,9 +26,23 @@ export default function CuttingDiagram({ sheet }: Props) {
       }`}
     >
       <defs>
-        {/* Pattern vân gỗ mờ cho nền ván */}
-        <pattern id={`wood-grain-${sheet.sheetIndex}`} width="80" height="80" patternUnits="userSpaceOnUse">
-          <path d="M0 20 Q40 10 80 20 M0 50 Q40 60 80 50" fill="none" stroke="#eedfc8" strokeWidth="0.8" strokeOpacity="0.4" />
+        {/* Pattern vân gỗ cho nền ván gốc */}
+        {stockGrain === "vertical" && (
+          <pattern id={`wood-grain-${sheet.sheetIndex}`} width="40" height="80" patternUnits="userSpaceOnUse">
+            <path d="M10 0 Q5 40 10 80 M25 0 Q30 40 25 80" fill="none" stroke="#eedfc8" strokeWidth="0.85" strokeOpacity="0.5" />
+          </pattern>
+        )}
+        {stockGrain === "horizontal" && (
+          <pattern id={`wood-grain-${sheet.sheetIndex}`} width="80" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 10 Q40 5 80 10 M0 25 Q40 30 80 25" fill="none" stroke="#eedfc8" strokeWidth="0.85" strokeOpacity="0.5" />
+          </pattern>
+        )}
+        {/* Reusable piece grain patterns */}
+        <pattern id={`piece-grain-v-${sheet.sheetIndex}`} width="28" height="56" patternUnits="userSpaceOnUse">
+          <path d="M7 0 Q3 28 7 56 M18 0 Q22 28 18 56" fill="none" stroke="#1e1b4b" strokeWidth="0.8" strokeOpacity="0.16" />
+        </pattern>
+        <pattern id={`piece-grain-h-${sheet.sheetIndex}`} width="56" height="28" patternUnits="userSpaceOnUse">
+          <path d="M0 7 Q28 3 56 7 M0 18 Q28 22 56 18" fill="none" stroke="#1e1b4b" strokeWidth="0.8" strokeOpacity="0.16" />
         </pattern>
         {/* Pattern kẻ chéo cho phần gỗ thừa (scrap) */}
         <pattern id={`scrap-pattern-${sheet.sheetIndex}`} width="12" height="12" patternUnits="userSpaceOnUse">
@@ -46,15 +61,17 @@ export default function CuttingDiagram({ sheet }: Props) {
         strokeWidth={2.5}
         rx={6}
       />
-      {/* Lớp hoa văn vân gỗ mờ */}
-      <rect
-        x={padding}
-        y={padding}
-        width={sheet.length}
-        height={sheet.width}
-        fill={`url(#wood-grain-${sheet.sheetIndex})`}
-        rx={6}
-      />
+      {/* Lớp hoa văn vân gỗ mờ của ván gốc (nếu có vân) */}
+      {stockGrain !== "none" && (
+        <rect
+          x={padding}
+          y={padding}
+          width={sheet.length}
+          height={sheet.width}
+          fill={`url(#wood-grain-${sheet.sheetIndex})`}
+          rx={6}
+        />
+      )}
       {/* Kẻ chéo phần gỗ thừa */}
       <rect
         x={padding}
@@ -70,6 +87,21 @@ export default function CuttingDiagram({ sheet }: Props) {
         const isHovered = hoveredPiece?.id === piece.id;
         const px = padding + piece.x;
         const py = padding + piece.y;
+
+        const grain = piece.appliedGrain;
+        const grainPatternId =
+          grain === "vertical"
+            ? `piece-grain-v-${sheet.sheetIndex}`
+            : grain === "horizontal"
+            ? `piece-grain-h-${sheet.sheetIndex}`
+            : null;
+
+        const grainLabel =
+          grain === "vertical"
+            ? "↕️ Vân dọc"
+            : grain === "horizontal"
+            ? "↔️ Vân ngang"
+            : "🔄 Tự do";
 
         return (
           <g
@@ -91,31 +123,44 @@ export default function CuttingDiagram({ sheet }: Props) {
               rx={3}
             />
 
+            {/* Lớp vân gỗ của chi tiết theo appliedGrain */}
+            {grainPatternId && (
+              <rect
+                x={px}
+                y={py}
+                width={piece.length}
+                height={piece.width}
+                fill={`url(#${grainPatternId})`}
+                rx={3}
+                pointerEvents="none"
+              />
+            )}
+
             {/* Nhãn chữ kích thước & tên */}
-            {piece.length > 80 && piece.width > 40 && (
+            {piece.length > 70 && piece.width > 35 && (
               <text
                 x={px + piece.length / 2}
-                y={py + piece.width / 2 - (piece.width > 70 ? 8 : 0)}
+                y={py + piece.width / 2 - (piece.width > 65 ? 8 : 0)}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#0f172a"
-                fontSize={Math.min(18, Math.max(10, piece.width / 6))}
+                fontSize={Math.min(18, Math.max(10, piece.width / 6, piece.length / 15))}
                 fontWeight="800"
               >
                 {piece.name}
               </text>
             )}
-            {piece.length > 80 && piece.width > 60 && (
+            {piece.length > 70 && piece.width > 55 && (
               <text
                 x={px + piece.length / 2}
                 y={py + piece.width / 2 + 12}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#1e293b"
-                fontSize={Math.min(14, Math.max(9, piece.width / 8))}
+                fontSize={Math.min(14, Math.max(9, piece.width / 8.5, piece.length / 20))}
                 fontWeight="700"
               >
-                {piece.length} × {piece.width} mm {piece.rotated ? "⟲ Ngang vân" : "(Dọc vân)"}
+                {piece.length} × {piece.width} mm • {grainLabel}{piece.rotated ? " (Xoay 90°)" : ""}
               </text>
             )}
           </g>
@@ -136,9 +181,20 @@ export default function CuttingDiagram({ sheet }: Props) {
               #{sheet.sheetIndex}
             </span>
             <div>
-              <h4 className="text-sm font-extrabold text-slate-800 group-hover:text-violet-700 transition-colors">
-                Tấm ván gốc #{sheet.sheetIndex}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-extrabold text-slate-800 group-hover:text-violet-700 transition-colors">
+                  Tấm ván gốc #{sheet.sheetIndex}
+                </h4>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  stockGrain === "vertical"
+                    ? "text-violet-700 bg-violet-50 border-violet-200"
+                    : stockGrain === "horizontal"
+                    ? "text-blue-700 bg-blue-50 border-blue-200"
+                    : "text-slate-600 bg-slate-100 border-slate-200"
+                }`}>
+                  {stockGrain === "vertical" ? "↕️ Vân dọc" : stockGrain === "horizontal" ? "↔️ Vân ngang" : "🚫 Không vân"}
+                </span>
+              </div>
               <span className="text-[11px] text-slate-500 font-semibold">
                 Khổ: {sheet.length} × {sheet.width} mm
               </span>
@@ -167,8 +223,10 @@ export default function CuttingDiagram({ sheet }: Props) {
       <DiagramZoomModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={`Tấm ván gốc #${sheet.sheetIndex} (${sheet.length} × {sheet.width} mm)`}
-        subtitle={`Hiệu suất: ${sheet.efficiency}% • Gồm ${sheet.placedPieces.length} chi tiết cắt`}
+        title={`Tấm ván gốc #${sheet.sheetIndex} (${sheet.length} × ${sheet.width} mm)`}
+        subtitle={`Hiệu suất: ${sheet.efficiency}% • Gồm ${sheet.placedPieces.length} chi tiết cắt • Vân ván: ${
+          stockGrain === "vertical" ? "↕️ Vân dọc" : stockGrain === "horizontal" ? "↔️ Vân ngang" : "Không vân"
+        }`}
         badge={`Ván #${sheet.sheetIndex}`}
       >
         <div className="w-full bg-[#fbf9f4] rounded-2xl border border-[#dfd2be] p-5 shadow-2xl">

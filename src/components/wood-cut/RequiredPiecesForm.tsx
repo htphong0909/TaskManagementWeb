@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { RequiredPieceInput, PieceOrientation } from "@/types/woodCut";
+import { RequiredPieceInput, WoodGrain } from "@/types/woodCut";
 import { parseRequiredPiecesText, formatPiecesToText } from "@/lib/woodCutParser";
 import NumericInput from "./NumericInput";
+import RequiredPiecesVisualizer from "./RequiredPiecesVisualizer";
 
 interface Props {
   pieces: RequiredPieceInput[];
   setPieces: (pieces: RequiredPieceInput[]) => void;
   onCalculate: () => void;
+  stockGrain?: WoodGrain;
 }
 
-export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: Props) {
+export default function RequiredPiecesForm({ pieces, setPieces, onCalculate, stockGrain = "vertical" }: Props) {
   const [mode, setMode] = useState<"table" | "batch">("table");
   const [batchText, setBatchText] = useState("");
   const [batchErrors, setBatchErrors] = useState<string[]>([]);
@@ -26,13 +28,14 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
         length: 500,
         width: 300,
         quantity: 1,
-        orientation: "auto",
-        allowRotation: true,
+        grain: stockGrain === "none" ? "none" : "vertical",
+        orientation: stockGrain === "none" ? "auto" : "vertical",
+        allowRotation: stockGrain === "none",
       },
     ]);
   };
 
-  const handleUpdate = (id: string, field: keyof RequiredPieceInput, val: any) => {
+  const handleUpdate = <K extends keyof RequiredPieceInput>(id: string, field: K, val: RequiredPieceInput[K]) => {
     setPieces(pieces.map((p) => (p.id === id ? { ...p, [field]: val } : p)));
   };
 
@@ -60,12 +63,13 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
     setMode("batch");
   };
 
-  const handleSetAllOrientation = (orient: PieceOrientation) => {
+  const handleSetAllGrain = (grain: WoodGrain) => {
     setPieces(
       pieces.map((p) => ({
         ...p,
-        orientation: orient,
-        allowRotation: orient === "auto",
+        grain: grain,
+        orientation: grain === "vertical" ? "vertical" : grain === "horizontal" ? "horizontal" : "auto",
+        allowRotation: grain === "none",
       }))
     );
   };
@@ -80,21 +84,22 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {mode === "table" && pieces.length > 0 && (
             <select
+              disabled={stockGrain === "none"}
               onChange={(e) => {
                 if (e.target.value) {
-                  handleSetAllOrientation(e.target.value as PieceOrientation);
+                  handleSetAllGrain(e.target.value as WoodGrain);
                   e.target.value = "";
                 }
               }}
               defaultValue=""
               aria-label="Đặt hướng cho tất cả"
-              className="text-[11px] font-semibold text-slate-600 hover:text-violet-700 bg-slate-100/90 hover:bg-slate-200/80 px-2 py-1 rounded-lg transition-all border border-slate-200/60 outline-none cursor-pointer"
-              title="Đặt hướng cho tất cả các tấm"
+              className="text-[11px] font-semibold text-slate-600 hover:text-violet-700 bg-slate-100/90 hover:bg-slate-200/80 px-2 py-1 rounded-lg transition-all border border-slate-200/60 outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={stockGrain === "none" ? "Ván gốc không có vân (tất cả tấm tự do xoay)" : "Đặt hướng vân cho tất cả các tấm"}
             >
-              <option value="" disabled>📐 Đổi hướng tất cả</option>
-              <option value="auto">🔄 Tất cả tự do xoay</option>
-              <option value="vertical">↕️ Tất cả để dọc</option>
-              <option value="horizontal">↔️ Tất cả để ngang</option>
+              <option value="" disabled>📐 Đổi chiều vân tất cả</option>
+              <option value="vertical">↕️ Tất cả vân dọc</option>
+              <option value="horizontal">↔️ Tất cả vân ngang</option>
+              <option value="none">🔄 Tất cả không vân (Tự do)</option>
             </select>
           )}
           <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60">
@@ -207,23 +212,29 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
                 />
               </div>
 
-              {/* 3-Way Orientation Dropdown (Option A) */}
+              {/* 3-Way Grain Dropdown */}
               <select
-                value={p.orientation || (p.allowRotation === false ? "vertical" : "auto")}
+                value={
+                  stockGrain === "none"
+                    ? "none"
+                    : (p.grain ?? (p.orientation === "horizontal" ? "horizontal" : p.orientation === "vertical" ? "vertical" : "none"))
+                }
+                disabled={stockGrain === "none"}
                 onChange={(e) => {
-                  const orient = e.target.value as PieceOrientation;
+                  const g = e.target.value as WoodGrain;
                   handleUpdateMultiple(p.id, {
-                    orientation: orient,
-                    allowRotation: orient === "auto",
+                    grain: g,
+                    orientation: g === "vertical" ? "vertical" : g === "horizontal" ? "horizontal" : "auto",
+                    allowRotation: g === "none",
                   });
                 }}
                 aria-label={`Hướng đặt ${p.name}`}
-                className="text-[11px] font-medium text-slate-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80 outline-none focus:border-violet-400 cursor-pointer shadow-sm"
-                title="Định hướng đặt tấm trên ván (để dọc, để ngang hoặc tự do xoay)"
+                className="text-[11px] font-medium text-slate-700 bg-white px-2 py-1 rounded-lg border border-slate-200/80 outline-none focus:border-violet-400 cursor-pointer shadow-sm disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                title={stockGrain === "none" ? "Ván gốc không có vân (chi tiết tự do xoay)" : "Chọn chiều vân của chi tiết"}
               >
-                <option value="auto">🔄 Tự do xoay</option>
-                <option value="vertical">↕️ Để dọc</option>
-                <option value="horizontal">↔️ Để ngang</option>
+                <option value="vertical">↕️ Vân dọc</option>
+                <option value="horizontal">↔️ Vân ngang</option>
+                <option value="none">🔄 Không vân (Tự do)</option>
               </select>
 
               {pieces.length > 1 && (
@@ -238,6 +249,9 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate }: P
               )}
             </div>
           ))}
+
+          {/* Khu vực Visualize Mặt Gỗ Cần Làm */}
+          <RequiredPiecesVisualizer pieces={pieces} stockGrain={stockGrain} />
 
           <div className="flex items-center justify-between pt-2">
             <button
