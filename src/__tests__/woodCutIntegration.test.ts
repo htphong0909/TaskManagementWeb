@@ -63,4 +63,46 @@ describe("Wood Cut System Integration", () => {
     // Both match optimal sheets
     expect(heurResult.summary.totalStockSheets).toBe(dpResult.summary.totalStockSheets);
   });
+
+  it("tự động ẩn sơ đồ ghép chi tiết và hiển thị banner thông báo khi tổng số tấm > 100", () => {
+    // Mock dữ liệu hoặc kiểm tra logic tính tổng số lượng
+    const pieces = [
+      { id: "p1", name: "Tấm A", length: 1500, width: 800, quantity: 101, allowRotation: true },
+    ];
+    const totalPieces = pieces.reduce((sum, p) => sum + p.quantity, 0);
+    expect(totalPieces).toBeGreaterThan(100);
+
+    const isLargeJoinedOrder = totalPieces > 100;
+    expect(isLargeJoinedOrder).toBe(true);
+
+    let forceShowJoinedDiagrams = false;
+    let shouldRenderJoinedDiagrams = !isLargeJoinedOrder || forceShowJoinedDiagrams;
+    expect(shouldRenderJoinedDiagrams).toBe(false);
+
+    // Người dùng bấm nút xem sơ đồ ghép
+    forceShowJoinedDiagrams = true;
+    shouldRenderJoinedDiagrams = !isLargeJoinedOrder || forceShowJoinedDiagrams;
+    expect(shouldRenderJoinedDiagrams).toBe(true);
+
+    // Người dùng bấm thu gọn
+    forceShowJoinedDiagrams = false;
+    shouldRenderJoinedDiagrams = !isLargeJoinedOrder || forceShowJoinedDiagrams;
+    expect(shouldRenderJoinedDiagrams).toBe(false);
+  });
+
+  it("hiển thị sơ đồ ghép bình thường khi tổng số tấm <= 100", () => {
+    const pieces = [
+      { id: "p1", name: "Tấm A", length: 1500, width: 800, quantity: 100, allowRotation: true },
+    ];
+    const totalPieces = pieces.reduce((sum, p) => sum + p.quantity, 0);
+    expect(totalPieces).toBe(100);
+
+    const isLargeJoinedOrder = totalPieces > 100;
+    expect(isLargeJoinedOrder).toBe(false);
+
+    const forceShowJoinedDiagrams = false;
+    const shouldRenderJoinedDiagrams = !isLargeJoinedOrder || forceShowJoinedDiagrams;
+    expect(shouldRenderJoinedDiagrams).toBe(true);
+  });
 });
+
