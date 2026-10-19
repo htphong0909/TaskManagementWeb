@@ -515,8 +515,8 @@ export const INPUT_LIMITS = {
   MAX_STOCK_DIM: 10000,
   MIN_PIECE_DIM: 10,
   MAX_PIECE_DIM: 30000,
-  MAX_QUANTITY_PER_PIECE: 500,
-  MAX_TOTAL_SUBPIECES: 500,
+  MAX_QUANTITY_PER_PIECE: 1000,
+  MAX_TOTAL_SUBPIECES: 1000,
   MAX_KERF: 50,
 };
 
@@ -615,30 +615,52 @@ export function calculateWoodCut(
   });
 
   // 2. Chạy Multi-Heuristic Ensemble kết hợp GRASP tìm phương án tối ưu nhất
-  const isLargeOrder = flatCutItems.length > 40;
+  const isTier3LargeOrder = flatCutItems.length > 200;
+  const isTier2MediumOrder = flatCutItems.length > 40 && !isTier3LargeOrder;
 
-  const sortStrategies: SortStrategy[] = isLargeOrder
-    ? ["AREA_DESC", "MAX_DIM_DESC", "COMBINED_PRIORITY_DESC", "PERIMETER_DESC"]
-    : [
-        "AREA_DESC",
-        "MAX_DIM_DESC",
-        "MIN_DIM_DESC",
-        "PERIMETER_DESC",
-        "COMBINED_PRIORITY_DESC",
-        "SIDE_RATIO_DESC",
-        "WIDTH_DESC",
-        "LENGTH_DESC",
-        "ASPECT_RATIO_DESC",
-      ];
-  const fitRules: FitRule[] = isLargeOrder ? ["BSSF", "BPCF"] : ["BSSF", "BLSF", "BAF", "BPCF"];
-  const splitRules: SplitRule[] = isLargeOrder ? ["MINAS", "SAS", "MAXAS"] : ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
-  const allocations: SheetAllocationMode[] = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
+  let sortStrategies: SortStrategy[];
+  let fitRules: FitRule[];
+  let splitRules: SplitRule[];
+  let allocations: SheetAllocationMode[];
+  let maxEnsembleTimeMs: number;
+
+  if (isTier3LargeOrder) {
+    // Bậc 3 (> 200 tấm): Tinh gọn về 8 tổ hợp tinh hoa nhất, ngắt GRASP
+    sortStrategies = ["AREA_DESC", "COMBINED_PRIORITY_DESC"];
+    fitRules = ["BSSF", "BPCF"];
+    splitRules = ["SAS", "MINAS"];
+    allocations = ["GLOBAL_BEST_FIT"];
+    maxEnsembleTimeMs = 30;
+  } else if (isTier2MediumOrder) {
+    // Bậc 2 (41 - 200 tấm): Fast Ensemble 48 tổ hợp
+    sortStrategies = ["AREA_DESC", "MAX_DIM_DESC", "COMBINED_PRIORITY_DESC", "PERIMETER_DESC"];
+    fitRules = ["BSSF", "BPCF"];
+    splitRules = ["MINAS", "SAS", "MAXAS"];
+    allocations = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
+    maxEnsembleTimeMs = 35;
+  } else {
+    // Bậc 1 (<= 40 tấm): Full Ensemble 432 tổ hợp
+    sortStrategies = [
+      "AREA_DESC",
+      "MAX_DIM_DESC",
+      "MIN_DIM_DESC",
+      "PERIMETER_DESC",
+      "COMBINED_PRIORITY_DESC",
+      "SIDE_RATIO_DESC",
+      "WIDTH_DESC",
+      "LENGTH_DESC",
+      "ASPECT_RATIO_DESC",
+    ];
+    fitRules = ["BSSF", "BLSF", "BAF", "BPCF"];
+    splitRules = ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
+    allocations = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
+    maxEnsembleTimeMs = 120;
+  }
 
   let bestSheets: StockSheetState[] | null = null;
   let bestScore = Number.MAX_VALUE;
 
   const ensembleStartTime = performance.now();
-  const maxEnsembleTimeMs = isLargeOrder ? 35 : 120;
 
   // 2.1. Deterministic Ensemble Pass (Đầy đủ các chiến lược kết hợp)
   ensembleLoop:
@@ -668,8 +690,8 @@ export function calculateWoodCut(
     }
   }
 
-  // 2.2. Adaptive GRASP & 2-Opt Local Search (với Time Guard < 12ms)
-  if (flatCutItems.length >= 3) {
+  // 2.2. Adaptive GRASP & 2-Opt Local Search (chỉ chạy cho Bậc 1 và Bậc 2)
+  if (flatCutItems.length >= 3 && !isTier3LargeOrder) {
     const graspStartTime = performance.now();
     let seed = 2026;
     const rand = () => {
@@ -678,9 +700,10 @@ export function calculateWoodCut(
     };
 
     let iterations = 0;
-    const maxIterations = 160;
+    const maxIterations = isTier2MediumOrder ? 40 : 160;
+    const maxGraspTimeMs = isTier2MediumOrder ? 8 : 12;
 
-    while (performance.now() - graspStartTime < 12 && iterations < maxIterations) {
+    while (performance.now() - graspStartTime < maxGraspTimeMs && iterations < maxIterations) {
       iterations++;
 
       const baseSort = sortStrategies[iterations % sortStrategies.length];

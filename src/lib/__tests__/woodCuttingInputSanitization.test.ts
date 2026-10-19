@@ -82,3 +82,30 @@ describe("Input Constraints & Outlier Sanitization Safety Tests", () => {
     expect(result.stockSheetsUsed.length).toBeGreaterThan(0);
   });
 });
+
+describe("Giới hạn mở rộng 1,000 tấm & 3-Tier Adaptive Heuristic", () => {
+  it("chấp nhận và xử lý thành công đơn hàng 1,000 tấm hợp lệ", () => {
+    const stock: StockSheetInput[] = [{ id: "s1", length: 2440, width: 1220 }];
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Thanh nẹp", length: 200, width: 100, quantity: 1000, grain: "none", allowRotation: true },
+    ];
+    const startTime = performance.now();
+    const result = calculateWoodCut(stock, pieces);
+    const duration = performance.now() - startTime;
+
+    expect(result.stockSheetsUsed.length).toBeGreaterThan(0);
+    expect(result.summary.totalStockSheets).toBeGreaterThan(0);
+    // Thời gian tính toán phải nhỏ hơn 60ms
+    expect(duration).toBeLessThan(60);
+  });
+
+  it("ngắt ngay trong Pre-Flight Guard khi tổng số lượng ước tính vượt quá 1,000 mảnh", () => {
+    const stock: StockSheetInput[] = [{ id: "s1", length: 2440, width: 1220 }];
+    const pieces: RequiredPieceInput[] = [
+      { id: "p1", name: "Thanh nẹp", length: 200, width: 100, quantity: 1001, grain: "none", allowRotation: true },
+    ];
+    const result = calculateWoodCut(stock, pieces);
+    expect(result.stockSheetsUsed.length).toBe(0);
+    expect(result.summary.totalStockSheets).toBe(0);
+  });
+});
