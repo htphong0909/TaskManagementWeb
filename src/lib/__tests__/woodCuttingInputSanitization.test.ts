@@ -65,7 +65,7 @@ describe("Input Constraints & Outlier Sanitization Safety Tests", () => {
     expect(errors.length).toBeGreaterThanOrEqual(3);
     expect(errors.some((e) => e.includes("30,000mm"))).toBe(true);
     expect(errors.some((e) => e.includes("phải là số dương"))).toBe(true);
-    expect(errors.some((e) => e.includes("500 tấm/loại"))).toBe(true);
+    expect(errors.some((e) => e.includes("1,000 tấm/loại"))).toBe(true);
   });
 
   it("processes valid upper bound dimension (30,000mm) smoothly", () => {

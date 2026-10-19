@@ -95,4 +95,19 @@ describe("woodCutParser", () => {
     const text = formatPiecesToText(pieces);
     expect(text).toBe("1110, 1230, 2 !doc\n500, 600 !ngang\n234, 234");
   });
+
+  it("chấp nhận số lượng tấm lên tới 1,000 tấm mỗi loại", () => {
+    const input = "1200x600 x1000";
+    const { pieces, errors } = parseRequiredPiecesText(input);
+    expect(errors.length).toBe(0);
+    expect(pieces[0].quantity).toBe(1000);
+  });
+
+  it("báo lỗi nếu số lượng vượt quá 1,000 tấm", () => {
+    const input = "1200x600 x1001";
+    const { pieces, errors } = parseRequiredPiecesText(input);
+    expect(pieces.length).toBe(0);
+    expect(errors.length).toBe(1);
+    expect(errors[0]).toContain("1,000");
+  });
 });

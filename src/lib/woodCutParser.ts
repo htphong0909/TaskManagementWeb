@@ -64,8 +64,8 @@ export function parseRequiredPiecesText(text: string): { pieces: RequiredPieceIn
       return;
     }
 
-    if (quantity > 500) {
-      errors.push(`Dòng ${index + 1}: Số lượng (${quantity}) vượt quá giới hạn tối đa (500 tấm/loại).`);
+    if (quantity > 1000) {
+      errors.push(`Dòng ${index + 1}: Số lượng (${quantity}) vượt quá giới hạn tối đa (1,000 tấm/loại).`);
       return;
     }
 
