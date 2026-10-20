@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import LoveDaysCounter from "@/components/celebrate/LoveDaysCounter";
 import TypewriterLetter from "@/components/celebrate/TypewriterLetter";
 import PolaroidGallery from "@/components/celebrate/PolaroidGallery";
 import FloatingGiftBox from "@/components/celebrate/FloatingGiftBox";
+import Happy2010Page from "@/app/happy-20-10/page";
 
 let currentMockPathname = "/";
 vi.mock("next/navigation", () => ({
@@ -42,5 +43,18 @@ describe("20/10 Celebration Components", () => {
     currentMockPathname = "/happy-20-10";
     const { container } = render(<FloatingGiftBox />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it("mở nắp hộp quà trên trang Happy2010Page và hiển thị toàn bộ nội dung kỷ niệm", () => {
+    render(<Happy2010Page />);
+    const giftBoxButton = screen.getByRole("button", { name: /mở hộp quà/i });
+    expect(giftBoxButton).toBeDefined();
+
+    // Click mở hộp quà
+    fireEvent.click(giftBoxButton);
+
+    // Xác nhận xuất hiện thư tình và cột mốc
+    expect(screen.getByText(/Gửi em yêu của anh/i)).toBeDefined();
+    expect(screen.getByText(/CHÚC MỪNG NGÀY PHỤ NỮ VIỆT NAM 20\/10/i)).toBeDefined();
   });
 });
