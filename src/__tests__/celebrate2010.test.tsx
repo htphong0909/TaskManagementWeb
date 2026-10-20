@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import LoveDaysCounter from "@/components/celebrate/LoveDaysCounter";
 import TypewriterLetter from "@/components/celebrate/TypewriterLetter";
+import PolaroidGallery from "@/components/celebrate/PolaroidGallery";
 
 describe("20/10 Celebration Components", () => {
   it("tính toán chính xác số ngày yêu nhau từ ngày 25/04/2026", () => {
@@ -16,5 +17,11 @@ describe("20/10 Celebration Components", () => {
     render(<TypewriterLetter message={message} speed={0} />);
     const textElement = screen.getByText((content) => content.includes("Hôm nay là ngày 20/10"));
     expect(textElement).toBeDefined();
+  });
+
+  it("renders danh sách 8 bức ảnh Polaroid kỷ niệm", () => {
+    render(<PolaroidGallery onSelectImage={vi.fn()} />);
+    const images = screen.getAllByRole("img");
+    expect(images.length).toBe(8);
   });
 });
