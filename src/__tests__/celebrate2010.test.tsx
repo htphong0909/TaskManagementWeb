@@ -3,6 +3,12 @@ import { render, screen } from "@testing-library/react";
 import LoveDaysCounter from "@/components/celebrate/LoveDaysCounter";
 import TypewriterLetter from "@/components/celebrate/TypewriterLetter";
 import PolaroidGallery from "@/components/celebrate/PolaroidGallery";
+import FloatingGiftBox from "@/components/celebrate/FloatingGiftBox";
+
+let currentMockPathname = "/";
+vi.mock("next/navigation", () => ({
+  usePathname: () => currentMockPathname,
+}));
 
 describe("20/10 Celebration Components", () => {
   it("tính toán chính xác số ngày yêu nhau từ ngày 25/04/2026", () => {
@@ -23,5 +29,18 @@ describe("20/10 Celebration Components", () => {
     render(<PolaroidGallery onSelectImage={vi.fn()} />);
     const images = screen.getAllByRole("img");
     expect(images.length).toBe(8);
+  });
+
+  it("renders FloatingGiftBox widget với đường dẫn tới /happy-20-10", () => {
+    currentMockPathname = "/";
+    render(<FloatingGiftBox />);
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toBe("/happy-20-10");
+  });
+
+  it("ẩn FloatingGiftBox khi đang ở route /happy-20-10", () => {
+    currentMockPathname = "/happy-20-10";
+    const { container } = render(<FloatingGiftBox />);
+    expect(container.firstChild).toBeNull();
   });
 });
