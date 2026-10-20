@@ -630,14 +630,14 @@ export function calculateWoodCut(
     fitRules = ["BSSF", "BPCF"];
     splitRules = ["SAS", "MINAS"];
     allocations = ["GLOBAL_BEST_FIT"];
-    maxEnsembleTimeMs = 30;
+    maxEnsembleTimeMs = 150;
   } else if (isTier2MediumOrder) {
     // Bậc 2 (41 - 200 tấm): Fast Ensemble 48 tổ hợp
     sortStrategies = ["AREA_DESC", "MAX_DIM_DESC", "COMBINED_PRIORITY_DESC", "PERIMETER_DESC"];
     fitRules = ["BSSF", "BPCF"];
     splitRules = ["MINAS", "SAS", "MAXAS"];
     allocations = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
-    maxEnsembleTimeMs = 35;
+    maxEnsembleTimeMs = 150;
   } else {
     // Bậc 1 (<= 40 tấm): Full Ensemble 432 tổ hợp
     sortStrategies = [
@@ -654,7 +654,7 @@ export function calculateWoodCut(
     fitRules = ["BSSF", "BLSF", "BAF", "BPCF"];
     splitRules = ["SAS", "LAS", "MINAS", "MAXAS", "SLAS", "LLAS"];
     allocations = ["GLOBAL_BEST_FIT", "SHEET_BY_SHEET"];
-    maxEnsembleTimeMs = 120;
+    maxEnsembleTimeMs = 300;
   }
 
   let bestSheets: StockSheetState[] | null = null;
