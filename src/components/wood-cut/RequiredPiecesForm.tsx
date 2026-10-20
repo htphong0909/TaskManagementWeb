@@ -205,9 +205,9 @@ export default function RequiredPiecesForm({ pieces, setPieces, onCalculate, sto
                   value={p.quantity}
                   onChange={(val) => handleUpdate(p.id, "quantity", val)}
                   min={1}
-                  max={500}
+                  max={1000}
                   defaultValue={1}
-                  className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
+                  className="w-14 px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-violet-700 outline-none focus:border-violet-400 text-center"
                   ariaLabel={`Số lượng ${p.name}`}
                 />
               </div>

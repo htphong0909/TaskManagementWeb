@@ -33,6 +33,11 @@ export default function WoodCutPage() {
   const [config, setConfig] = useState<CalculationConfig>(INITIAL_CONFIG);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [lastBoardId, setLastBoardId] = useState<string | null>(null);
+  const [forceShowJoinedDiagrams, setForceShowJoinedDiagrams] = useState(false);
+
+  const totalPiecesCount = pieces.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0);
+  const isLargeJoinedOrder = totalPiecesCount > 100;
+  const shouldRenderJoinedDiagrams = !isLargeJoinedOrder || forceShowJoinedDiagrams;
 
   // Load from localStorage
   useEffect(() => {
@@ -184,17 +189,49 @@ export default function WoodCutPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-amber-900 bg-amber-200/80 border border-amber-400 px-3.5 py-1.5 rounded-full shadow-xs">
-                  {result.joinedPieces.length} mặt gỗ
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-black text-amber-900 bg-amber-200/80 border border-amber-400 px-3.5 py-1.5 rounded-full shadow-xs">
+                    {result.joinedPieces.length} mặt gỗ
+                  </span>
+                  {isLargeJoinedOrder && (
+                    <button
+                      type="button"
+                      onClick={() => setForceShowJoinedDiagrams(!forceShowJoinedDiagrams)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-all shadow-xs cursor-pointer"
+                    >
+                      {forceShowJoinedDiagrams ? "Thu gọn sơ đồ ghép" : "Xem sơ đồ ghép"}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Grid 3 cột trên desktop, 2 cột trên tablet */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {result.joinedPieces.map((diagram) => (
-                  <JoinedPieceDiagramView key={diagram.parentId} diagram={diagram} />
-                ))}
-              </div>
+              {/* Thông báo khi ẩn do đơn hàng lớn */}
+              {isLargeJoinedOrder && !forceShowJoinedDiagrams && (
+                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span>⚡</span>
+                    <span>
+                      Đơn hàng lớn (tổng <strong>{totalPiecesCount} tấm</strong>). Sơ đồ ghép chi tiết được ẩn để tối ưu hiệu năng hiển thị. Sơ đồ xẻ ván gốc và bảng BOM bên dưới vẫn hiển thị đầy đủ.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForceShowJoinedDiagrams(true)}
+                    className="ml-4 font-bold text-amber-800 underline hover:text-amber-950 shrink-0 cursor-pointer"
+                  >
+                    Bấm để hiển thị tất cả ({result.joinedPieces.length} sơ đồ)
+                  </button>
+                </div>
+              )}
+
+              {/* Grid 3 cột trên desktop, 2 cột trên tablet khi được phép hiển thị */}
+              {shouldRenderJoinedDiagrams && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {result.joinedPieces.map((diagram) => (
+                    <JoinedPieceDiagramView key={diagram.parentId} diagram={diagram} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
