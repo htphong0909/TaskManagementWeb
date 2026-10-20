@@ -43,7 +43,7 @@ export const POLAROID_PHOTOS: PolaroidItem[] = [
   {
     id: "photo-6",
     src: "/images/celebrate-20-10/thy-gentle-smile.jpg",
-    caption: "Em luôn là cô gái xinh đẹp nhất của anh 🌸",
+    caption: "Em yêu luôn là cô gái xinh đẹp nhất của anh 🌸",
     rotation: "rotate-1",
   },
   {
@@ -72,7 +72,7 @@ export default function PolaroidGallery({ onSelectImage }: Props) {
           <span>📸</span> Kho Báu Kỷ Niệm Của Chúng Mình
         </h3>
         <p className="text-xs text-rose-500 font-medium">
-          Chạm vào từng bức ảnh để xem phóng to và thả tim nhé em
+          Chạm vào từng bức ảnh để xem phóng to và thả tim nhé em yêu ✨
         </p>
       </div>
 

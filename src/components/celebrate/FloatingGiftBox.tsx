@@ -15,7 +15,7 @@ export default function FloatingGiftBox() {
       {/* Tooltip ngọt ngào */}
       <div className="absolute bottom-full right-0 mb-3 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <div className="bg-rose-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-2xl shadow-xl whitespace-nowrap flex items-center gap-1.5 animate-bounce">
-          <span>🎀</span> Món quà 20/10 dành riêng cho em Thy ✨
+          <span>🎀</span> Món quà 20/10 dành riêng cho em yêu ✨
         </div>
       </div>
 

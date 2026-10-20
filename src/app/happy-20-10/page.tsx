@@ -41,7 +41,10 @@ export default function Happy2010Page() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-b from-rose-100/70 via-pink-50/50 to-rose-100/60 pb-20 select-none">
+    <main
+      className="relative min-h-screen overflow-x-hidden bg-[#fff0f3] bg-gradient-to-b from-[#ffd6de] via-[#fff5f7] to-[#ffd6de] text-slate-800 pb-20 select-none font-sans"
+      style={{ colorScheme: "light" }}
+    >
       {/* Cánh hoa & Tim bay lãng mạn ngập tràn màn hình */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {floatingPetals.map((petal) => (
@@ -64,7 +67,7 @@ export default function Happy2010Page() {
       <div className="fixed top-5 left-5 z-40">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/80 hover:bg-white text-slate-700 text-xs font-bold shadow-md hover:shadow-lg transition-all border border-rose-200 backdrop-blur-md cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-rose-50 text-slate-700 text-xs font-bold shadow-md hover:shadow-lg transition-all border border-rose-200 cursor-pointer"
         >
           <span>←</span> Quay lại Workspace
         </Link>
@@ -82,7 +85,7 @@ export default function Happy2010Page() {
                 20 Tháng 10 • Vietnamese Women&apos;s Day
               </span>
               <h1 className="text-3xl sm:text-4xl font-black text-rose-800 tracking-tight">
-                Món Quà Dành Riêng Cho Em Thy 💝
+                Món Quà Dành Riêng Cho Em Yêu 💝
               </h1>
               <p className="text-sm font-medium text-slate-600">
                 Anh có một điều bất ngờ đặc biệt muốn gửi tặng em...
@@ -117,7 +120,7 @@ export default function Happy2010Page() {
 
               {/* Tag nhãn gắn vào hộp */}
               <div className="absolute -bottom-3 -right-2 bg-white text-rose-600 text-xs font-black px-3 py-1 rounded-xl shadow-lg border border-rose-200 rotate-6 group-hover:rotate-0 transition-transform">
-                Gửi: Bé Thy Yêu ❤️
+                Gửi: Em Yêu ❤️
               </div>
             </div>
 
@@ -145,7 +148,7 @@ export default function Happy2010Page() {
               Gửi Người Con Gái Tuyệt Vời Nhất Của Anh
             </h1>
             <p className="text-sm sm:text-base font-semibold text-rose-600">
-              Phong ❤️ Thy — Mãi Mãi Một Tình Yêu
+              Anh ❤️ Em Yêu — Mãi Mãi Một Tình Yêu
             </p>
           </header>
 
@@ -170,7 +173,7 @@ export default function Happy2010Page() {
               Chúc em một ngày 20/10 thật nhiều niềm vui, luôn xinh đẹp và rạng rỡ nhất! 🌹
             </p>
             <p className="text-xs text-rose-400 font-medium">
-              Made with endless love by Phong for Thy 💕
+              Made with endless love for em yêu 💕
             </p>
           </footer>
         </div>
